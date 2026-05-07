@@ -1,0 +1,85 @@
+{
+  "name": "agentflow-studio",
+  "version": "1.0.0",
+  "description": "Local AI project orchestration hub for Claude Code, Codex, Cursor and more",
+  "main": "dist-electron/main/index.js",
+  "author": "AgentFlow Studio",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && tsc -p tsconfig.node.json",
+    "dist": "npm run build && electron-builder",
+    "preview": "vite preview",
+    "test": "vitest run --config vite.config.ts",
+    "test:watch": "vitest --config vite.config.ts",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src/ tests/ --ext .ts,.tsx --max-warnings 20",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tests/**/*.ts\"",
+    "icon": "node scripts/create-icon.js",
+    "shortcut": "powershell -ExecutionPolicy Bypass -File scripts/create-shortcut.ps1",
+    "verify": "node scripts/verify-build.js",
+    "release": "npm run verify && npm run build && npm run dist"
+  },
+  "build": {
+    "appId": "studio.agentflow.app",
+    "productName": "AgentFlow Studio",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "assets/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "extraResources": [
+      {
+        "from": "data/",
+        "to": "data/",
+        "filter": ["**/*"]
+      }
+    ]
+  },
+  "dependencies": {
+    "simple-git": "^3.27.0",
+    "echarts": "^5.6.0",
+    "lucide-react": "^0.487.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0",
+    "uuid": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@types/uuid": "^10.0.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "autoprefixer": "^10.4.20",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.0",
+    "eslint": "^8.57.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint-plugin-react": "^7.37.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "playwright": "^1.49.0",
+    "postcss": "^8.4.49",
+    "prettier": "^3.4.0",
+    "tailwindcss": "^3.4.16",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0",
+    "vite-plugin-electron": "^0.28.8",
+    "vite-plugin-electron-renderer": "^0.14.6",
+    "vitest": "^2.1.0"
+  }
+}
