@@ -1,0 +1,171 @@
+{
+  "description": "Demo data for AgentFlow Studio. This file provides fallback data when the app runs without Electron IPC.",
+  "projects": [
+    {
+      "id": "demo-proj-1",
+      "name": "AI Chat Desktop App",
+      "idea": "Build a cross-platform desktop chat application with AI-powered features including smart replies, conversation summarization, and local model inference. The app should work offline with local models and online with cloud APIs.",
+      "platform": "Desktop",
+      "techStack": "Electron, React, TypeScript, Tailwind CSS, Ollama",
+      "uiStyle": "Apple Liquid Glass + Raycast",
+      "difficulty": "Hard",
+      "status": "active",
+      "createdAt": "2026-05-01T08:00:00.000Z",
+      "updatedAt": "2026-05-05T12:00:00.000Z"
+    },
+    {
+      "id": "demo-proj-2",
+      "name": "Personal Blog Engine",
+      "idea": "Create a static blog generator with Markdown support, syntax highlighting, RSS feed generation, and automatic deployment to GitHub Pages. Include a local preview server and image optimization pipeline.",
+      "platform": "Web",
+      "techStack": "Next.js, MDX, Tailwind CSS, Vercel",
+      "uiStyle": "Minimal Swiss Design",
+      "difficulty": "Medium",
+      "status": "planning",
+      "createdAt": "2026-05-03T10:00:00.000Z",
+      "updatedAt": "2026-05-06T09:00:00.000Z"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "demo-task-1",
+      "projectId": "demo-proj-1",
+      "role": "Frontend Developer",
+      "title": "Set up Electron shell with React and Vite",
+      "description": "Initialize the Electron project with React, Vite, and TypeScript. Configure context isolation, preload scripts, and IPC communication.",
+      "input": "Project requirements and tech stack decisions",
+      "output": "Working Electron app with React renderer",
+      "acceptance": "App launches, React renders, IPC works, hot reload in dev mode",
+      "priority": "critical",
+      "status": "done",
+      "createdAt": "2026-05-01T08:30:00.000Z",
+      "updatedAt": "2026-05-02T17:00:00.000Z"
+    },
+    {
+      "id": "demo-task-2",
+      "projectId": "demo-proj-1",
+      "role": "Backend Developer",
+      "title": "Implement local LLM inference with Ollama",
+      "description": "Integrate Ollama for local model inference. Support model switching, context management, and streaming responses.",
+      "input": "Ollama API docs and model list",
+      "output": "Local inference module with streaming support",
+      "acceptance": "Can load models, send prompts, receive streaming responses",
+      "priority": "high",
+      "status": "doing",
+      "createdAt": "2026-05-02T09:00:00.000Z",
+      "updatedAt": "2026-05-04T15:00:00.000Z"
+    },
+    {
+      "id": "demo-task-3",
+      "projectId": "demo-proj-1",
+      "role": "UI Designer",
+      "title": "Design chat interface with glass-morphism",
+      "description": "Create a modern chat UI using Apple Liquid Glass design language. Include message bubbles, typing indicators, and smooth animations.",
+      "input": "Design mockups and style guide",
+      "output": "Implemented chat interface components",
+      "acceptance": "Matches mockups, smooth animations, responsive layout",
+      "priority": "high",
+      "status": "todo",
+      "createdAt": "2026-05-03T10:00:00.000Z",
+      "updatedAt": "2026-05-03T10:00:00.000Z"
+    },
+    {
+      "id": "demo-task-4",
+      "projectId": "demo-proj-1",
+      "role": "Full Stack Developer",
+      "title": "Implement conversation history and search",
+      "description": "Build local conversation storage with full-text search. Support export to Markdown and JSON formats.",
+      "input": "Storage schema and search requirements",
+      "output": "Conversation persistence and search module",
+      "acceptance": "Conversations persist across restarts, search returns relevant results",
+      "priority": "medium",
+      "status": "blocked",
+      "createdAt": "2026-05-04T11:00:00.000Z",
+      "updatedAt": "2026-05-05T14:00:00.000Z"
+    }
+  ],
+  "memories": [
+    {
+      "id": "demo-mem-1",
+      "type": "project_context",
+      "title": "AI Chat App - Project Overview",
+      "content": "Building a cross-platform desktop chat app with AI features. Target: Windows and macOS. Key features: local inference via Ollama, cloud API fallback, conversation management, smart replies. Current phase: core Electron shell complete, working on LLM integration.",
+      "tags": ["electron", "ai", "chat", "desktop"],
+      "projectId": "demo-proj-1",
+      "providerScope": "",
+      "modelScope": "",
+      "importance": 5,
+      "status": "active",
+      "createdAt": "2026-05-01T08:00:00.000Z",
+      "updatedAt": "2026-05-05T12:00:00.000Z",
+      "lastUsedAt": "2026-05-06T10:00:00.000Z"
+    },
+    {
+      "id": "demo-mem-2",
+      "type": "decision",
+      "title": "Use JSON storage instead of SQLite",
+      "content": "Decided to use JSON file-based storage for v1 instead of better-sqlite3. Reason: better-sqlite3 frequently fails to compile on Windows due to node-gyp and Python build tool issues. JSON storage is simpler, works everywhere, and the Storage class has an adapter interface for future SQLite migration.",
+      "tags": ["storage", "architecture", "windows"],
+      "projectId": "",
+      "providerScope": "",
+      "modelScope": "",
+      "importance": 4,
+      "status": "active",
+      "createdAt": "2026-05-02T14:00:00.000Z",
+      "updatedAt": "2026-05-02T14:00:00.000Z",
+      "lastUsedAt": "2026-05-06T09:00:00.000Z"
+    },
+    {
+      "id": "demo-mem-3",
+      "type": "issue_fix",
+      "title": "Vite + Electron preload path resolution fix",
+      "content": "Fixed preload script not found error. Root cause: vite-plugin-electron outputs preload.js to dist-electron/main/, but the main process was looking in dist-electron/. Solution: configured vite build output to place all main process files in dist-electron/main/ and updated the preload path in BrowserWindow config to use path.join(__dirname, 'preload.js').",
+      "tags": ["electron", "vite", "preload", "build"],
+      "projectId": "",
+      "providerScope": "",
+      "modelScope": "",
+      "importance": 3,
+      "status": "active",
+      "createdAt": "2026-05-03T16:00:00.000Z",
+      "updatedAt": "2026-05-03T16:00:00.000Z",
+      "lastUsedAt": "2026-05-04T11:00:00.000Z"
+    },
+    {
+      "id": "demo-mem-4",
+      "type": "user_preference",
+      "title": "UI Style - Apple Liquid Glass + Linear + Raycast",
+      "content": "User prefers Apple Liquid Glass design language combined with Linear's minimalism and Raycast's productivity focus. Key elements: frosted glass backgrounds, subtle shadows, thin borders, smooth animations, compact layouts, dark mode support. Avoid: heavy gradients, rough tables, pure black/white, default template looks.",
+      "tags": ["ui", "design", "preference"],
+      "projectId": "",
+      "providerScope": "",
+      "modelScope": "",
+      "importance": 5,
+      "status": "active",
+      "createdAt": "2026-05-01T07:00:00.000Z",
+      "updatedAt": "2026-05-01T07:00:00.000Z",
+      "lastUsedAt": "2026-05-06T12:00:00.000Z"
+    },
+    {
+      "id": "demo-mem-5",
+      "type": "prompt_pattern",
+      "title": "Effective Codex handoff prompt structure",
+      "content": "When handing off to Codex: 1) Start with 'Read AGENTS.md first', 2) Then read all handoff/ files, 3) Then explore src/ and tests/, 4) Never rebuild the project from scratch, 5) Preserve existing functionality, 6) Focus on UI polish, test coverage, performance, and build optimization. Always include a 'do NOT do' section.",
+      "tags": ["codex", "handoff", "prompt-pattern"],
+      "projectId": "",
+      "providerScope": "Codex",
+      "modelScope": "",
+      "importance": 4,
+      "status": "active",
+      "createdAt": "2026-05-04T09:00:00.000Z",
+      "updatedAt": "2026-05-04T09:00:00.000Z",
+      "lastUsedAt": "2026-05-06T08:00:00.000Z"
+    }
+  ],
+  "settings": {
+    "theme": "light",
+    "defaultProjectPath": "D:\\Projects",
+    "defaultAITool": "Claude Code",
+    "dataPath": "",
+    "version": "1.0.0"
+  }
+}
