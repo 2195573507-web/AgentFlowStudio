@@ -1,5 +1,49 @@
 # Codex Handoff Document — AgentFlow Studio
 
+## Last Stability Loop Result - 2026-05-07
+
+Codex ran a multi-agent stability loop. Six real subagents completed startup, shortcut/icon, build/smoke, UI runtime, shared memory, and fallback delivery checks. The seventh handoff reporter agent could not launch because of the platform thread limit, so the main thread completed reporting.
+
+Current adopted launch scheme: **Static fallback**.
+
+Use:
+
+```bat
+D:\AgentFlowStudio\start-agentflow-static.bat
+```
+
+Desktop shortcut:
+
+```text
+C:\Users\至亲\Desktop\AgentFlow Studio.lnk
+Target: D:\AgentFlowStudio\start-agentflow-static.bat
+Icon: D:\AgentFlowStudio\assets\icon.ico,0
+```
+
+Verified pass:
+
+- `npm.cmd install`
+- `npm.cmd run icon`
+- `npm.cmd run typecheck`
+- `node_modules\.bin\tsc.cmd -p tsconfig.node.json`
+- `npm.cmd run lint` with warnings only
+- `npm.cmd run smoke` with 53/53 checks
+- `npm.cmd run verify`
+- Static HTTP smoke returning `STATUS=200`, title `AgentFlow Studio`
+- `npm.cmd run shortcut` with Desktop write permission
+
+Environment blocked in this main execution context:
+
+- `npm.cmd run dev`
+- `npm.cmd run dev:web`
+- `npm.cmd run test`
+- `npm.cmd run build`
+- `npm.cmd run build:web`
+
+They all fail while loading Vite/Vitest config because Node child-process spawning of esbuild returns `EPERM`. Direct `node_modules\.bin\esbuild.cmd --version` succeeds.
+
+Important follow-up: Shared Memory CRUD exists, but Prompt Lab / recovery prompt fallback context and main-process redaction enforcement should be hardened next.
+
 ## One-Line Summary
 
 AgentFlow Studio is a local Electron desktop app that serves as an AI project orchestration hub — it turns project ideas into structured plans, prompts, tasks, and persistent cross-model memories.

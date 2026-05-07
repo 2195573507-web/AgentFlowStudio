@@ -8,6 +8,8 @@ import EmptyState from './EmptyState';
 export interface TaskBoardProps {
   /** Array of tasks to display. */
   tasks: Task[];
+  /** Backwards-compatible project id prop used by the detail page. */
+  projectId?: string;
   /** Called when a task is moved to a new column. */
   onStatusChange?: (taskId: string, newStatus: TaskStatus) => void;
   /** Additional className for the board container. */
@@ -33,6 +35,12 @@ const columns: ColumnDef[] = [
     label: 'Doing',
     color: 'text-sky-600 dark:text-sky-400',
     bgColor: 'bg-sky-100/60 dark:bg-sky-900/30',
+  },
+  {
+    status: 'in_progress',
+    label: 'In Progress',
+    color: 'text-blue-600 dark:text-blue-400',
+    bgColor: 'bg-blue-100/60 dark:bg-blue-900/30',
   },
   {
     status: 'blocked',
@@ -142,6 +150,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
     const groups: Record<TaskStatus, Task[]> = {
       todo: [],
       doing: [],
+      in_progress: [],
       blocked: [],
       done: [],
     };

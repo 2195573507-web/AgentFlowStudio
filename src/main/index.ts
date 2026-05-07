@@ -1,14 +1,15 @@
 import { app, BrowserWindow, shell } from 'electron';
 import * as path from 'path';
-import { registerIpcHandlers } from './ipc';
-import storage from './storage';
-import type { Project, Task, Memory } from '../shared/types';
+import { registerIpcHandlers } from './ipc.js';
+import storage from './storage.js';
+import type { Project, Task, Memory } from '../shared/types.js';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
 const isDev = !app.isPackaged;
+const devServerUrl = process.env.VITE_DEV_SERVER_URL ?? 'http://localhost:5173';
 
 // ---------------------------------------------------------------------------
 // Demo data seeding
@@ -298,10 +299,10 @@ function createWindow(): BrowserWindow {
   });
 
   if (isDev) {
-    win.loadURL('http://localhost:5173');
+    win.loadURL(devServerUrl);
     win.webContents.openDevTools({ mode: 'detach' });
   } else {
-    win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
+    win.loadFile(path.join(__dirname, '..', '..', 'dist', 'index.html'));
   }
 
   return win;

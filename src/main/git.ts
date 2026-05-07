@@ -1,5 +1,5 @@
 import simpleGit, { SimpleGit, LogResult, StatusResult } from 'simple-git';
-import type { GitCommitEntry } from '../shared/types';
+import type { GitCommitEntry } from '../shared/types.js';
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -1,6 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import type { SkillMeta } from '../shared/types';
+import type { SkillMeta } from '../shared/types.js';
 
 // ---------------------------------------------------------------------------
 // Basic file-system helpers

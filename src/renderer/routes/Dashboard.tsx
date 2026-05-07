@@ -152,12 +152,10 @@ export default function Dashboard() {
       setMemories(Array.isArray(mRes) ? mRes : []);
 
       // Count risk checks from safety history
-      if (api.memory?.list) {
-        const safetyMemories = (Array.isArray(mRes) ? mRes : []).filter(
-          (m: Memory) => m.type === 'safety_check' || (m.tags || []).includes('safety')
-        );
-        setRiskCount(safetyMemories.length || 0);
-      }
+      const safetyMemories = (Array.isArray(mRes) ? mRes : []).filter(
+        (m: Memory) => m.type === 'safety_check' || (m.tags || []).includes('safety')
+      );
+      setRiskCount(safetyMemories.length || 0);
     } catch (err: any) {
       console.error('Dashboard fetch error:', err);
       // Fallback to demo data on error

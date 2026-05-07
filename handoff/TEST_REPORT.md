@@ -1,5 +1,54 @@
 # AgentFlow Studio — Test Report
 
+## Codex Stability Loop Update - 2026-05-07
+
+**Adopted deliverable scheme**: Static fallback.
+
+Electron and Web dev remain in the project, but this execution environment repeatedly blocks Vite/Vitest while loading config because Node `child_process.spawn()` of esbuild returns `EPERM`. Direct `node_modules\.bin\esbuild.cmd --version` succeeds, and TypeScript compilers succeed, so this is recorded as an environment execution restriction. The current usable entry is:
+
+```bat
+D:\AgentFlowStudio\start-agentflow-static.bat
+```
+
+### Latest Verified Results
+
+| Command / Check | Status | Details |
+|---|---:|---|
+| `npm.cmd install` | PASS | Dependencies up to date. |
+| `npm.cmd run icon` | PASS | Generated real `icon.svg`, 512 PNG, and multi-size ICO. |
+| `npm.cmd run typecheck` | PASS | Renderer/shared TypeScript check passed. |
+| `node_modules\.bin\tsc.cmd -p tsconfig.node.json` | PASS | Main/preload TypeScript compile passed. |
+| `npm.cmd run lint` | PASS | Exit 0 with 36 warnings; no blocking errors. |
+| `npm.cmd run smoke` | PASS | 53 checks passed, 0 failed. |
+| `npm.cmd run verify` | PASS | 97 build-file checks + 53 smoke checks passed. |
+| Static HTTP smoke | PASS | Local server returned `STATUS=200`, title `AgentFlow Studio`. |
+| `npm.cmd run shortcut` | PASS | Required elevated Desktop write; shortcut created. |
+| Desktop shortcut target | PASS | `D:\AgentFlowStudio\start-agentflow-static.bat`. |
+| Desktop shortcut icon | PASS | `D:\AgentFlowStudio\assets\icon.ico,0`. |
+| `npm.cmd run test` | ENV BLOCKED | Vitest/Vite config load fails: esbuild `spawn EPERM`. |
+| `npm.cmd run build` | ENV BLOCKED | Vite config load fails: esbuild `spawn EPERM`. |
+| `npm.cmd run build:web` | ENV BLOCKED | Same esbuild `spawn EPERM`. |
+| `npm.cmd run dev` | ENV BLOCKED | Same esbuild `spawn EPERM`. |
+| `npm.cmd run dev:web` | ENV BLOCKED | Same esbuild `spawn EPERM`. |
+
+### Desktop Shortcut Verification
+
+```text
+ShortcutPath: C:\Users\至亲\Desktop\AgentFlow Studio.lnk
+TargetPath: D:\AgentFlowStudio\start-agentflow-static.bat
+TargetExists: True
+WorkingDirectory: D:\AgentFlowStudio
+IconLocation: D:\AgentFlowStudio\assets\icon.ico,0
+IconExists: True
+```
+
+### Notes
+
+- PowerShell blocks `npm.ps1`; use `npm.cmd`.
+- Desktop shortcut creation requires permission to write to the user's Desktop.
+- `dist/index.html` and assets exist and are served by `scripts/static-server.js`.
+- Remaining functional risks are documented in `.codex-parallel/PARALLEL_SUMMARY.md`: route ErrorBoundary and Shared Memory context/redaction hardening.
+
 ## Latest Test Run
 
 **Date**: 2026-05-07

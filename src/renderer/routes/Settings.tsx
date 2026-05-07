@@ -41,6 +41,7 @@ const DEMO_SETTINGS: AppSettings = {
   defaultProjectPath: '/home/user/projects',
   defaultAITool: 'Claude Code',
   dataPath: '/home/user/.agentflow-studio',
+  version: '1.0.0',
   appVersion: '1.0.0',
   techStack: ['Electron 28', 'React 18', 'TypeScript 5.3', 'Tailwind CSS 3.4', 'SQLite'],
 };
@@ -105,7 +106,7 @@ export default function Settings() {
     try {
       if (api && typeof api.settings?.get === 'function') {
         const s = await api.settings.get();
-        if (s) setSettings(s);
+        if (s && typeof s === 'object') setSettings(s as AppSettings);
       } else {
         setApiAvailable(false);
       }

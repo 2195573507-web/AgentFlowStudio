@@ -1,5 +1,29 @@
 # AgentFlow Studio — Task Status
 
+## Codex Stability Loop - 2026-05-07
+
+| Item | Status | Verification |
+|---|---:|---|
+| Multi-agent mode | Completed | Six subagents launched; Agent G handled by main thread because of thread limit. |
+| Icon generation | Completed | `npm.cmd run icon` PASS; ICO is 57784 bytes and valid. |
+| Smoke test | Completed | `npm.cmd run smoke` PASS, 53/53. |
+| Build-file verification | Completed | `npm.cmd run verify` PASS, 97 verify checks + smoke. |
+| Desktop shortcut | Completed | `C:\Users\至亲\Desktop\AgentFlow Studio.lnk` exists. |
+| Current launch entry | Completed | Static fallback: `D:\AgentFlowStudio\start-agentflow-static.bat`. |
+| Static app availability | Completed | HTTP 200 and title `AgentFlow Studio`. |
+| Electron dev | Environment blocked | `npm.cmd run dev` fails at Vite/esbuild `spawn EPERM` in this environment. |
+| Web dev/build | Environment blocked | `dev:web` and `build:web` fail at same esbuild `spawn EPERM`. |
+| Vitest | Environment blocked | `npm.cmd run test` fails at Vitest config load, esbuild `spawn EPERM`. |
+
+## Remaining Stability Work
+
+| Task | Priority | Status |
+|---|---:|---|
+| Re-run `npm.cmd run test` and `npm.cmd run build` in a normal Windows shell | High | Pending outside EPERM-restricted environment |
+| Switch shortcut back to Electron or packaged exe when Electron passes | High | Pending |
+| Add route-level ErrorBoundary | Medium | Recommended |
+| Fix Shared Memory fallback context generation and IPC redaction | High | Recommended |
+
 ## Completed Tasks
 
 | Task | Status | Related Files | Verification | Notes |

@@ -23,7 +23,8 @@ export function generateId(): string {
  * Format an ISO-8601 date string into a human-readable localised format.
  * Example: "2025-03-15T10:30:00.000Z" -> "Mar 15, 2025, 6:30 PM"
  */
-export function formatDate(dateStr: string): string {
+export function formatDate(dateStr?: string | null): string {
+  if (!dateStr) return '';
   try {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return dateStr;
@@ -43,7 +44,8 @@ export function formatDate(dateStr: string): string {
  * Return a relative time string (e.g. "2 hours ago", "3 days ago") for the
  * given ISO-8601 date string.
  */
-export function formatRelativeDate(dateStr: string): string {
+export function formatRelativeDate(dateStr?: string | null): string {
+  if (!dateStr) return 'Never';
   try {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return dateStr;
@@ -96,7 +98,8 @@ export function formatRelativeDate(dateStr: string): string {
 /**
  * Truncate a string to maxLen characters, appending an ellipsis if truncated.
  */
-export function truncate(str: string, maxLen: number): string {
+export function truncate(str: string | undefined | null, maxLen: number): string {
+  if (!str) return '';
   if (str.length <= maxLen) return str;
   if (maxLen <= 3) return str.slice(0, maxLen);
   return str.slice(0, maxLen - 3) + '...';
@@ -105,8 +108,8 @@ export function truncate(str: string, maxLen: number): string {
 /**
  * Capitalize the first character of a string.
  */
-export function capitalize(str: string): string {
-  if (!str) return str;
+export function capitalize(str: string | undefined | null): string {
+  if (!str) return '';
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
@@ -117,7 +120,7 @@ export function capitalize(str: string): string {
  * Mimics the popular `classnames` / `clsx` utility.
  */
 export function classNames(
-  ...classes: (string | undefined | false | null)[]
+  ...classes: (string | number | undefined | false | null)[]
 ): string {
   return classes.filter(Boolean).join(' ');
 }
@@ -160,15 +163,16 @@ export function debounce<T extends (...args: any[]) => any>(
  * Copy text to the system clipboard.
  * Returns true on success, false on failure.
  */
-export async function copyToClipboard(text: string): Promise<boolean> {
+export async function copyToClipboard(text?: string | null): Promise<boolean> {
+  const safeText = text ?? '';
   try {
     if (navigator?.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(safeText);
       return true;
     }
     // Fallback for older environments
     const textarea = document.createElement('textarea');
-    textarea.value = text;
+    textarea.value = safeText;
     textarea.style.position = 'fixed';
     textarea.style.opacity = '0';
     textarea.style.left = '-9999px';

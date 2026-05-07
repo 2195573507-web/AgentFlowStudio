@@ -2,12 +2,15 @@
 
 export interface PromptTemplateVariable {
   name: string;
+  key?: string;
   label: string;
   placeholder: string;
   required: boolean;
+  type?: 'text' | 'textarea';
 }
 
 export interface PromptTemplate {
+  id?: string;
   name: string;
   description: string;
   category: string;
@@ -852,10 +855,11 @@ patterns:
  * Throws if the template name is not found.
  */
 export function fillTemplate(
-  templateName: string,
+  templateName: string | PromptTemplate,
   variables: Record<string, string>,
 ): string {
-  const template = getTemplateByName(templateName);
+  const template =
+    typeof templateName === 'string' ? getTemplateByName(templateName) : templateName;
   if (!template) {
     throw new Error(`Template not found: "${templateName}"`);
   }
@@ -887,7 +891,11 @@ export function fillTemplate(
  * Returns undefined if no template matches.
  */
 export function getTemplateByName(name: string): PromptTemplate | undefined {
-  return PROMPT_TEMPLATES.find((t) => t.name === name);
+  return PROMPT_TEMPLATES.find((t) => t.name === name || t.id === name);
+}
+
+export function getTemplateVariableKey(variable: PromptTemplateVariable): string {
+  return variable.key ?? variable.name;
 }
 
 /**

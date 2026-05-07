@@ -47,7 +47,7 @@ function useChart<T extends echarts.EChartsType>() {
     };
   }, []);
 
-  const setOption = (option: echarts.EChartsOption, notMerge = true) => {
+  const setOption = (option: echarts.EChartsCoreOption, notMerge = true) => {
     instanceRef.current?.setOption(option, notMerge);
   };
 
@@ -96,13 +96,14 @@ export interface TaskStatusData {
 }
 
 export interface TaskStatusChartProps {
-  data: TaskStatusData[];
+  data: TaskStatusData[] | Record<string, number>;
   className?: string;
 }
 
 const statusColors: Record<TaskStatus, string> = {
   todo: '#64748b',
   doing: '#3b82f6',
+  in_progress: '#3b82f6',
   blocked: '#f59e0b',
   done: '#22c55e',
 };
@@ -110,6 +111,7 @@ const statusColors: Record<TaskStatus, string> = {
 const statusLabels: Record<TaskStatus, string> = {
   todo: 'Todo',
   doing: 'Doing',
+  in_progress: 'In Progress',
   blocked: 'Blocked',
   done: 'Done',
 };
@@ -120,7 +122,14 @@ export const TaskStatusChart: React.FC<TaskStatusChartProps> = ({ data, classNam
   useEffect(() => {
     if (!chartRef.current) return;
 
-    const seriesData = data.map((d) => ({
+    const dataRows: TaskStatusData[] = Array.isArray(data)
+      ? data
+      : (Object.entries(data) as Array<[TaskStatus, number]>).map(([status, count]) => ({
+          status,
+          count,
+        }));
+
+    const seriesData = dataRows.map((d) => ({
       name: statusLabels[d.status] || d.status,
       value: d.count,
       itemStyle: { color: statusColors[d.status] || CHART_COLORS[0] },
@@ -175,7 +184,7 @@ export interface MemoryTypeData {
 }
 
 export interface MemoryTypeChartProps {
-  data: MemoryTypeData[];
+  data: MemoryTypeData[] | Record<string, number>;
   className?: string;
 }
 
@@ -187,6 +196,14 @@ const memoryTypeLabels: Record<MemoryType, string> = {
   api_provider: 'API Providers',
   prompt_pattern: 'Patterns',
   environment: 'Environment',
+  pattern: 'Patterns',
+  insight: 'Insights',
+  knowledge: 'Knowledge',
+  code_snippet: 'Code',
+  security: 'Security',
+  git_summary: 'Git',
+  log_analysis: 'Logs',
+  safety_check: 'Safety',
 };
 
 export const MemoryTypeChart: React.FC<MemoryTypeChartProps> = ({ data, className }) => {
@@ -195,8 +212,15 @@ export const MemoryTypeChart: React.FC<MemoryTypeChartProps> = ({ data, classNam
   useEffect(() => {
     if (!chartRef.current) return;
 
-    const categories = data.map((d) => memoryTypeLabels[d.type] || d.type);
-    const values = data.map((d) => d.count);
+    const dataRows: MemoryTypeData[] = Array.isArray(data)
+      ? data
+      : (Object.entries(data) as Array<[MemoryType, number]>).map(([type, count]) => ({
+          type,
+          count,
+        }));
+
+    const categories = dataRows.map((d) => memoryTypeLabels[d.type] || d.type);
+    const values = dataRows.map((d) => d.count);
 
     setOption({
       ...sharedTheme,

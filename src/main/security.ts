@@ -14,7 +14,7 @@ import * as path from 'path';
  */
 export function sanitizeFilePath(input: string, root?: string): string {
   // Remove null bytes – they can truncate strings in C-level APIs
-  let clean = input.replace(/\0/g, '');
+  const clean = input.replace(/\0/g, '');
 
   // Resolve to an absolute path
   const base = root ?? process.cwd();

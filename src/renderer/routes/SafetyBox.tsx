@@ -162,13 +162,18 @@ export default function SafetyBox() {
   const clearHistory = () => setHistory([]);
 
   // ── Risk level config ─────────────────────────────────────────────────
-  const riskConfig: Record<RiskLevel, { icon: React.ComponentType<any>; color: string; bg: string; label: string }> = {
+  const riskConfig: Record<string, { icon: React.ComponentType<any>; color: string; bg: string; label: string }> = {
     safe: { icon: ShieldCheck, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20', label: '安全' },
     low: { icon: Shield, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20', label: '低风险' },
     medium: { icon: ShieldAlert, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20', label: '中风险' },
     high: { icon: ShieldAlert, color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/20', label: '高风险' },
     critical: { icon: ShieldOff, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', label: '严重风险' },
   };
+  const getRiskConfig = (level: RiskLevel) => riskConfig[level.toLowerCase()] ?? riskConfig.safe;
+  const getRuleName = (rule: string | { name: string; description: string }) =>
+    typeof rule === 'string' ? rule : rule.name;
+  const getRuleDescription = (rule: string | { name: string; description: string }) =>
+    typeof rule === 'string' ? '' : rule.description;
 
   // ── Render ──────────────────────────────────────────────────────────────
   return (
@@ -265,14 +270,14 @@ export default function SafetyBox() {
 
       {/* Result card */}
       {result && !analyzing && (
-        <GlassCard className={classNames('p-6 space-y-5', riskConfig[result.riskLevel].bg)}>
+        <GlassCard className={classNames('p-6 space-y-5', getRiskConfig(result.riskLevel).bg)}>
           {/* Risk meter & summary */}
           <div className="flex items-start gap-4">
             <RiskMeter level={result.riskLevel} />
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                {React.createElement(riskConfig[result.riskLevel].icon, {
-                  className: `w-5 h-5 ${riskConfig[result.riskLevel].color}`,
+                {React.createElement(getRiskConfig(result.riskLevel).icon, {
+                  className: `w-5 h-5 ${getRiskConfig(result.riskLevel).color}`,
                 })}
                 <Badge
                   className={
@@ -283,7 +288,7 @@ export default function SafetyBox() {
                       : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
                   }
                 >
-                  风险等级: {riskConfig[result.riskLevel].label}
+                  风险等级: {getRiskConfig(result.riskLevel).label}
                 </Badge>
               </div>
               <p className="text-sm text-zinc-300">{result.explanation}</p>
@@ -301,8 +306,10 @@ export default function SafetyBox() {
                   <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-white/5">
                     <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm text-zinc-300 font-medium">{rule.name}</p>
-                      <p className="text-xs text-zinc-500">{rule.description}</p>
+                      <p className="text-sm text-zinc-300 font-medium">{getRuleName(rule)}</p>
+                      {getRuleDescription(rule) && (
+                        <p className="text-xs text-zinc-500">{getRuleDescription(rule)}</p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -399,18 +406,19 @@ export default function SafetyBox() {
 
         {history.length > 0 ? (
           <div className="space-y-2">
-            {history.map((h) => {
-              const cfg = riskConfig[h.riskLevel];
+            {history.map((h, index) => {
+              const historyId = h.id ?? `history-${index}`;
+              const cfg = getRiskConfig(h.riskLevel);
               const Icon = cfg.icon;
               return (
-                <GlassCard key={h.id} className="p-4">
+                <GlassCard key={historyId} className="p-4">
                   <button
-                    onClick={() => toggleHistory(h.id)}
+                    onClick={() => toggleHistory(historyId)}
                     className="w-full flex items-center justify-between text-left"
                   >
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                       <Icon className={`w-4 h-4 flex-shrink-0 ${cfg.color}`} />
-                      <code className="text-sm text-zinc-300 font-mono truncate">{h.command}</code>
+                      <code className="text-sm text-zinc-300 font-mono truncate">{h.command ?? ''}</code>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                       <Badge className={cfg.bg}>
@@ -419,7 +427,7 @@ export default function SafetyBox() {
                       <span className="text-[11px] text-zinc-600">
                         {formatRelativeDate(h.checkedAt)}
                       </span>
-                      {expandedHistory.has(h.id) ? (
+                      {expandedHistory.has(historyId) ? (
                         <ChevronDown className="w-4 h-4 text-zinc-500" />
                       ) : (
                         <ChevronRight className="w-4 h-4 text-zinc-500" />
@@ -427,14 +435,14 @@ export default function SafetyBox() {
                     </div>
                   </button>
 
-                  {expandedHistory.has(h.id) && (
+                  {expandedHistory.has(historyId) && (
                     <div className="mt-3 pt-3 border-t border-white/5 space-y-2">
                       <p className="text-sm text-zinc-400">{h.explanation}</p>
                       {h.matchedRules.length > 0 && (
                         <div className="flex flex-wrap gap-1">
                           {h.matchedRules.map((r, i) => (
                             <Badge key={i} className="bg-red-500/10 text-red-300 border-red-500/20 text-[10px]">
-                              {r.name}
+                              {getRuleName(r)}
                             </Badge>
                           ))}
                         </div>
@@ -442,7 +450,7 @@ export default function SafetyBox() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setCommand(h.command);
+                          setCommand(h.command ?? '');
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
                         className="text-xs text-blue-400 hover:text-blue-300 transition-colors"

@@ -5,7 +5,9 @@ import type { RiskLevel } from '../lib/types';
 
 export interface RiskMeterProps {
   /** The current risk level. */
-  riskLevel: RiskLevel;
+  riskLevel?: RiskLevel;
+  /** Backwards-compatible alias. */
+  level?: RiskLevel;
   /** When true, renders a compact inline pill instead of the full meter. */
   compact?: boolean;
   /** Optional label shown above the meter. */
@@ -25,7 +27,7 @@ interface RiskConfig {
   percentage: number; // 0-100 for the meter bar width
 }
 
-const riskConfigs: Record<RiskLevel, RiskConfig> = {
+const riskConfigs: Partial<Record<RiskLevel, RiskConfig>> = {
   Safe: {
     level: 'Safe',
     label: 'Safe',
@@ -80,11 +82,14 @@ const riskConfigs: Record<RiskLevel, RiskConfig> = {
 
 const RiskMeter: React.FC<RiskMeterProps> = ({
   riskLevel,
+  level,
   compact = false,
   label,
   className,
 }) => {
-  const config = riskConfigs[riskLevel] || riskConfigs.Safe;
+  const normalizedLevel = (riskLevel ?? level ?? 'Safe') as RiskLevel;
+  const titleLevel = String(normalizedLevel).charAt(0).toUpperCase() + String(normalizedLevel).slice(1).toLowerCase();
+  const config = riskConfigs[normalizedLevel] || riskConfigs[titleLevel as RiskLevel] || riskConfigs.Safe!;
   const Icon = config.icon;
 
   if (compact) {

@@ -5,7 +5,7 @@ import Button from './Button';
 
 export interface EmptyStateProps {
   /** Icon displayed at the top. Defaults to Inbox icon. */
-  icon?: React.ReactNode;
+  icon?: React.ReactNode | React.ComponentType<{ className?: string }>;
   /** Primary heading. */
   title: string;
   /** Supportive description below the title. */
@@ -32,6 +32,17 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   className,
   loading = false,
 }) => {
+  const Icon =
+    typeof icon === 'function'
+      ? (icon as React.ComponentType<{ className?: string }>)
+      : null;
+  let iconNode: React.ReactNode = <Inbox className="w-7 h-7" />;
+  if (Icon) {
+    iconNode = <Icon className="w-7 h-7" />;
+  } else if (React.isValidElement(icon)) {
+    iconNode = icon;
+  }
+
   if (loading) {
     return (
       <div
@@ -63,7 +74,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
           'text-slate-400 dark:text-slate-500',
         )}
       >
-        {icon || <Inbox className="w-7 h-7" />}
+        {iconNode}
       </div>
 
       {/* Title */}

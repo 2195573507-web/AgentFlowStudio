@@ -7,7 +7,7 @@ const DEFAULT_MAX_CHARS = 2000;
 
 // ── Type → label mapping ──
 
-const TYPE_LABELS: Record<MemoryType, string> = {
+const TYPE_LABELS: Partial<Record<MemoryType, string>> = {
   user_preference: '用户偏好',
   project_context: '项目背景',
   decision: '已做决策',
@@ -35,16 +35,17 @@ const TYPE_ORDER: MemoryType[] = [
  * total character limit.
  */
 export function generateSharedMemoryContext(
-  memories: Memory[],
+  memories: Memory[] | string | undefined,
   mode: MemoryInjectionMode,
   maxChars: number = DEFAULT_MAX_CHARS,
 ): string {
-  if (mode === 'off' || memories.length === 0) {
+  const memoryList = Array.isArray(memories) ? memories : [];
+  if (mode === 'off' || memoryList.length === 0) {
     return '';
   }
 
   // Retrieve memories using the retriever (filters by mode, caps items/chars)
-  const retrievable = retrieveMemories(memories, {
+  const retrievable = retrieveMemories(memoryList, {
     injectionMode: mode,
     maxChars: maxChars * 2, // generous internal limit; we trim text later
   });
@@ -104,10 +105,14 @@ export function generateSharedMemoryContext(
  */
 export function injectMemoryIntoPrompt(
   prompt: string,
-  memories: Memory[],
+  memories: Memory[] | string | undefined,
   mode: MemoryInjectionMode,
 ): string {
   if (mode === 'off' || !prompt) return prompt;
+
+  if (typeof memories === 'string') {
+    return memories ? `${memories}\n\n---\n\n${prompt}` : prompt;
+  }
 
   const context = generateSharedMemoryContext(memories, mode);
   if (!context) return prompt;

@@ -158,7 +158,7 @@ export default function LogAnalyzer() {
       const memory: any = {
         type: 'log_analysis' as MemoryType,
         title: `Log Analysis: ${result.errorType}`,
-        content: `Error: ${result.summary}\n\nCauses:\n${result.possibleCauses.map((c) => `- ${c}`).join('\n')}\n\nFix:\n${result.fixSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`,
+        content: `Error: ${result.summary ?? result.errorType}\n\nCauses:\n${result.possibleCauses.map((c) => `- ${c}`).join('\n')}\n\nFix:\n${result.fixSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`,
         tags: ['log-analysis', result.errorType.toLowerCase(), 'auto-generated'],
         importance: 3,
         status: 'active',
@@ -282,7 +282,7 @@ export default function LogAnalyzer() {
                   {result.errorType}
                 </Badge>
               </div>
-              <p className="text-sm text-zinc-300 font-medium">{result.summary}</p>
+              <p className="text-sm text-zinc-300 font-medium">{result.summary ?? result.errorType}</p>
             </div>
             <span className="text-[11px] text-zinc-600 flex-shrink-0">
               {formatRelativeDate(result.analyzedAt)}
@@ -452,48 +452,51 @@ export default function LogAnalyzer() {
           </div>
         ) : history.length > 0 ? (
           <div className="space-y-2">
-            {history.map((h) => (
-              <GlassCard key={h.id} className="p-4">
-                <button
-                  onClick={() => toggleHistory(h.id)}
-                  className="w-full flex items-center justify-between text-left"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Badge className={errorTypeColor(h.errorType)}>
-                      {h.errorType}
-                    </Badge>
-                    <span className="text-sm text-zinc-300 truncate">{h.summary}</span>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                    <span className="text-[11px] text-zinc-600">
-                      {formatRelativeDate(h.analyzedAt)}
-                    </span>
-                    {expandedHistory.has(h.id) ? (
-                      <ChevronDown className="w-4 h-4 text-zinc-500" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4 text-zinc-500" />
-                    )}
-                  </div>
-                </button>
+            {history.map((h, index) => {
+              const historyId = h.id ?? `history-${index}`;
+              return (
+                <GlassCard key={historyId} className="p-4">
+                  <button
+                    onClick={() => toggleHistory(historyId)}
+                    className="w-full flex items-center justify-between text-left"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Badge className={errorTypeColor(h.errorType)}>
+                        {h.errorType}
+                      </Badge>
+                      <span className="text-sm text-zinc-300 truncate">{h.summary ?? h.errorType}</span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                      <span className="text-[11px] text-zinc-600">
+                        {formatRelativeDate(h.analyzedAt)}
+                      </span>
+                      {expandedHistory.has(historyId) ? (
+                        <ChevronDown className="w-4 h-4 text-zinc-500" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-zinc-500" />
+                      )}
+                    </div>
+                  </button>
 
-                {expandedHistory.has(h.id) && (
-                  <div className="mt-3 pt-3 border-t border-white/5 space-y-2 text-sm text-zinc-400">
-                    <p><strong className="text-zinc-300">Causes:</strong> {h.possibleCauses.join('; ')}</p>
-                    <p><strong className="text-zinc-300">Fix:</strong> {h.fixSteps.join(' | ')}</p>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setLogInput(h.rawLog);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                    >
-                      重新分析此日志
-                    </button>
-                  </div>
-                )}
-              </GlassCard>
-            ))}
+                  {expandedHistory.has(historyId) && (
+                    <div className="mt-3 pt-3 border-t border-white/5 space-y-2 text-sm text-zinc-400">
+                      <p><strong className="text-zinc-300">Causes:</strong> {h.possibleCauses.join('; ')}</p>
+                      <p><strong className="text-zinc-300">Fix:</strong> {h.fixSteps.join(' | ')}</p>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLogInput(h.rawLog ?? '');
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                      >
+                        重新分析此日志
+                      </button>
+                    </div>
+                  )}
+                </GlassCard>
+              );
+            })}
           </div>
         ) : (
           <GlassCard className="p-8">

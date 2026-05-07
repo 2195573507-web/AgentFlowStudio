@@ -81,7 +81,7 @@ const PATTERNS: SecretPattern[] = [
 /**
  * Check whether the given text contains any detectable secret patterns.
  */
-export function containsSecret(text: string): boolean {
+export function containsSecret(text?: string | null): boolean {
   if (!text) return false;
   return PATTERNS.some((p) => {
     // Reset regex state (global flag tracks lastIndex)
@@ -96,8 +96,8 @@ export function containsSecret(text: string): boolean {
  *
  * This is safe for display and export. The original text is not modified.
  */
-export function redactSecrets(text: string): string {
-  if (!text) return text;
+export function redactSecrets(text?: string | null): string {
+  if (!text) return '';
 
   let result = text;
 

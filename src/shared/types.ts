@@ -2,12 +2,28 @@
 
 export type ProjectStatus = 'planning' | 'active' | 'paused' | 'done'
 export type Platform = 'Web' | 'Desktop' | 'CLI' | 'Mobile' | 'Embedded' | 'Other'
-export type TaskStatus = 'todo' | 'doing' | 'blocked' | 'done'
+export type TaskStatus = 'todo' | 'doing' | 'in_progress' | 'blocked' | 'done'
 export type Priority = 'critical' | 'high' | 'medium' | 'low'
-export type MemoryType = 'user_preference' | 'project_context' | 'decision' | 'issue_fix' | 'api_provider' | 'prompt_pattern' | 'environment'
+export type Difficulty = 'Easy' | 'Medium' | 'Hard'
+export type MemoryType =
+  | 'user_preference'
+  | 'project_context'
+  | 'decision'
+  | 'issue_fix'
+  | 'api_provider'
+  | 'prompt_pattern'
+  | 'environment'
+  | 'pattern'
+  | 'insight'
+  | 'knowledge'
+  | 'code_snippet'
+  | 'security'
+  | 'git_summary'
+  | 'log_analysis'
+  | 'safety_check'
 export type MemoryStatus = 'active' | 'pending' | 'archived'
 export type MemoryInjectionMode = 'off' | 'minimal' | 'balanced' | 'full'
-export type RiskLevel = 'Safe' | 'Low' | 'Medium' | 'High' | 'Critical'
+export type RiskLevel = 'safe' | 'low' | 'medium' | 'high' | 'critical' | 'Safe' | 'Low' | 'Medium' | 'High' | 'Critical'
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type AITool = 'Claude Code' | 'Codex' | 'Cursor' | 'Other'
 
@@ -18,7 +34,7 @@ export interface Project {
   platform: Platform
   techStack: string
   uiStyle: string
-  difficulty: 'Easy' | 'Medium' | 'Hard'
+  difficulty: Difficulty
   status: ProjectStatus
   createdAt: string
   updatedAt: string
@@ -27,27 +43,32 @@ export interface Project {
 export interface Task {
   id: string
   projectId: string
-  role: string
+  role?: string
   title: string
-  description: string
-  input: string
-  output: string
-  acceptance: string
+  description?: string
+  input?: string
+  output?: string
+  acceptance?: string
+  assignee?: string
   priority: Priority
   status: TaskStatus
   createdAt: string
-  updatedAt: string
+  updatedAt?: string
 }
 
 export interface SavedPrompt {
   id: string
-  projectId: string
-  templateName: string
-  title: string
+  projectId?: string
+  templateName?: string
+  title?: string
   content: string
-  favorite: boolean
+  favorite?: boolean
+  name?: string
+  templateId?: string
+  variables?: Record<string, string>
+  starred?: boolean
   createdAt: string
-  updatedAt: string
+  updatedAt?: string
 }
 
 export interface Run {
@@ -77,9 +98,10 @@ export interface Memory {
   title: string
   content: string
   tags: string[]
-  projectId: string
-  providerScope: string
-  modelScope: string
+  projectId?: string
+  providerScope?: string
+  modelScope?: string
+  metadata?: Record<string, unknown>
   importance: number
   status: MemoryStatus
   createdAt: string
@@ -106,8 +128,8 @@ export interface ProviderSetting {
   memoryInjectionMode: MemoryInjectionMode
   maxMemoryItems: number
   maxMemoryChars: number
-  createdAt: string
-  updatedAt: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface AppSettings {
@@ -115,7 +137,9 @@ export interface AppSettings {
   defaultProjectPath: string
   defaultAITool: AITool
   dataPath: string
-  version: string
+  version?: string
+  appVersion?: string
+  techStack?: string[]
 }
 
 // ── Skill types ──
@@ -123,7 +147,9 @@ export interface AppSettings {
 export interface SkillMeta {
   name: string
   description: string
-  path: string
+  path?: string
+  filePath?: string
+  lastModified?: string
   valid: boolean
   missingFields: string[]
 }
@@ -131,23 +157,32 @@ export interface SkillMeta {
 // ── Log analysis types ──
 
 export interface LogAnalysisResult {
+  id?: string
   errorType: string
+  summary?: string
   possibleCauses: string[]
   fixSteps: string[]
   suggestedCommands: string[]
   fixPrompt: string
-  suggestMemory: boolean
+  suggestMemory?: boolean
+  analyzedAt?: string
+  rawLog?: string
 }
 
 // ── Safety check types ──
 
 export interface SafetyCheckResult {
+  id?: string
+  command?: string
   riskLevel: RiskLevel
-  matchedRules: string[]
+  matchedRules: Array<string | { name: string; description: string }>
   explanation: string
   saferAlternative: string
-  suggestBackup: boolean
-  suggestIsolation: boolean
+  suggestBackup?: boolean
+  suggestIsolation?: boolean
+  backupSuggested?: boolean
+  isolationSuggested?: boolean
+  checkedAt?: string
 }
 
 // ── Git timeline types ──
@@ -163,6 +198,8 @@ export interface GitCommitEntry {
 // ── Planning types ──
 
 export interface ProjectPlan {
+  title?: string
+  overview?: string
   summary: string
   prd: string
   architecture: string
@@ -171,8 +208,27 @@ export interface ProjectPlan {
   testPlan: string
   acceptanceCriteria: string
   devPrompt: string
+  claudeCodePrompt?: string
   codexPrompt: string
   cursorPrompt: string
+}
+
+export interface PromptTemplateVariable {
+  name: string
+  key?: string
+  label: string
+  placeholder: string
+  required: boolean
+  type?: 'text' | 'textarea'
+}
+
+export interface PromptTemplate {
+  id?: string
+  name: string
+  description: string
+  category: string
+  variables: PromptTemplateVariable[]
+  template: string
 }
 
 // ── IPC channel names ──

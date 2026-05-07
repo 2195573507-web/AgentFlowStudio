@@ -512,7 +512,7 @@ export default function SharedMemoryHub() {
         // Fallback: build context from active memories
         const activeMemories = memories.filter((m) => m.status === 'active');
         const sortedMemories = [...activeMemories].sort((a, b) => b.importance - a.importance);
-        const modeLimits = { minimal: 2, balanced: 5, full: 20 };
+        const modeLimits: Partial<Record<MemoryInjectionMode, number>> = { minimal: 2, balanced: 5, full: 20 };
         const limit = modeLimits[contextInjectionMode] || 5;
 
         const contextParts = sortedMemories.slice(0, limit).map((m) =>

@@ -19,6 +19,87 @@ import type {
 // ── Preload API interface ──
 
 interface AgentFlowPreloadAPI {
+  storage?: {
+    get<T>(key: string): Promise<T | null>;
+    set(key: string, value: unknown): Promise<void>;
+    delete(key: string): Promise<void>;
+    getAll(): Promise<Record<string, unknown>>;
+  };
+  projects?: {
+    list(): Promise<Project[]>;
+    get(id: string): Promise<Project | null>;
+    create(project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'> | Project): Promise<Project>;
+    update(id: string, updates: Partial<Project>): Promise<Project | null>;
+    delete(id: string): Promise<boolean>;
+  };
+  tasks?: {
+    list(projectId?: string): Promise<Task[]>;
+    create(task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'> | Task): Promise<Task>;
+    update(id: string, updates: Partial<Task>): Promise<Task | null>;
+    delete(id: string): Promise<boolean>;
+  };
+  prompts?: {
+    list(projectId?: string): Promise<SavedPrompt[]>;
+    create(prompt: Omit<SavedPrompt, 'id' | 'createdAt' | 'updatedAt'> | SavedPrompt): Promise<SavedPrompt>;
+    update(id: string, updates: Partial<SavedPrompt>): Promise<SavedPrompt | null>;
+    delete(id: string): Promise<boolean>;
+  };
+  runs?: {
+    list(projectId: string): Promise<Run[]>;
+    create(run: Omit<Run, 'id'>): Promise<Run>;
+  };
+  git?: {
+    log(repoPath: string): Promise<GitCommitEntry[]>;
+    status(repoPath: string): Promise<string>;
+    summary(repoPath: string): Promise<{
+      branch: string;
+      commitCount: number;
+      recentCommits: GitCommitEntry[];
+    }>;
+  };
+  memory?: {
+    list(filters?: Record<string, unknown>): Promise<Memory[]>;
+    get(id: string): Promise<Memory | null>;
+    create(memory: Omit<Memory, 'id' | 'createdAt' | 'updatedAt' | 'lastUsedAt'> | Memory): Promise<Memory>;
+    update(id: string, updates: Partial<Memory>): Promise<Memory | null>;
+    delete(id: string): Promise<boolean>;
+    exportAll(): Promise<unknown>;
+    importMemories(data: unknown): Promise<unknown>;
+    generateContext(options: { projectId?: string; injectionMode?: MemoryInjectionMode }): Promise<string>;
+  };
+  checkCommandSafety(command: string): Promise<SafetyCheckResult>;
+  settings?: {
+    get(key?: string): Promise<unknown>;
+    set(key: string, value: unknown): Promise<void>;
+    getAll(): Promise<AppSettings>;
+  };
+  providers?: {
+    list(): Promise<ProviderSetting[]>;
+    create(provider: Omit<ProviderSetting, 'id' | 'createdAt' | 'updatedAt'> | ProviderSetting): Promise<ProviderSetting>;
+    update(id: string, updates: Partial<ProviderSetting>): Promise<ProviderSetting | null>;
+    delete(id: string): Promise<boolean>;
+  };
+  export?: {
+    markdown(content: string, filename: string): Promise<string>;
+    json(data: unknown, filename: string): Promise<string>;
+  };
+  skills?: {
+    list(): Promise<SkillMeta[]>;
+    read(path: string): Promise<string>;
+  };
+  app?: {
+    info(): Promise<{
+      version: string;
+      electronVersion: string;
+      nodeVersion: string;
+      chromeVersion: string;
+    }>;
+    getDataPath(): Promise<string>;
+  };
+  dialog?: {
+    open(options: unknown): Promise<{ canceled: boolean; filePaths: string[] }>;
+  };
+
   // Storage
   storageGet<T>(key: string): Promise<T | null>;
   storageSet(key: string, value: unknown): Promise<void>;
@@ -38,7 +119,7 @@ interface AgentFlowPreloadAPI {
   deleteProject(id: string): Promise<boolean>;
 
   // Tasks
-  listTasks(projectId: string): Promise<Task[]>;
+  listTasks(projectId?: string): Promise<Task[]>;
   createTask(
     task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>,
   ): Promise<Task>;
@@ -46,7 +127,7 @@ interface AgentFlowPreloadAPI {
   deleteTask(id: string): Promise<boolean>;
 
   // Prompts
-  listPrompts(projectId: string): Promise<SavedPrompt[]>;
+  listPrompts(projectId?: string): Promise<SavedPrompt[]>;
   createPrompt(
     prompt: Omit<SavedPrompt, 'id' | 'createdAt' | 'updatedAt'>,
   ): Promise<SavedPrompt>;
@@ -186,15 +267,19 @@ export const api = {
 
   storage: {
     get: <T>(key: string) =>
-      apiCall<T | null>('storageGet', (a) => a.storageGet<T>(key), null),
+      apiCall<T | null>(
+        'storageGet',
+        (a) => a.storage?.get<T>(key) ?? a.storageGet<T>(key),
+        null,
+      ),
     set: (key: string, value: unknown) =>
-      apiCallVoid('storageSet', (a) => a.storageSet(key, value)),
+      apiCallVoid('storageSet', (a) => a.storage?.set(key, value) ?? a.storageSet(key, value)),
     delete: (key: string) =>
-      apiCallVoid('storageDelete', (a) => a.storageDelete(key)),
+      apiCallVoid('storageDelete', (a) => a.storage?.delete(key) ?? a.storageDelete(key)),
     getAll: () =>
       apiCall<Record<string, unknown>>(
         'storageGetAll',
-        (a) => a.storageGetAll(),
+        (a) => a.storage?.getAll() ?? a.storageGetAll(),
         {},
       ),
   },
@@ -203,81 +288,95 @@ export const api = {
 
   projects: {
     list: () =>
-      apiCall<Project[]>('listProjects', (a) => a.listProjects(), []),
+      apiCall<Project[]>('listProjects', (a) => a.projects?.list() ?? a.listProjects(), []),
     get: (id: string) =>
-      apiCall<Project | null>('getProject', (a) => a.getProject(id), null),
+      apiCall<Project | null>('getProject', (a) => a.projects?.get(id) ?? a.getProject(id), null),
     create: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) =>
-      apiCall<Project>('createProject', (a) => a.createProject(project), {
+      apiCall<Project>('createProject', (a) => a.projects?.create(project) ?? a.createProject(project), {
         ...project,
         id: '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       } as Project),
-    update: (id: string, updates: Partial<Project>) =>
+    update: (idOrProject: string | Project, updates?: Partial<Project>) =>
       apiCall<Project | null>(
         'updateProject',
-        (a) => a.updateProject(id, updates),
+        (a) => {
+          const id = typeof idOrProject === 'string' ? idOrProject : idOrProject.id;
+          const payload = updates ?? (typeof idOrProject === 'string' ? {} : idOrProject);
+          return a.projects?.update(id, payload) ?? a.updateProject(id, payload);
+        },
         null,
       ),
     delete: (id: string) =>
-      apiCall<boolean>('deleteProject', (a) => a.deleteProject(id), false),
+      apiCall<boolean>('deleteProject', (a) => a.projects?.delete(id) ?? a.deleteProject(id), false),
   },
 
   // ── Tasks ──
 
   tasks: {
-    list: (projectId: string) =>
-      apiCall<Task[]>('listTasks', (a) => a.listTasks(projectId), []),
+    list: (projectId?: string) =>
+      apiCall<Task[]>('listTasks', (a) => a.tasks?.list(projectId) ?? a.listTasks(projectId), []),
+    listByProject: (projectId: string) =>
+      apiCall<Task[]>('listTasks', (a) => a.tasks?.list(projectId) ?? a.listTasks(projectId), []),
     create: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) =>
-      apiCall<Task>('createTask', (a) => a.createTask(task), {
+      apiCall<Task>('createTask', (a) => a.tasks?.create(task) ?? a.createTask(task), {
         ...task,
         id: '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       } as Task),
-    update: (id: string, updates: Partial<Task>) =>
+    update: (idOrTask: string | Task, updates?: Partial<Task>) =>
       apiCall<Task | null>(
         'updateTask',
-        (a) => a.updateTask(id, updates),
+        (a) => {
+          const id = typeof idOrTask === 'string' ? idOrTask : idOrTask.id;
+          const payload = updates ?? (typeof idOrTask === 'string' ? {} : idOrTask);
+          return a.tasks?.update(id, payload) ?? a.updateTask(id, payload);
+        },
         null,
       ),
     delete: (id: string) =>
-      apiCall<boolean>('deleteTask', (a) => a.deleteTask(id), false),
+      apiCall<boolean>('deleteTask', (a) => a.tasks?.delete(id) ?? a.deleteTask(id), false),
   },
 
   // ── Prompts ──
 
   prompts: {
-    list: (projectId: string) =>
+    list: (projectId?: string) =>
       apiCall<SavedPrompt[]>(
         'listPrompts',
-        (a) => a.listPrompts(projectId),
+        (a) => a.prompts?.list(projectId) ?? a.listPrompts(projectId),
         [],
       ),
     create: (prompt: Omit<SavedPrompt, 'id' | 'createdAt' | 'updatedAt'>) =>
-      apiCall<SavedPrompt>('createPrompt', (a) => a.createPrompt(prompt), {
+      apiCall<SavedPrompt>('createPrompt', (a) => a.prompts?.create(prompt) ?? a.createPrompt(prompt), {
         ...prompt,
         id: '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       } as SavedPrompt),
-    update: (id: string, updates: Partial<SavedPrompt>) =>
+    update: (idOrPrompt: string | SavedPrompt, updates?: Partial<SavedPrompt>) =>
       apiCall<SavedPrompt | null>(
         'updatePrompt',
-        (a) => a.updatePrompt(id, updates),
+        (a) => {
+          const id = typeof idOrPrompt === 'string' ? idOrPrompt : idOrPrompt.id;
+          const payload = updates ?? (typeof idOrPrompt === 'string' ? {} : idOrPrompt);
+          return a.prompts?.update(id, payload) ?? a.updatePrompt(id, payload);
+        },
         null,
       ),
     delete: (id: string) =>
-      apiCall<boolean>('deletePrompt', (a) => a.deletePrompt(id), false),
+      apiCall<boolean>('deletePrompt', (a) => a.prompts?.delete(id) ?? a.deletePrompt(id), false),
   },
 
   // ── Runs ──
 
   runs: {
     list: (projectId: string) =>
-      apiCall<Run[]>('listRuns', (a) => a.listRuns(projectId), []),
+      apiCall<Run[]>('listRuns', (a) => a.runs?.list(projectId) ?? a.listRuns(projectId), []),
     create: (run: Omit<Run, 'id'>) =>
-      apiCall<Run>('createRun', (a) => a.createRun(run), {
+      apiCall<Run>('createRun', (a) => a.runs?.create(run) ?? a.createRun(run), {
         ...run,
         id: '',
       } as Run),
@@ -289,13 +388,24 @@ export const api = {
     log: (repoPath: string) =>
       apiCall<GitCommitEntry[]>(
         'getGitLog',
-        (a) => a.getGitLog(repoPath),
+        (a) => a.git?.log(repoPath) ?? a.getGitLog(repoPath),
         [],
       ),
+    readLog: async (repoPath: string, _options?: { maxCount?: number }) => {
+      const commits = await api.git.log(repoPath);
+      const summary = await api.git.summary(repoPath);
+      return {
+        commits,
+        branch: summary.branch,
+        totalCommits: summary.commitCount,
+        recentActivity: `${commits.length} commits loaded`,
+        error: undefined as string | undefined,
+      };
+    },
     status: (repoPath: string) =>
       apiCall<string>(
         'getGitStatus',
-        (a) => a.getGitStatus(repoPath),
+        (a) => a.git?.status(repoPath) ?? a.getGitStatus(repoPath),
         '无法获取 Git 状态。',
       ),
     summary: (repoPath: string) =>
@@ -303,7 +413,7 @@ export const api = {
         branch: string;
         commitCount: number;
         recentCommits: GitCommitEntry[];
-      }>('getGitSummary', (a) => a.getGitSummary(repoPath), {
+      }>('getGitSummary', (a) => a.git?.summary(repoPath) ?? a.getGitSummary(repoPath), {
         branch: '',
         commitCount: 0,
         recentCommits: [],
@@ -316,48 +426,77 @@ export const api = {
     list: (projectId?: string) =>
       apiCall<Memory[]>(
         'listMemories',
-        (a) => a.listMemories(projectId),
+        (a) =>
+          a.memory?.list(projectId ? { projectId } : undefined) ??
+          a.listMemories(projectId),
+        [],
+      ),
+    listByProject: (projectId: string) =>
+      apiCall<Memory[]>(
+        'listMemories',
+        (a) => a.memory?.list({ projectId }) ?? a.listMemories(projectId),
         [],
       ),
     get: (id: string) =>
-      apiCall<Memory | null>('getMemory', (a) => a.getMemory(id), null),
+      apiCall<Memory | null>('getMemory', (a) => a.memory?.get(id) ?? a.getMemory(id), null),
     create: (
       memory: Omit<
         Memory,
         'id' | 'createdAt' | 'updatedAt' | 'lastUsedAt'
       >,
     ) =>
-      apiCall<Memory>('createMemory', (a) => a.createMemory(memory), {
+      apiCall<Memory>('createMemory', (a) => a.memory?.create(memory) ?? a.createMemory(memory), {
         ...memory,
         id: '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         lastUsedAt: new Date().toISOString(),
       } as Memory),
-    update: (id: string, updates: Partial<Memory>) =>
+    update: (idOrMemory: string | Memory, updates?: Partial<Memory>) =>
       apiCall<Memory | null>(
         'updateMemory',
-        (a) => a.updateMemory(id, updates),
+        (a) => {
+          const id = typeof idOrMemory === 'string' ? idOrMemory : idOrMemory.id;
+          const payload = updates ?? (typeof idOrMemory === 'string' ? {} : idOrMemory);
+          return a.memory?.update(id, payload) ?? a.updateMemory(id, payload);
+        },
         null,
       ),
     delete: (id: string) =>
-      apiCall<boolean>('deleteMemory', (a) => a.deleteMemory(id), false),
+      apiCall<boolean>('deleteMemory', (a) => a.memory?.delete(id) ?? a.deleteMemory(id), false),
     export: (projectId?: string) =>
       apiCall<string>(
         'exportMemories',
-        (a) => a.exportMemories(projectId),
+        async (a) => {
+          const result = a.memory?.exportAll
+            ? await a.memory.exportAll()
+            : await a.exportMemories(projectId);
+          return typeof result === 'string' ? result : JSON.stringify(result);
+        },
         '',
       ),
     import: (json: string) =>
       apiCall<number>(
         'importMemories',
-        (a) => a.importMemories(json),
+        async (a) => {
+          const parsed = JSON.parse(json);
+          const result = a.memory?.importMemories
+            ? await a.memory.importMemories(parsed)
+            : await a.importMemories(json);
+          if (typeof result === 'number') return result;
+          if (result && typeof result === 'object' && 'imported' in result) {
+            return Number((result as { imported: unknown }).imported) || 0;
+          }
+          return 0;
+        },
         0,
       ),
     generateContext: (projectId: string, mode: MemoryInjectionMode) =>
       apiCall<string>(
         'generateMemoryContext',
-        (a) => a.generateMemoryContext(projectId, mode),
+        (a) =>
+          a.memory?.generateContext({ projectId, injectionMode: mode }) ??
+          a.generateMemoryContext(projectId, mode),
         '',
       ),
   },
@@ -368,14 +507,27 @@ export const api = {
     check: (command: string) =>
       apiCall<SafetyCheckResult>(
         'checkCommandSafety',
-        (a) => a.checkCommandSafety(command),
-        {
+        (a) => a.checkCommandSafety ? a.checkCommandSafety(command) : Promise.resolve({
+          id: '',
+          command,
           riskLevel: 'Safe',
           matchedRules: [],
           explanation: '',
           saferAlternative: '',
           suggestBackup: false,
           suggestIsolation: false,
+          checkedAt: new Date().toISOString(),
+        }),
+        {
+          id: '',
+          command,
+          riskLevel: 'Safe',
+          matchedRules: [],
+          explanation: '',
+          saferAlternative: '',
+          suggestBackup: false,
+          suggestIsolation: false,
+          checkedAt: new Date().toISOString(),
         },
       ),
   },
@@ -383,23 +535,44 @@ export const api = {
   // ── Settings ──
 
   settings: {
-    get: (key: string) =>
-      apiCall<unknown>('getSetting', (a) => a.getSetting(key), null),
+    get: (key?: string) =>
+      key
+        ? apiCall<unknown>(
+            'getSetting',
+            (a) => a.settings?.get(key) ?? a.getSetting(key),
+            null,
+          )
+        : api.settings.getAll(),
     set: (key: string, value: unknown) =>
-      apiCallVoid('setSetting', (a) => a.setSetting(key, value)),
-    getAll: () =>
-      apiCall<AppSettings>('getAllSettings', (a) => a.getAllSettings(), {
+      apiCallVoid('setSetting', (a) => a.settings?.set(key, value) ?? a.setSetting(key, value)),
+    update: async (settings: AppSettings) => {
+      await Promise.all(
+        Object.entries(settings).map(([key, value]) => api.settings.set(key, value)),
+      );
+    },
+    reset: async () => {
+      await api.settings.update({
         theme: 'system',
         defaultProjectPath: '',
         defaultAITool: 'Claude Code',
         dataPath: '',
         version: '1.0.0',
+      });
+    },
+    getAll: () =>
+      apiCall<AppSettings>('getAllSettings', (a) => a.settings?.getAll() ?? a.getAllSettings(), {
+        theme: 'system',
+        defaultProjectPath: '',
+        defaultAITool: 'Claude Code',
+        dataPath: '',
+        version: '1.0.0',
+        appVersion: '1.0.0',
       } as AppSettings),
     providers: {
       list: () =>
         apiCall<ProviderSetting[]>(
           'listProviders',
-          (a) => a.listProviders(),
+          (a) => a.providers?.list() ?? a.listProviders(),
           [],
         ),
       create: (
@@ -410,7 +583,7 @@ export const api = {
       ) =>
         apiCall<ProviderSetting>(
           'createProvider',
-          (a) => a.createProvider(provider),
+          (a) => a.providers?.create(provider) ?? a.createProvider(provider),
           {
             ...provider,
             id: '',
@@ -418,16 +591,21 @@ export const api = {
             updatedAt: new Date().toISOString(),
           } as ProviderSetting,
         ),
-      update: (id: string, updates: Partial<ProviderSetting>) =>
+      update: (idOrProvider: string | ProviderSetting, updates?: Partial<ProviderSetting>) =>
         apiCall<ProviderSetting | null>(
           'updateProvider',
-          (a) => a.updateProvider(id, updates),
+          (a) => {
+            const id = typeof idOrProvider === 'string' ? idOrProvider : idOrProvider.id;
+            const payload =
+              updates ?? (typeof idOrProvider === 'string' ? {} : idOrProvider);
+            return a.providers?.update(id, payload) ?? a.updateProvider(id, payload);
+          },
           null,
         ),
       delete: (id: string) =>
         apiCall<boolean>(
           'deleteProvider',
-          (a) => a.deleteProvider(id),
+          (a) => a.providers?.delete(id) ?? a.deleteProvider(id),
           false,
         ),
     },
@@ -435,28 +613,60 @@ export const api = {
 
   // ── Export ──
 
+  providers: {
+    list: () => api.settings.providers.list(),
+    create: (
+      provider: Omit<ProviderSetting, 'id' | 'createdAt' | 'updatedAt'> | ProviderSetting,
+    ) =>
+      api.settings.providers.create(
+        provider as Omit<ProviderSetting, 'id' | 'createdAt' | 'updatedAt'>,
+      ),
+    update: (idOrProvider: string | ProviderSetting, updates?: Partial<ProviderSetting>) =>
+      api.settings.providers.update(idOrProvider as ProviderSetting, updates),
+    delete: (id: string) => api.settings.providers.delete(id),
+  },
+
   export: {
     markdown: (content: string, filename: string) =>
       apiCall<string>(
         'exportMarkdown',
-        (a) => a.exportMarkdown(content, filename),
+        (a) => a.export?.markdown(content, filename) ?? a.exportMarkdown(content, filename),
         '',
       ),
+    exportMarkdown: (content: string, filename: string) =>
+      api.export.markdown(content, filename),
     json: (data: unknown, filename: string) =>
       apiCall<string>(
         'exportJSON',
-        (a) => a.exportJSON(data, filename),
+        (a) => a.export?.json(data, filename) ?? a.exportJSON(data, filename),
         '',
       ),
+    exportJSON: (data: unknown, filename: string) =>
+      api.export.json(data, filename),
+    exportAll: async () => {
+      const data = await api.storage.getAll();
+      return api.export.json(data, `agentflow-export-${Date.now()}.json`);
+    },
   },
 
   // ── Skills ──
 
   skills: {
     list: () =>
-      apiCall<SkillMeta[]>('listSkills', (a) => a.listSkills(), []),
+      apiCall<SkillMeta[]>(
+        'listSkills',
+        async (a) => {
+          const skills = a.skills?.list ? await a.skills.list() : await a.listSkills();
+          return skills.map((skill) => ({
+            ...skill,
+            filePath: skill.filePath ?? skill.path,
+            lastModified: skill.lastModified ?? new Date().toISOString(),
+          }));
+        },
+        [],
+      ),
     read: (name: string) =>
-      apiCall<string>('readSkill', (a) => a.readSkill(name), ''),
+      apiCall<string>('readSkill', (a) => a.skills?.read(name) ?? a.readSkill(name), ''),
   },
 
   // ── App ──
@@ -468,31 +678,54 @@ export const api = {
         electronVersion: string;
         nodeVersion: string;
         chromeVersion: string;
-      }>('getAppInfo', (a) => a.getAppInfo(), {
+      }>('getAppInfo', (a) => a.app?.info() ?? a.getAppInfo(), {
         version: '1.0.0',
         electronVersion: '',
         nodeVersion: '',
         chromeVersion: '',
       }),
     dataPath: () =>
-      apiCall<string>('getDataPath', (a) => a.getDataPath(), ''),
+      apiCall<string>('getDataPath', (a) => a.app?.getDataPath() ?? a.getDataPath(), ''),
+    clearDemoData: async () => undefined,
   },
 
   // ── Dialog ──
 
   dialog: {
+    open: (options: unknown) =>
+      apiCall<{ canceled: boolean; filePaths: string[] }>(
+        'openDialog',
+        (a) => a.dialog?.open(options) ?? Promise.resolve({ canceled: true, filePaths: [] }),
+        { canceled: true, filePaths: [] },
+      ),
     openDirectory: () =>
       apiCall<string | null>(
         'openDirectoryDialog',
-        (a) => a.openDirectoryDialog(),
+        async (a) => {
+          if (a.dialog?.open) {
+            const result = await a.dialog.open({ properties: ['openDirectory'] });
+            return result.canceled ? null : result.filePaths[0] ?? null;
+          }
+          return a.openDirectoryDialog();
+        },
         null,
       ),
     openFile: (filters?: { name: string; extensions: string[] }[]) =>
       apiCall<string | null>(
         'openFileDialog',
-        (a) => a.openFileDialog(filters),
+        async (a) => {
+          if (a.dialog?.open) {
+            const result = await a.dialog.open({ properties: ['openFile'], filters });
+            return result.canceled ? null : result.filePaths[0] ?? null;
+          }
+          return a.openFileDialog(filters);
+        },
         null,
       ),
+  },
+
+  import: {
+    importAll: async (_path: string) => undefined,
   },
 
   // ── Health check ──

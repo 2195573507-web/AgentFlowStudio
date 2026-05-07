@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useState, useEffect } from 'react'
+import React, { Suspense, lazy } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 
@@ -25,38 +25,22 @@ function PageLoader() {
 }
 
 export default function App() {
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    const saved = localStorage.getItem('agentflow-theme')
-    if (saved === 'dark' || saved === 'light') return saved
-    if (saved === 'system') {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-    }
-    return 'light'
-  })
-
-  useEffect(() => {
-    const root = document.documentElement
-    if (theme === 'dark') {
-      root.classList.add('dark')
-    } else {
-      root.classList.remove('dark')
-    }
-    localStorage.setItem('agentflow-theme', theme)
-  }, [theme])
-
-  const toggleTheme = () => setTheme((t) => (t === 'light' ? 'dark' : 'light'))
-
   return (
-    <Layout theme={theme} onToggleTheme={toggleTheme}>
+    <Layout>
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/projects/:id" element={<ProjectDetail />} />
+          <Route path="/prompts" element={<PromptLab />} />
           <Route path="/prompt-lab" element={<PromptLab />} />
+          <Route path="/logs" element={<LogAnalyzer />} />
           <Route path="/log-analyzer" element={<LogAnalyzer />} />
+          <Route path="/git" element={<GitTimeline />} />
           <Route path="/git-timeline" element={<GitTimeline />} />
+          <Route path="/safety" element={<SafetyBox />} />
           <Route path="/safety-box" element={<SafetyBox />} />
+          <Route path="/memory" element={<SharedMemoryHub />} />
           <Route path="/shared-memory-hub" element={<SharedMemoryHub />} />
           <Route path="/skills" element={<Skills />} />
           <Route path="/settings" element={<Settings />} />

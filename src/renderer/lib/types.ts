@@ -5,6 +5,7 @@ export type {
   Platform,
   TaskStatus,
   Priority,
+  Difficulty,
   MemoryType,
   MemoryStatus,
   MemoryInjectionMode,
@@ -25,9 +26,12 @@ export type {
   SafetyCheckResult,
   GitCommitEntry,
   ProjectPlan,
+  PromptTemplate,
+  PromptTemplateVariable,
 } from '../../shared/types';
 
 export { IPC_CHANNELS } from '../../shared/types';
+import type { MemoryStatus, MemoryType } from '../../shared/types';
 
 // ── Renderer-specific types ──
 

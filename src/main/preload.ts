@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { IPC_CHANNELS } from '../shared/types';
-import type { MemoryInjectionMode } from '../shared/types';
+import { IPC_CHANNELS } from '../shared/types.js';
+import type { MemoryInjectionMode } from '../shared/types.js';
 
 // ---------------------------------------------------------------------------
 // Type the exposed API so the renderer gets full IntelliSense.

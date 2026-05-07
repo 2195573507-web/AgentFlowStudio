@@ -1,5 +1,53 @@
 # Current Context — AgentFlow Studio
 
+## Latest Codex Stability State - 2026-05-07
+
+Current deliverable scheme: **Static fallback**.
+
+Use this launcher now:
+
+```bat
+D:\AgentFlowStudio\start-agentflow-static.bat
+```
+
+The desktop shortcut exists at:
+
+```text
+C:\Users\至亲\Desktop\AgentFlow Studio.lnk
+```
+
+It points to `D:\AgentFlowStudio\start-agentflow-static.bat` and uses `D:\AgentFlowStudio\assets\icon.ico,0`.
+
+### Verified
+
+- `npm.cmd install`: pass.
+- `npm.cmd run icon`: pass.
+- `npm.cmd run typecheck`: pass.
+- `node_modules\.bin\tsc.cmd -p tsconfig.node.json`: pass.
+- `npm.cmd run lint`: pass with warnings only.
+- `npm.cmd run smoke`: pass, 53/53.
+- `npm.cmd run verify`: pass.
+- Static local HTTP smoke: pass, `STATUS=200`, title `AgentFlow Studio`.
+- `npm.cmd run shortcut`: pass with Desktop write permission.
+
+### Environment Blocked Here
+
+- `npm.cmd run dev`
+- `npm.cmd run dev:web`
+- `npm.cmd run test`
+- `npm.cmd run build`
+- `npm.cmd run build:web`
+
+All fail in this main environment at Vite/Vitest config loading with esbuild `spawn EPERM`. Direct `node_modules\.bin\esbuild.cmd --version` works.
+
+### Next Best Work
+
+1. On a normal Windows shell, rerun `npm.cmd run test` and `npm.cmd run build`.
+2. If Electron works there, switch shortcut priority back to Electron or packaged exe.
+3. Fix Shared Memory context generation in Prompt Lab / SharedMemoryHub.
+4. Add main-process recursive memory redaction.
+5. Add route-level ErrorBoundary.
+
 > **Purpose**: Give any AI model (Claude, GPT, DeepSeek, Codex, etc.) enough context to resume working on this project within 5 minutes of reading this file.
 
 ## What Is This Project?

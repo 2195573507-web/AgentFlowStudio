@@ -189,9 +189,9 @@ ${taskList}
  */
 export function generateProjectPlan(
   project: Project,
-  tasks: Task[],
-  memories: Memory[],
-  injectionMode: MemoryInjectionMode,
+  tasks: Task[] = [],
+  memories: Memory[] = [],
+  injectionMode: MemoryInjectionMode = 'off',
 ): ProjectPlan {
   const projectId = project.id;
 
@@ -358,6 +358,8 @@ export function generateProjectPlan(
     : baseCursorPrompt;
 
   return {
+    title: project.name,
+    overview: summary,
     summary,
     prd,
     architecture,
@@ -366,6 +368,7 @@ export function generateProjectPlan(
     testPlan,
     acceptanceCriteria,
     devPrompt,
+    claudeCodePrompt: devPrompt,
     codexPrompt,
     cursorPrompt,
   };

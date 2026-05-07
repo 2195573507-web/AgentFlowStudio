@@ -119,7 +119,7 @@ export default function Skills() {
       (s) =>
         s.name.toLowerCase().includes(q) ||
         s.description.toLowerCase().includes(q) ||
-        s.filePath.toLowerCase().includes(q)
+        (s.filePath ?? s.path ?? '').toLowerCase().includes(q)
     );
   }, [skills, search]);
 
@@ -283,7 +283,7 @@ export default function Skills() {
               {/* File path */}
               <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 mb-2">
                 <FileCode className="w-3 h-3 flex-shrink-0" />
-                <code className="truncate font-mono">{skill.filePath}</code>
+                <code className="truncate font-mono">{skill.filePath ?? skill.path ?? 'Unknown path'}</code>
               </div>
 
               {/* Missing fields warning */}

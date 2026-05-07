@@ -5,7 +5,9 @@ import { classNames } from '../lib/utils';
 
 export interface ModalProps {
   /** Whether the modal is visible. */
-  isOpen: boolean;
+  isOpen?: boolean;
+  /** Backwards-compatible alias used by older route code. */
+  open?: boolean;
   /** Called when the modal should close (backdrop click, escape key, X button). */
   onClose: () => void;
   /** Modal title rendered in the header bar. */
@@ -30,6 +32,7 @@ const sizeClasses: Record<'sm' | 'md' | 'lg', string> = {
 
 const Modal: React.FC<ModalProps> = ({
   isOpen,
+  open,
   onClose,
   title,
   children,
@@ -43,13 +46,14 @@ const Modal: React.FC<ModalProps> = ({
 
   // Save and restore focus
   useEffect(() => {
-    if (isOpen) {
+    const visible = open ?? isOpen ?? false;
+    if (visible) {
       previousFocusRef.current = document.activeElement as HTMLElement;
     } else if (previousFocusRef.current) {
       previousFocusRef.current.focus();
       previousFocusRef.current = null;
     }
-  }, [isOpen]);
+  }, [isOpen, open]);
 
   // Escape key handler
   const handleKeyDown = useCallback(
@@ -62,7 +66,8 @@ const Modal: React.FC<ModalProps> = ({
   );
 
   useEffect(() => {
-    if (isOpen) {
+    const visible = open ?? isOpen ?? false;
+    if (visible) {
       document.addEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'hidden';
     }
@@ -70,7 +75,7 @@ const Modal: React.FC<ModalProps> = ({
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = '';
     };
-  }, [isOpen, handleKeyDown]);
+  }, [isOpen, open, handleKeyDown]);
 
   const handleBackdropClick = useCallback(
     (e: React.MouseEvent) => {
@@ -81,7 +86,9 @@ const Modal: React.FC<ModalProps> = ({
     [closeOnBackdrop, onClose],
   );
 
-  if (!isOpen) return null;
+  const visible = open ?? isOpen ?? false;
+
+  if (!visible) return null;
 
   const modal = (
     <div

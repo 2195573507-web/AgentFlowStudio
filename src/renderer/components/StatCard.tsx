@@ -20,7 +20,11 @@ export interface StatCardProps {
   /** The main numeric/string value. */
   value: string | number;
   /** Optional icon (lucide-react element). */
-  icon?: React.ReactNode;
+  icon?: React.ReactNode | React.ComponentType<{ className?: string }>;
+  /** Optional accent color used by older page code. */
+  color?: 'blue' | 'emerald' | 'purple' | 'amber' | 'pink' | 'cyan' | 'red' | string;
+  /** Optional click handler for interactive stat cards. */
+  onClick?: () => void;
   /** Optional trend data (direction + label). */
   trend?: Trend;
   /** Optional description below the value. */
@@ -39,6 +43,8 @@ const StatCard: React.FC<StatCardProps> = ({
   label,
   value,
   icon,
+  color = 'accent',
+  onClick,
   trend,
   description,
   className,
@@ -54,8 +60,30 @@ const StatCard: React.FC<StatCardProps> = ({
 
   const TrendIcon = trend ? trendConfig[trend.direction].icon : null;
 
+  const colorClass =
+    {
+      blue: 'text-blue-500 bg-blue-500/10',
+      emerald: 'text-emerald-500 bg-emerald-500/10',
+      purple: 'text-purple-500 bg-purple-500/10',
+      amber: 'text-amber-500 bg-amber-500/10',
+      pink: 'text-pink-500 bg-pink-500/10',
+      cyan: 'text-cyan-500 bg-cyan-500/10',
+      red: 'text-red-500 bg-red-500/10',
+      accent: 'text-accent-500 bg-white/30 dark:bg-white/10',
+    }[color] ?? 'text-accent-500 bg-white/30 dark:bg-white/10';
+
+  const iconNode =
+    typeof icon === 'function'
+      ? React.createElement(icon, { className: 'w-5 h-5' })
+      : icon;
+
   return (
-    <GlassCard padding="lg" className={classNames('min-w-[160px]', className)}>
+    <GlassCard
+      padding="lg"
+      hoverable={Boolean(onClick)}
+      onClick={onClick}
+      className={classNames('min-w-[160px]', className)}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
@@ -93,14 +121,14 @@ const StatCard: React.FC<StatCardProps> = ({
           )}
         </div>
 
-        {icon && (
+        {iconNode && (
           <div
             className={classNames(
               'flex items-center justify-center w-10 h-10 rounded-xl shrink-0',
-              'bg-white/30 dark:bg-white/10 text-accent-500',
+              colorClass,
             )}
           >
-            {icon}
+            {iconNode}
           </div>
         )}
       </div>

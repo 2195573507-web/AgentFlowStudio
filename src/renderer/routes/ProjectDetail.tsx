@@ -53,6 +53,7 @@ const DEMO_PROJECT: Project = {
 
 const DEMO_PLAN: ProjectPlan = {
   title: 'AI Chat Assistant',
+  summary: 'AI Chat Assistant is a desktop AI chat app with multi-provider support, persistent memory, and a glass desktop interface.',
   overview: `## 项目简介
 
 AI Chat Assistant 是一款跨平台的桌面聊天应用，支持多种 AI 模型提供商，并具备持久化记忆功能。用户可以无缝切换 OpenAI、Anthropic 及本地模型。
@@ -175,6 +176,9 @@ You are building a cross-platform AI chat desktop application using Electron + R
 - Functional components with hooks
 - Tailwind utility-first CSS
 - Glassmorphism design system`,
+  devPrompt: `# Claude Code Development Prompt
+
+Continue the AI Chat Assistant desktop app using Electron, React, TypeScript, Tailwind CSS, secure IPC, and local persistence. Preserve the existing architecture and focus on provider switching, memory injection, prompt templates, tests, and production packaging.`,
   codexPrompt: `# Codex Optimization Prompt
 
 Optimize the AI Chat Assistant for Codex CLI usage:
@@ -228,6 +232,8 @@ src/
 - Soft shadows: \`shadow-lg shadow-black/10\`
 - Colors: Indigo primary, Emerald success, Amber warning`,
 };
+DEMO_PLAN.summary = DEMO_PLAN.summary ?? DEMO_PLAN.overview ?? '';
+DEMO_PLAN.devPrompt = DEMO_PLAN.devPrompt ?? DEMO_PLAN.claudeCodePrompt ?? '';
 
 // ── Platform config ────────────────────────────────────────────────────────
 const PLATFORM_ICONS: Record<string, React.ComponentType<any>> = {
@@ -266,7 +272,7 @@ export default function ProjectDetail() {
     setLoading(true);
     setError(null);
     try {
-      let proj: Project | undefined;
+      let proj: Project | null | undefined;
       let taskList: Task[] = [];
       let memList: Memory[] = [];
 

@@ -1,0 +1,25 @@
+检查:
+- Icon pipeline generates real SVG, PNG, and ICO files.
+- Shortcut script validates ICO header and selects launcher by priority.
+
+修复:
+- Branded icon generation implemented in scripts/create-icon.js without external raster dependencies.
+- scripts/create-shortcut.ps1 selects packaged exe, otherwise Static/Web/Electron launchers.
+- start-agentflow-electron.bat, start-agentflow-web.bat, and start-agentflow-static.bat exist.
+
+验证结果:
+- npm.cmd run icon PASS.
+- assets/icon.ico valid ICO header, 57784 bytes, 7 sizes.
+- npm.cmd run shortcut PASS with escalation for Desktop write.
+- Desktop AgentFlow Studio.lnk points to D:\AgentFlowStudio\start-agentflow-static.bat.
+
+changed files:
+- assets/icon.svg
+- assets/icon.png
+- assets/icon.ico
+- scripts/create-icon.js
+- scripts/create-shortcut.ps1
+- start-agentflow.bat
+- start-agentflow-electron.bat
+- start-agentflow-web.bat
+- start-agentflow-static.bat

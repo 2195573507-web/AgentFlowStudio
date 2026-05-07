@@ -1,0 +1,20 @@
+检查:
+- npm.cmd run test and npm.cmd run build fail at Vite/Vitest config loading because Node child_process spawn of esbuild.exe returns EPERM.
+- Direct node_modules/.bin/esbuild.cmd --version works, so the binary exists.
+
+修复:
+- Added scripts/smoke-test.js.
+- Added package scripts: smoke, dev:web, build:web, fallback:web, fallback:static, preview:web, serve:static, shortcut:web.
+- verify now includes smoke.
+
+验证结果:
+- npm.cmd install PASS.
+- npm.cmd run typecheck PASS.
+- npm.cmd run smoke PASS: 53 passed, 0 failed.
+- npm.cmd run verify PASS: 97 verify checks + 53 smoke checks.
+- npm.cmd run test FAIL: esbuild spawn EPERM.
+- npm.cmd run build FAIL: esbuild spawn EPERM.
+
+changed files:
+- package.json
+- scripts/smoke-test.js

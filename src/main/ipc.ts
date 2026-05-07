@@ -1,12 +1,12 @@
 import { ipcMain, dialog, app, BrowserWindow } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs/promises';
-import { IPC_CHANNELS } from '../shared/types';
-import type { MemoryType } from '../shared/types';
-import storage from './storage';
-import { getGitLog, getGitStatus, getGitSummary } from './git';
-import { readSkillsFromDir, fileExists } from './filesystem';
-import { sanitizeFilePath } from './security';
+import { IPC_CHANNELS } from '../shared/types.js';
+import type { MemoryType } from '../shared/types.js';
+import storage from './storage.js';
+import { getGitLog, getGitStatus, getGitSummary } from './git.js';
+import { readSkillsFromDir, fileExists } from './filesystem.js';
+import { sanitizeFilePath } from './security.js';
 
 // ---------------------------------------------------------------------------
 // Helpers

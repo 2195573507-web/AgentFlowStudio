@@ -19,7 +19,12 @@ import {
   Plus,
 } from 'lucide-react';
 import { api } from '../lib/api';
-import { PROMPT_TEMPLATES, fillTemplate, getTemplateByName } from '../lib/templates';
+import {
+  PROMPT_TEMPLATES,
+  fillTemplate,
+  getTemplateByName,
+  getTemplateVariableKey,
+} from '../lib/templates';
 import { injectMemoryIntoPrompt, generateSharedMemoryContext } from '../lib/memoryInjection';
 import { exportMarkdown } from '../lib/exporters';
 import { GlassCard, EmptyState, Button, Input, Textarea, Badge, PromptPreview, Modal } from '../components/';
@@ -115,7 +120,7 @@ export default function PromptLab() {
     if (selectedTemplate) {
       const defaults: Record<string, string> = {};
       selectedTemplate.variables.forEach((v) => {
-        defaults[v.key] = '';
+        defaults[getTemplateVariableKey(v)] = '';
       });
       setVariableValues(defaults);
       setGeneratedContent(null);
@@ -173,7 +178,7 @@ export default function PromptLab() {
       const saved: SavedPrompt = {
         id: generateId(),
         name: saveName.trim(),
-        templateId: selectedTemplate.id,
+        templateId: selectedTemplate.id ?? selectedTemplate.name,
         variables: { ...variableValues },
         content: generatedContent,
         starred: false,
@@ -227,7 +232,7 @@ export default function PromptLab() {
 
   // ── Load saved prompt into editor ─────────────────────────────────────
   const loadSaved = (prompt: SavedPrompt) => {
-    const tmpl = getTemplateByName(prompt.templateId);
+    const tmpl = prompt.templateId ? getTemplateByName(prompt.templateId) : undefined;
     if (tmpl) {
       setSelectedTemplate(tmpl);
       setVariableValues(prompt.variables || {});
@@ -240,7 +245,7 @@ export default function PromptLab() {
     if (!savedSearch) return savedPrompts;
     const q = savedSearch.toLowerCase();
     return savedPrompts.filter(
-      (p) => p.name.toLowerCase().includes(q) || p.content.toLowerCase().includes(q)
+      (p) => (p.name ?? p.title ?? '').toLowerCase().includes(q) || p.content.toLowerCase().includes(q)
     );
   }, [savedPrompts, savedSearch]);
 
@@ -371,38 +376,41 @@ export default function PromptLab() {
                       模板变量
                     </h4>
                     <div className="space-y-3">
-                      {selectedTemplate.variables.map((v) => (
-                        <div key={v.key}>
-                          <label className="block text-[11px] font-medium text-zinc-500 mb-1">
-                            {v.label || v.key}
-                            {v.required && <span className="text-red-400 ml-0.5">*</span>}
-                          </label>
-                          {v.type === 'textarea' || (v.label && v.label.length > 30) ? (
-                            <Textarea
-                              value={variableValues[v.key] || ''}
-                              onChange={(e) =>
-                                setVariableValues((prev) => ({
-                                  ...prev,
-                                  [v.key]: e.target.value,
-                                }))
-                              }
-                              placeholder={v.placeholder || `输入 ${v.label || v.key}...`}
-                              rows={3}
-                            />
-                          ) : (
-                            <Input
-                              value={variableValues[v.key] || ''}
-                              onChange={(e) =>
-                                setVariableValues((prev) => ({
-                                  ...prev,
-                                  [v.key]: e.target.value,
-                                }))
-                              }
-                              placeholder={v.placeholder || `输入 ${v.label || v.key}...`}
-                            />
-                          )}
-                        </div>
-                      ))}
+                      {selectedTemplate.variables.map((v) => {
+                        const key = getTemplateVariableKey(v);
+                        return (
+                          <div key={key}>
+                            <label className="block text-[11px] font-medium text-zinc-500 mb-1">
+                              {v.label || key}
+                              {v.required && <span className="text-red-400 ml-0.5">*</span>}
+                            </label>
+                            {v.type === 'textarea' || (v.label && v.label.length > 30) ? (
+                              <Textarea
+                                value={variableValues[key] || ''}
+                                onChange={(e) =>
+                                  setVariableValues((prev) => ({
+                                    ...prev,
+                                    [key]: e.target.value,
+                                  }))
+                                }
+                                placeholder={v.placeholder || `输入 ${v.label || key}...`}
+                                rows={3}
+                              />
+                            ) : (
+                              <Input
+                                value={variableValues[key] || ''}
+                                onChange={(e) =>
+                                  setVariableValues((prev) => ({
+                                    ...prev,
+                                    [key]: e.target.value,
+                                  }))
+                                }
+                                placeholder={v.placeholder || `输入 ${v.label || key}...`}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -545,7 +553,7 @@ export default function PromptLab() {
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="min-w-0 flex-1">
-                    <h4 className="text-sm font-medium text-zinc-200 truncate">{p.name}</h4>
+                    <h4 className="text-sm font-medium text-zinc-200 truncate">{p.name ?? p.title ?? 'Untitled prompt'}</h4>
                     <p className="text-[11px] text-zinc-500 mt-0.5">
                       {truncate(p.content, 60)}
                     </p>
@@ -569,7 +577,7 @@ export default function PromptLab() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge className="text-[10px] bg-white/5 text-zinc-500 border-white/10">
-                    {p.templateId}
+                    {p.templateId ?? p.templateName ?? 'custom'}
                   </Badge>
                   <span className="text-[10px] text-zinc-600 flex items-center gap-1">
                     <Clock className="w-3 h-3" />
