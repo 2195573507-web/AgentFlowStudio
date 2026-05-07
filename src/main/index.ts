@@ -1,0 +1,344 @@
+import { app, BrowserWindow, shell } from 'electron';
+import * as path from 'path';
+import { registerIpcHandlers } from './ipc';
+import storage from './storage';
+import type { Project, Task, Memory } from '../shared/types';
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const isDev = !app.isPackaged;
+
+// ---------------------------------------------------------------------------
+// Demo data seeding
+// ---------------------------------------------------------------------------
+
+async function seedDemoDataIfNeeded(): Promise<void> {
+  const existingProjects = await storage.getAll('projects');
+  if (existingProjects.length > 0) return; // Already seeded
+
+  const now = new Date().toISOString();
+
+  // ── Demo projects ──────────────────────────────────────────────────
+
+  const project1: Project = {
+    id: 'demo-proj-1',
+    name: 'AI Chat Desktop App',
+    idea: 'A cross-platform desktop chat application powered by local LLMs, featuring conversation history, prompt templates, and plugin support.',
+    platform: 'Desktop',
+    techStack: 'Electron, React, TypeScript, TailwindCSS, Ollama',
+    uiStyle: 'Modern glassmorphism with dark mode, collapsible sidebar, and animated message bubbles.',
+    difficulty: 'Medium',
+    status: 'active',
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const project2: Project = {
+    id: 'demo-proj-2',
+    name: 'Personal Blog Engine',
+    idea: 'A static-site blog engine with markdown editing, live preview, tag-based navigation, and RSS feed generation.',
+    platform: 'Web',
+    techStack: 'Next.js, MDX, TailwindCSS, Vercel',
+    uiStyle: 'Minimalist typography-first design with soft shadows and generous whitespace.',
+    difficulty: 'Easy',
+    status: 'planning',
+    createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+    updatedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+  };
+
+  await storage.create('projects', project1);
+  await storage.create('projects', project2);
+
+  // ── Demo tasks (4 per project) ──────────────────────────────────────
+
+  const tasks: Task[] = [
+    {
+      id: 'demo-task-1',
+      projectId: project1.id,
+      role: 'Architect',
+      title: 'Design UI component tree',
+      description: 'Create a full component hierarchy for the chat application covering sidebar, chat area, message list, input bar, and settings panel.',
+      input: 'Project requirements from PRD',
+      output: 'Complete component tree diagram with prop interfaces',
+      acceptance: 'All UI sections are covered, each component has defined props and state',
+      priority: 'high',
+      status: 'done',
+      createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+      updatedAt: new Date(Date.now() - 86400000).toISOString(),
+    },
+    {
+      id: 'demo-task-2',
+      projectId: project1.id,
+      role: 'Frontend Dev',
+      title: 'Implement chat message component',
+      description: 'Build the main chat message bubble component with support for markdown rendering, code syntax highlighting, and user/assistant roles.',
+      input: 'Component tree design from architect, UI style guide',
+      output: 'ChatBubble.tsx, ChatMessageList.tsx with full functionality',
+      acceptance: 'Messages render with correct styles, markdown is parsed, code blocks have syntax highlight',
+      priority: 'high',
+      status: 'doing',
+      createdAt: new Date(Date.now() - 86400000).toISOString(),
+      updatedAt: now,
+    },
+    {
+      id: 'demo-task-3',
+      projectId: project1.id,
+      role: 'Backend Dev',
+      title: 'Set up IPC for LLM inference',
+      description: 'Create IPC channels for communicating with local LLM providers (Ollama, LM Studio). Handle streaming responses and error states.',
+      input: 'IPC architecture document, provider API specs',
+      output: 'ipc-llm.ts with invoke/handle pattern for inference',
+      acceptance: 'Can send prompts and receive streaming responses, errors handled gracefully',
+      priority: 'critical',
+      status: 'todo',
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'demo-task-4',
+      projectId: project1.id,
+      role: 'Tester',
+      title: 'Write E2E tests for chat flow',
+      description: 'Create Playwright end-to-end tests covering the complete chat flow: send message, receive response, save conversation, load history.',
+      input: 'Test plan document, user flow diagrams',
+      output: 'chat-flow.spec.ts with 10+ test cases',
+      acceptance: 'All critical user flows are tested, tests pass in CI',
+      priority: 'medium',
+      status: 'blocked',
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'demo-task-5',
+      projectId: project2.id,
+      role: 'Architect',
+      title: 'Design content schema',
+      description: 'Define the MDX frontmatter schema for blog posts, including title, date, tags, excerpt, cover image, and custom components.',
+      input: 'Blog feature requirements',
+      output: 'TypeScript type definitions and MDX frontmatter specification',
+      acceptance: 'All required metadata fields are defined, optional fields documented',
+      priority: 'high',
+      status: 'done',
+      createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+      updatedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+    },
+    {
+      id: 'demo-task-6',
+      projectId: project2.id,
+      role: 'Frontend Dev',
+      title: 'Build blog post layout',
+      description: 'Create the responsive blog post layout with reading progress bar, table of contents sidebar, and estimated reading time.',
+      input: 'Content schema, design mockups',
+      output: 'PostLayout.tsx, TableOfContents.tsx, ReadingProgress.tsx',
+      acceptance: 'Layout matches mockups, responsive across devices, TOC links work',
+      priority: 'high',
+      status: 'doing',
+      createdAt: new Date(Date.now() - 86400000).toISOString(),
+      updatedAt: now,
+    },
+    {
+      id: 'demo-task-7',
+      projectId: project2.id,
+      role: 'Backend Dev',
+      title: 'Implement RSS feed generation',
+      description: 'Generate RSS 2.0 and Atom feeds at build time from all published posts. Include full content and proper metadata.',
+      input: 'RSS specification documents, content schema',
+      output: 'rss-feed.ts utility and build-time generation script',
+      acceptance: 'Feeds validate against W3C Feed Validator, all published posts included',
+      priority: 'medium',
+      status: 'todo',
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'demo-task-8',
+      projectId: project2.id,
+      role: 'DevOps',
+      title: 'Set up Vercel deployment',
+      description: 'Configure Vercel project with environment variables, custom domain, and automatic preview deployments for PRs.',
+      input: 'Vercel configuration guide, domain credentials',
+      output: 'vercel.json, deployment documentation',
+      acceptance: 'Main branch auto-deploys to production, PRs get preview URLs',
+      priority: 'low',
+      status: 'todo',
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
+
+  for (const task of tasks) {
+    await storage.create('tasks', task);
+  }
+
+  // ── Demo memories ──────────────────────────────────────────────────
+
+  const memories: Memory[] = [
+    {
+      id: 'demo-mem-1',
+      type: 'user_preference',
+      title: 'Preferred AI tool is Claude Code',
+      content: 'The developer prefers using Claude Code for all agent-driven development tasks. Use Claude Code CLI with --dangerously-skip-permissions flag for trusted operations.',
+      tags: ['claude-code', 'ai-tool', 'preference'],
+      projectId: '',
+      providerScope: 'claude',
+      modelScope: '',
+      importance: 9,
+      status: 'active',
+      createdAt: new Date(Date.now() - 86400000 * 7).toISOString(),
+      updatedAt: new Date(Date.now() - 86400000 * 7).toISOString(),
+      lastUsedAt: now,
+    },
+    {
+      id: 'demo-mem-2',
+      type: 'decision',
+      title: 'Use TailwindCSS for all styling',
+      content: 'Decided to use TailwindCSS with custom design tokens for all project styling. No CSS-in-JS libraries. Configuration in tailwind.config.ts with custom theme extensions for brand colors and fonts.',
+      tags: ['tailwind', 'styling', 'architecture'],
+      projectId: '',
+      providerScope: '',
+      modelScope: '',
+      importance: 8,
+      status: 'active',
+      createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
+      updatedAt: new Date(Date.now() - 86400000 * 5).toISOString(),
+      lastUsedAt: new Date(Date.now() - 86400000).toISOString(),
+    },
+    {
+      id: 'demo-mem-3',
+      type: 'issue_fix',
+      title: 'Electron CSP: allow inline styles for Tailwind',
+      content: 'TailwindCSS requires inline styles in dev mode. Added Content-Security-Policy header that allows "style-src \'self\' \'unsafe-inline\'" in the Electron renderer. Also needed to allow ws:// for HMR in Vite dev server.',
+      tags: ['electron', 'csp', 'tailwind', 'security'],
+      projectId: project1.id,
+      providerScope: '',
+      modelScope: '',
+      importance: 7,
+      status: 'active',
+      createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+      updatedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+      lastUsedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+    },
+    {
+      id: 'demo-mem-4',
+      type: 'prompt_pattern',
+      title: 'Component creation prompt template',
+      content: 'When asking the AI to create a new React component, use: "Create a React functional component named [Name] in TypeScript. It should accept props: [list props]. Use TailwindCSS for styling. Include JSDoc comments. Export as default. Handle loading, empty, error, and edge case states."',
+      tags: ['prompt', 'react', 'component', 'template'],
+      projectId: '',
+      providerScope: 'claude',
+      modelScope: '',
+      importance: 6,
+      status: 'active',
+      createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
+      updatedAt: new Date(Date.now() - 86400000 * 4).toISOString(),
+      lastUsedAt: now,
+    },
+    {
+      id: 'demo-mem-5',
+      type: 'project_context',
+      title: 'AgentFlow Studio project overview',
+      content: 'AgentFlow Studio is a local AI project orchestration hub. It manages projects, tasks, prompts, and agent run logs. The architecture uses Electron main process for file I/O and git operations, and React renderer for the UI. Data is stored as JSON files in the user data directory.',
+      tags: ['agentflow', 'overview', 'architecture', 'electron'],
+      projectId: '',
+      providerScope: '',
+      modelScope: '',
+      importance: 10,
+      status: 'active',
+      createdAt: new Date(Date.now() - 86400000 * 10).toISOString(),
+      updatedAt: new Date(Date.now() - 86400000 * 10).toISOString(),
+      lastUsedAt: now,
+    },
+  ];
+
+  for (const memory of memories) {
+    await storage.create('memories', memory);
+  }
+
+  // ── Demo settings ──────────────────────────────────────────────────
+
+  const defaultSettings: Array<{ id: string; value: unknown }> = [
+    { id: 'theme', value: 'dark' },
+    { id: 'defaultProjectPath', value: app.getPath('documents') },
+    { id: 'defaultAITool', value: 'Claude Code' },
+    { id: 'dataPath', value: path.join(app.getPath('userData'), 'agentflow-data') },
+    { id: 'version', value: app.getVersion() },
+  ];
+
+  for (const setting of defaultSettings) {
+    await storage.create('settings', setting);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Window creation
+// ---------------------------------------------------------------------------
+
+function createWindow(): BrowserWindow {
+  const win = new BrowserWindow({
+    width: 1400,
+    height: 900,
+    minWidth: 1024,
+    minHeight: 680,
+    frame: true,
+    titleBarStyle: 'default',
+    title: 'AgentFlow Studio',
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      preload: path.join(__dirname, 'preload.js'),
+    },
+  });
+
+  // Open external links in the system browser
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
+    return { action: 'deny' };
+  });
+
+  if (isDev) {
+    win.loadURL('http://localhost:5173');
+    win.webContents.openDevTools({ mode: 'detach' });
+  } else {
+    win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
+  }
+
+  return win;
+}
+
+// ---------------------------------------------------------------------------
+// App lifecycle
+// ---------------------------------------------------------------------------
+
+app.setName('AgentFlow Studio');
+
+app.whenReady().then(async () => {
+  // Initialise storage (creates data directory)
+  await storage.init();
+
+  // Register all IPC handlers before creating the window
+  registerIpcHandlers();
+
+  // Seed demo data on first launch
+  try {
+    await seedDemoDataIfNeeded();
+  } catch (err) {
+    console.error('Failed to seed demo data:', err);
+  }
+
+  createWindow();
+
+  app.on('activate', () => {
+    // macOS: re-create window when dock icon is clicked and no windows open
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+  });
+});
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
