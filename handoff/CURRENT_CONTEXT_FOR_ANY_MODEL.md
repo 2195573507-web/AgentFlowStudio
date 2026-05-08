@@ -1,168 +1,82 @@
-# Current Context — AgentFlow Studio
+# Current Context - AgentFlow Studio
 
-## Latest Codex Stability State - 2026-05-07
+## Latest State - 2026-05-08
 
-Current deliverable scheme: **Static fallback**.
+Current deliverable: **Static fallback / 静态可交付模式**.
 
-Use this launcher now:
+Use:
 
 ```bat
 D:\AgentFlowStudio\start-agentflow-static.bat
 ```
 
-The desktop shortcut exists at:
+Desktop shortcut:
 
 ```text
 C:\Users\至亲\Desktop\AgentFlow Studio.lnk
+TargetPath: D:\AgentFlowStudio\start-agentflow-static.bat
+WorkingDirectory: D:\AgentFlowStudio
+IconLocation: D:\AgentFlowStudio\assets\icon.ico,0
 ```
 
-It points to `D:\AgentFlowStudio\start-agentflow-static.bat` and uses `D:\AgentFlowStudio\assets\icon.ico,0`.
+## What Changed In The Latest Loop
 
-### Verified
+- Old `.codex-parallel` was archived to `handoff\archived-agents\run-20260508-125051`.
+- Clean `.codex-parallel\logs` was recreated.
+- Seven fresh roles checked launcher crash, static server, shortcut, fallback app, Chinese localization, runtime smoke, and reporting. Agent G was completed by the main thread due subagent limit.
+- A real Static fallback app was created under `static-app`.
+- `start-agentflow-static.bat` was rewritten with an ASCII-safe batch skeleton so Windows cmd no longer mis-parses Chinese text or redirection; Chinese console prompts are printed through `scripts\launcher-message.ps1`.
+- `scripts\static-server.js` now serves `static-app` first, includes `static-app/dist` fallback, logs to `logs\static-server.log`, retries ports 4173-4177, catches fatal errors, supports SPA fallback, and opens the browser.
+- `scripts\launch-static-test.js` and `npm.cmd run test:launch-static` were added.
+- Desktop shortcut creation now targets `start-agentflow-static.bat` directly.
 
-- `npm.cmd install`: pass.
-- `npm.cmd run icon`: pass.
-- `npm.cmd run typecheck`: pass.
-- `node_modules\.bin\tsc.cmd -p tsconfig.node.json`: pass.
-- `npm.cmd run lint`: pass with warnings only.
-- `npm.cmd run smoke`: pass, 53/53.
-- `npm.cmd run verify`: pass.
-- Static local HTTP smoke: pass, `STATUS=200`, title `AgentFlow Studio`.
-- `npm.cmd run shortcut`: pass with Desktop write permission.
+## Verified
 
-### Environment Blocked Here
+- `npm.cmd run icon`: PASS.
+- `npm.cmd run smoke`: PASS, 64/64.
+- `npm.cmd run test:launch-static`: PASS outside sandbox.
+- `npm.cmd run shortcut`: PASS outside sandbox.
+- PowerShell COM shortcut verification: PASS.
+- Real bat launch: PASS; cmd stayed open after 15 seconds.
+- Real HTTP: `http://127.0.0.1:4173` returned 200 and included `AgentFlow Studio`, `仪表盘`, `项目管理`, `提示词实验室`, `日志分析`, `安全检查`, `共享记忆中心`, `设置`.
 
-- `npm.cmd run dev`
-- `npm.cmd run dev:web`
-- `npm.cmd run test`
-- `npm.cmd run build`
-- `npm.cmd run build:web`
+## Why Static Fallback Is Current
 
-All fail in this main environment at Vite/Vitest config loading with esbuild `spawn EPERM`. Direct `node_modules\.bin\esbuild.cmd --version` works.
+Electron, Vite build, and Vitest are still not the active deliverable because previous runs hit esbuild `spawn EPERM` in this environment. The current user issue is launcher usability, so the stable path is pure Node + static files:
 
-### Next Best Work
-
-1. On a normal Windows shell, rerun `npm.cmd run test` and `npm.cmd run build`.
-2. If Electron works there, switch shortcut priority back to Electron or packaged exe.
-3. Fix Shared Memory context generation in Prompt Lab / SharedMemoryHub.
-4. Add main-process recursive memory redaction.
-5. Add route-level ErrorBoundary.
-
-> **Purpose**: Give any AI model (Claude, GPT, DeepSeek, Codex, etc.) enough context to resume working on this project within 5 minutes of reading this file.
-
-## What Is This Project?
-
-**AgentFlow Studio** is a local Electron desktop app for managing AI-assisted software projects. It's like a control center for AI coding workflows.
-
-Tech: Electron + React + TypeScript + Vite + Tailwind CSS + ECharts
-Storage: Local JSON files (no database server needed)
-Location: `D:\AgentFlowStudio`
-
-## What Does It Do?
-
-1. **Project Planner** — Give it a project idea, get back PRD, architecture, task breakdown, test plan, and AI-ready dev prompts
-2. **Prompt Lab** — 13 prompt templates with variable filling and memory injection
-3. **Log Analyzer** — Paste error logs, get diagnoses and fix instructions
-4. **Safety Box** — Check if a shell command is dangerous before running it
-5. **Git Timeline** — Browse git commit history visually
-6. **Shared Memory Hub** — Persistent project memory that survives switching between AI tools/models
-7. **Skills Manager** — 6 agent skill definitions
-8. **Settings** — Theme, AI provider config, data management
-
-## Current State (Phase 1 Complete)
-
-**All source code is written.** Every file, every component, every function has a real implementation. No stubs or TODOs.
-
-What exists:
-- 10 React page components (fully implemented)
-- 15 reusable UI components
-- 12 pure logic modules
-- 8 Electron main process files
-- 9 unit test suites (107+ test cases)
-- 1 E2E test file
-- 6 agent skill definitions
-- 4 utility scripts
-- 8 handoff documentation files
-- Demo data for first-launch experience
-- All config files (TypeScript, Vite, Tailwind, Electron Builder)
-
-## What Needs to Happen Next
-
-1. **Install dependencies**: `npm install`
-2. **Run tests**: `npm run test` (fix any failures)
-3. **Verify build**: `npm run build` (fix any type errors)
-4. **Test the app**: `npm run dev` (browser through the pages)
-5. **UI Polish**: Review all pages for visual consistency
-6. **Test coverage**: Add more edge case tests
-7. **Icon fix**: Generate proper PNG/ICO from SVG
-8. **Package**: `npm run dist` for Windows installer
-
-## Critical Constraints
-
-- **Electron security**: contextIsolation=true, nodeIntegration=false — NEVER change these
-- **No cloud dependency**: All core features work offline
-- **Secret redaction**: API keys must be redacted before storage/export
-- **Shared Memory Hub**: Must be preserved — it's the key differentiator
-- **Local storage only**: Data stays in `userData/agentflow-data/`
-- **TypeScript strict**: Keep strict mode on
-
-## How to Run
-
-```bash
-cd D:\AgentFlowStudio
-npm install          # Install dependencies
-npm run dev          # Start dev mode (Electron + Vite)
-npm run test         # Run unit tests
-npm run build        # Build for production
-npm run verify       # Check all files present
-npm run shortcut     # Create desktop shortcut
+```text
+start-agentflow-static.bat -> node scripts/static-server.js -> static-app
 ```
 
-## Key Files to Read First
+## Static App Scope
 
-1. `AGENTS.md` — Rules and conventions for AI agents
-2. `handoff/ARCHITECTURE.md` — Full architecture documentation
-3. `handoff/FILE_MAP.md` — Every file and its purpose
-4. `handoff/TASK_STATUS.md` — What's done vs. what's not
-5. `README.md` — Human-focused documentation
+The Static fallback is Chinese-first and supports:
 
-## Known Issues
+- 仪表盘 / 项目总控台
+- 项目管理
+- 项目详情
+- 提示词实验室
+- 日志分析
+- 安全检查
+- 共享记忆中心
+- 设置
+- localStorage persistence
+- New project, new memory, Prompt generation, log analysis, risk check, and cross-model recovery Prompt generation
 
-- Icon PNG/ICO are SVG copies (need proper rasterization)
-- Playwright browsers may not be installed (need `npx playwright install chromium`)
-- electron-builder may fail on icon until icons are fixed
-- E2E tests skip gracefully if dev server isn't running
+Allowed English terms remain as names only: AgentFlow Studio, Codex, Claude Code, Cursor, API, Prompt, Git, Shared Memory Hub, localStorage, Static fallback.
 
-## What NOT to Do
+## Important Constraints
 
-- Don't rebuild from scratch
-- Don't change the storage strategy
-- Don't remove the Shared Memory Hub
-- Don't disable Electron security features
-- Don't add cloud dependencies to core features
-- Don't delete the handoff/ directory
-- Don't remove secret redaction
+- Do not rebuild from scratch.
+- Do not remove Shared Memory Hub.
+- Do not switch the shortcut away from Static fallback until Electron/Vite are truly verified in a normal Windows shell.
+- Use `npm.cmd`, not `npm`, from PowerShell.
+- Treat old `.codex-parallel` reports as historical only.
 
-## Tech Stack Details
+## Next Best Work
 
-| Layer | Technology | Version |
-|-------|-----------|---------|
-| Desktop | Electron | 33.x |
-| UI | React | 18.x |
-| Language | TypeScript | 5.7.x |
-| Build | Vite | 6.x |
-| CSS | Tailwind CSS | 3.4.x |
-| Charts | ECharts | 5.x |
-| Icons | lucide-react | 0.487.x |
-| Git | simple-git | 3.27.x |
-| Tests | Vitest | 2.1.x |
-| E2E | Playwright | 1.49.x |
-| Package | electron-builder | 25.x |
-
-## Project-Specific Terminology
-
-- **Memory**: A unit of persistent context (project background, decision, fix, preference, etc.)
-- **Injection Mode**: How much context to prepend to prompts (off/minimal/balanced/full)
-- **Provider**: An AI API configuration (OpenAI-compatible base URL + model)
-- **Skill**: A Markdown file defining an agent workflow (.agents/skills/*/SKILL.md)
-- **Handoff**: Documentation package for passing the project to another AI developer
+1. Finish full React route localization beyond the Static fallback.
+2. Retry `npm.cmd run test`, `npm.cmd run build`, and `npm.cmd run dev` in a normal unrestricted Windows terminal.
+3. If Electron passes, decide with the user whether to switch shortcut priority back to packaged Electron.
+4. Add route-level ErrorBoundary.
+5. Harden main-process Shared Memory redaction and context generation.

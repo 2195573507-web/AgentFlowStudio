@@ -89,7 +89,17 @@ check('start-agentflow-web.bat', fileExists('start-agentflow-web.bat'))
 check('start-agentflow-static.bat', fileExists('start-agentflow-static.bat'))
 check('scripts/create-shortcut.ps1', fileExists('scripts/create-shortcut.ps1'))
 check('scripts/static-server.js', fileExists('scripts/static-server.js'))
-check('dist/index.html', fileExists('dist/index.html'))
+check('scripts/launch-static-test.js', fileExists('scripts/launch-static-test.js'))
+check('static-app/index.html', fileExists('static-app/index.html'))
+check('static-app/app.js', fileExists('static-app/app.js'))
+check('static-app/styles.css', fileExists('static-app/styles.css'))
+check('static-app/assets/icon.svg', fileExists('static-app/assets/icon.svg'))
+const staticIndex = readText('static-app/index.html')
+const staticApp = readText('static-app/app.js')
+const staticText = `${staticIndex}\n${staticApp}`
+for (const keyword of ['仪表盘', '项目管理', '提示词实验室', '日志分析', '安全检查', '共享记忆中心', '设置']) {
+  check(`static-app localized/${keyword}`, staticText.includes(keyword))
+}
 
 console.log('\n[Handoff]')
 check('handoff/CODEX_HANDOFF.md', fileExists('handoff/CODEX_HANDOFF.md'))

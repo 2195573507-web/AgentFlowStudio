@@ -1,38 +1,38 @@
-# AgentFlow Studio Codex Optimization Plan
+# AgentFlow Studio Localized Static Launcher Repair Plan
 
 ## Goal
-Complete the second-pass Codex handoff: verify, repair, polish, build, package where possible, create icon/shortcut, update handoff docs, and commit the work on `codex-optimization`.
 
-## Phases
+Make `D:\AgentFlowStudio` double-click launch reliably through a localized Static fallback app, independent of Vite/Electron/esbuild, and verify it with real HTTP, launcher, shortcut, and documentation updates.
+
+## Current Session Phases
 
 | Phase | Status | Notes |
 |---|---|---|
-| 1. Context recovery | complete | Read root docs, handoff files, source/test/script/assets/data/skills, git status/log. |
-| 2. Branch and baseline | in_progress | Created `codex-optimization`; baseline commit skipped because worktree was clean. |
-| 3. Dependency and first test pass | complete | `npm.cmd install` passed; first typecheck/lint/test/build failures captured. |
-| 4. Startup/type/build repair | in_progress | Fix shared types, renderer API compatibility, route aliases, scripts/config. |
-| 5. UI and Shared Memory polish | pending | Audit and refine desktop UI, memory flows, settings/provider UX. |
-| 6. Icon and shortcut | pending | Generate real SVG/PNG/ICO and create Windows desktop shortcut. |
-| 7. Verification loop | pending | Re-run typecheck, lint, test, build, dev, icon, shortcut, dist where possible. |
-| 8. Handoff docs and commits | pending | Update handoff docs, changelog/report, stage and commit phases. |
+| 1. Reset stale parallel agents | complete | Old `.codex-parallel` archived to `handoff\archived-agents\run-20260508-125051`; clean `.codex-parallel\logs` created. |
+| 2. Start new parallel checks | complete | Agents A-F completed; Agent G reporter work handled in main thread due subagent limit. |
+| 3. Repair static launcher/server | complete | Launcher now runs Node directly; server is pure Node HTTP with logging, fallback root selection, port retry, browser open, and exception capture. |
+| 4. Build Chinese static fallback app | complete | `static-app/index.html`, `app.js`, `styles.css`, and `assets/icon.svg` created with localStorage-backed workflows. |
+| 5. Fix desktop shortcut and icon flow | complete | Shortcut targets `start-agentflow-static.bat`; icon regenerated and verified. |
+| 6. Runtime verification | complete | `icon`, `smoke`, `test:launch-static`, `shortcut`, COM verification, real bat launch, and HTTP checks passed. |
+| 7. Handoff and commit | complete | Handoff docs and parallel summary updated; this repair is ready for git commit. |
+
+## Acceptance Checklist
+
+- Clean `.codex-parallel` with new logs: complete.
+- `start-agentflow-static.bat` does not flash-close and logs to `logs\launcher-static.log`: complete.
+- `scripts\static-server.js` is pure Node HTTP, logs, falls back to `static-app`, switches ports, opens browser, and stays alive: complete.
+- `static-app` exists, is Chinese-first, and exposes core AgentFlow Studio workflows: complete.
+- Desktop shortcut exists and targets `D:\AgentFlowStudio\start-agentflow-static.bat`: complete.
+- `npm.cmd run test:launch-static` passes: complete outside sandbox.
+- Real HTTP response is 200 and includes AgentFlow Studio plus Chinese navigation keywords: complete.
+- Handoff docs and `.codex-parallel\PARALLEL_SUMMARY.md` reflect this session: complete.
+- Git commit exists for this repair: complete.
 
 ## Errors Encountered
 
-| Error | Attempt | Resolution |
-|---|---|---|
-| `npm` blocked by PowerShell execution policy | `npm install` | Use `npm.cmd` for npm commands. |
-| Git branch creation permission denied in sandbox | `git checkout -b codex-optimization` | Re-ran with approved escalation. |
-| `npm run typecheck` reported renderer/shared type drift | First verification pass | In progress: add compatibility to shared types and wrappers. |
-| `npm run lint` missing ESLint config | First verification pass | Pending: add scoped ESLint config. |
-| `vite`/`vitest` failed with esbuild `spawn EPERM` in sandbox | First verification pass | Pending: re-run with escalation after code repairs. |
-
-## Completion Criteria
-
-- `npm.cmd install` succeeds.
-- `npm.cmd run dev` starts and app is not white-screen.
-- `npm.cmd run typecheck`, `test`, and `build` pass or environment limitation is documented.
-- `npm.cmd run lint` passes or remaining warnings are documented.
-- `npm.cmd run icon` and `shortcut` succeed, with desktop shortcut verified.
-- `npm.cmd run dist` succeeds or failure is documented with reason.
-- Handoff docs are updated with actual results.
-- At least one Codex optimization commit exists.
+| Error | Resolution |
+|---|---|
+| Previous static launcher opened browser before server and delegated to npm script. | Replaced with direct `node scripts\static-server.js` and pause-on-exit behavior. |
+| Old static server exited when `dist` was missing. | Made `static-app` first serving root and added auto fallback generation. |
+| UTF-8 Chinese batch control text broke in Windows cmd. | Rewrote `start-agentflow-static.bat` with an ASCII-safe command skeleton and kept Chinese UI/logging in Node/static app. |
+| Subagent thread limit blocked Agent G. | Main thread completed reporter role and wrote `.codex-parallel\logs\agent-g-reporter.md`. |

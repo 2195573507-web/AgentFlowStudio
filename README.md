@@ -56,6 +56,23 @@ npm run dist       # Build + package with electron-builder (NSIS on Windows)
 npm run shortcut   # Create desktop shortcut (PowerShell script)
 ```
 
+## Static Fallback / 静态可交付模式
+
+If Electron or Vite is blocked by local environment restrictions, use the verified static launcher:
+
+```bat
+D:\AgentFlowStudio\start-agentflow-static.bat
+```
+
+The Desktop shortcut `AgentFlow Studio.lnk` currently points to this launcher. It starts a pure Node static server, serves `static-app`, opens the browser, and keeps the console open so startup errors remain visible. The fallback UI is Chinese-first and includes 仪表盘、项目管理、项目详情、提示词实验室、日志分析、安全检查、共享记忆中心、设置.
+
+Verification:
+
+```bash
+npm.cmd run smoke
+npm.cmd run test:launch-static
+```
+
 ## Data Storage
 
 All data is stored locally in the Electron `userData` directory:

@@ -26,31 +26,31 @@ interface ColumnDef {
 const columns: ColumnDef[] = [
   {
     status: 'todo',
-    label: 'Todo',
+    label: '待办',
     color: 'text-slate-600 dark:text-slate-400',
     bgColor: 'bg-slate-100/60 dark:bg-slate-800/40',
   },
   {
     status: 'doing',
-    label: 'Doing',
+    label: '进行中',
     color: 'text-sky-600 dark:text-sky-400',
     bgColor: 'bg-sky-100/60 dark:bg-sky-900/30',
   },
   {
     status: 'in_progress',
-    label: 'In Progress',
+    label: '进行中',
     color: 'text-blue-600 dark:text-blue-400',
     bgColor: 'bg-blue-100/60 dark:bg-blue-900/30',
   },
   {
     status: 'blocked',
-    label: 'Blocked',
+    label: '受阻',
     color: 'text-amber-600 dark:text-amber-400',
     bgColor: 'bg-amber-100/60 dark:bg-amber-900/30',
   },
   {
     status: 'done',
-    label: 'Done',
+    label: '已完成',
     color: 'text-emerald-600 dark:text-emerald-400',
     bgColor: 'bg-emerald-100/60 dark:bg-emerald-900/30',
   },
@@ -61,6 +61,13 @@ const priorityVariant: Record<Priority, 'danger' | 'warning' | 'info' | 'default
   high: 'warning',
   medium: 'info',
   low: 'default',
+};
+
+const priorityLabels: Record<Priority, string> = {
+  critical: '严重',
+  high: '高',
+  medium: '中',
+  low: '低',
 };
 
 const TaskCard: React.FC<{
@@ -97,7 +104,7 @@ const TaskCard: React.FC<{
       {/* Meta row */}
       <div className="flex items-center gap-2 flex-wrap">
         <Badge variant={priorityVariant[task.priority]} dot>
-          {task.priority}
+          {priorityLabels[task.priority] ?? task.priority}
         </Badge>
         {task.role && (
           <span className="inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
@@ -125,7 +132,7 @@ const TaskCard: React.FC<{
               'cursor-pointer',
             )}
           >
-            <option value="">Move to...</option>
+            <option value="">移动到...</option>
             {availableStatuses.map((s) => {
               const col = columns.find((c) => c.status === s)!;
               return (
@@ -165,8 +172,8 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
   if (tasks.length === 0) {
     return (
       <EmptyState
-        title="No tasks yet"
-        description="Create tasks to populate the board."
+        title="暂无任务"
+        description="创建任务后会显示在看板中。"
         className="py-12"
       />
     );
@@ -228,7 +235,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
                   )}
                 >
                   <span className="text-xs text-slate-300 dark:text-slate-600">
-                    No tasks
+                    暂无任务
                   </span>
                 </div>
               )}

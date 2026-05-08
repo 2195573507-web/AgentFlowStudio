@@ -28,11 +28,11 @@ const { TaskStatusChart, MemoryTypeChart } = Charts;
 const DEMO_PROJECTS: Project[] = [
   {
     id: 'demo-1',
-    name: 'AI Chat Assistant',
-    idea: 'A cross-platform AI chat app with memory persistence and multi-provider support.',
+    name: 'AI 聊天助手',
+    idea: '带有记忆持久化和多接口支持的跨平台 AI 聊天应用。',
     platform: 'Desktop',
     techStack: 'Electron, React, TypeScript, Tailwind',
-    uiStyle: 'Glassmorphism',
+    uiStyle: '玻璃拟态工作台',
     difficulty: 'Medium',
     status: 'active',
     createdAt: new Date(Date.now() - 7 * 864e5).toISOString(),
@@ -40,11 +40,11 @@ const DEMO_PROJECTS: Project[] = [
   },
   {
     id: 'demo-2',
-    name: 'DevTool CLI',
-    idea: 'Command-line productivity suite for developers with git integration and log analysis.',
+    name: '开发工具 CLI',
+    idea: '面向开发者的命令行效率工具，集成 Git、日志分析和项目恢复上下文。',
     platform: 'CLI',
     techStack: 'Node.js, TypeScript, Ink',
-    uiStyle: 'Minimal',
+    uiStyle: '极简终端',
     difficulty: 'Hard',
     status: 'planning',
     createdAt: new Date(Date.now() - 3 * 864e5).toISOString(),
@@ -52,8 +52,8 @@ const DEMO_PROJECTS: Project[] = [
   },
   {
     id: 'demo-3',
-    name: 'Memory Sync Service',
-    idea: 'Background service that syncs shared AI memories across projects and providers.',
+    name: '记忆同步服务',
+    idea: '在项目与 AI 接口之间同步共享记忆的本地后台服务。',
     platform: 'Web',
     techStack: 'Go, SQLite, gRPC',
     uiStyle: 'Linear',
@@ -64,8 +64,8 @@ const DEMO_PROJECTS: Project[] = [
   },
   {
     id: 'demo-4',
-    name: 'Prompt Template Manager',
-    idea: 'Web UI for managing and versioning AI prompt templates with variable injection.',
+    name: 'Prompt 模板管理器',
+    idea: '用于管理、版本化和变量注入的 Prompt 模板界面。',
     platform: 'Web',
     techStack: 'Next.js, Prisma, PostgreSQL',
     uiStyle: 'Raycast',
@@ -76,8 +76,8 @@ const DEMO_PROJECTS: Project[] = [
   },
   {
     id: 'demo-5',
-    name: 'Safety Sandbox',
-    idea: 'Isolated environment for testing AI-generated shell commands with risk analysis.',
+    name: '安全沙盒',
+    idea: '用于测试 AI 生成命令、分析风险并给出替代方案的隔离环境。',
     platform: 'Desktop',
     techStack: 'Tauri, Rust, React',
     uiStyle: 'Glassmorphism',
@@ -89,24 +89,24 @@ const DEMO_PROJECTS: Project[] = [
 ];
 
 const DEMO_TASKS: Task[] = [
-  { id: 't1', projectId: 'demo-1', title: 'Set up project scaffolding', status: 'done', priority: 'high', createdAt: new Date().toISOString() },
-  { id: 't2', projectId: 'demo-1', title: 'Implement auth flow', status: 'in_progress', priority: 'high', createdAt: new Date().toISOString() },
-  { id: 't3', projectId: 'demo-1', title: 'Design chat UI', status: 'in_progress', priority: 'medium', createdAt: new Date().toISOString() },
-  { id: 't4', projectId: 'demo-2', title: 'Write CLI argument parser', status: 'todo', priority: 'medium', createdAt: new Date().toISOString() },
-  { id: 't5', projectId: 'demo-3', title: 'Define gRPC proto schema', status: 'done', priority: 'high', createdAt: new Date().toISOString() },
-  { id: 't6', projectId: 'demo-3', title: 'Implement memory CRUD', status: 'in_progress', priority: 'high', createdAt: new Date().toISOString() },
+  { id: 't1', projectId: 'demo-1', title: '搭建项目脚手架', status: 'done', priority: 'high', createdAt: new Date().toISOString() },
+  { id: 't2', projectId: 'demo-1', title: '实现登录与权限流程', status: 'in_progress', priority: 'high', createdAt: new Date().toISOString() },
+  { id: 't3', projectId: 'demo-1', title: '设计聊天工作台界面', status: 'in_progress', priority: 'medium', createdAt: new Date().toISOString() },
+  { id: 't4', projectId: 'demo-2', title: '编写 CLI 参数解析器', status: 'todo', priority: 'medium', createdAt: new Date().toISOString() },
+  { id: 't5', projectId: 'demo-3', title: '定义 gRPC 协议结构', status: 'done', priority: 'high', createdAt: new Date().toISOString() },
+  { id: 't6', projectId: 'demo-3', title: '实现记忆 CRUD 流程', status: 'in_progress', priority: 'high', createdAt: new Date().toISOString() },
 ];
 
 const DEMO_PROMPTS: SavedPrompt[] = [
-  { id: 'p1', name: 'System Architect', templateId: 'system-architect', variables: {}, content: 'You are a senior system architect...', starred: true, createdAt: new Date().toISOString() },
-  { id: 'p2', name: 'Code Reviewer', templateId: 'code-reviewer', variables: {}, content: 'Review this code for bugs...', starred: false, createdAt: new Date(Date.now() - 2 * 864e5).toISOString() },
-  { id: 'p3', name: 'Bug Fixer', templateId: 'bug-fixer', variables: {}, content: 'Analyze and fix the following bug...', starred: true, createdAt: new Date(Date.now() - 5 * 864e5).toISOString() },
+  { id: 'p1', name: '系统架构师 Prompt', templateId: 'system-architect', variables: {}, content: '你是资深系统架构师，请先分析约束再给出方案...', starred: true, createdAt: new Date().toISOString() },
+  { id: 'p2', name: '代码审查 Prompt', templateId: 'code-reviewer', variables: {}, content: '请审查这段代码中的缺陷、风险和遗漏测试...', starred: false, createdAt: new Date(Date.now() - 2 * 864e5).toISOString() },
+  { id: 'p3', name: '问题修复 Prompt', templateId: 'bug-fixer', variables: {}, content: '请定位并修复以下问题，说明根因和验证步骤...', starred: true, createdAt: new Date(Date.now() - 5 * 864e5).toISOString() },
 ];
 
 const DEMO_MEMORIES: Memory[] = [
-  { id: 'm1', type: 'decision', title: 'Use Electron for cross-platform', content: 'Decided to use Electron...', tags: ['architecture', 'frontend'], importance: 4, status: 'active', projectId: 'demo-1', lastUsedAt: new Date().toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'm2', type: 'pattern', title: 'Repository pattern for data', content: 'All data access goes through...', tags: ['backend', 'architecture'], importance: 3, status: 'active', projectId: 'demo-1', lastUsedAt: new Date().toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'm3', type: 'insight', title: 'Memory injection improves output', content: 'Testing shows 40% better...', tags: ['research', 'ai'], importance: 5, status: 'active', lastUsedAt: new Date().toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'm1', type: 'decision', title: '采用 Electron 作为跨平台桌面方案', content: '保留 Electron 方案，同时在 esbuild 受限时使用 Static fallback 交付。', tags: ['architecture', 'frontend'], importance: 4, status: 'active', projectId: 'demo-1', lastUsedAt: new Date().toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'm2', type: 'pattern', title: '数据访问统一走仓储模式', content: '项目、任务、记忆等实体通过统一仓储接口访问，便于后续迁移存储层。', tags: ['backend', 'architecture'], importance: 3, status: 'active', projectId: 'demo-1', lastUsedAt: new Date().toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'm3', type: 'insight', title: '记忆注入能提升 Prompt 输出质量', content: '在生成 Prompt 前注入相关共享记忆，可以减少上下文丢失和重复解释。', tags: ['research', 'ai'], importance: 5, status: 'active', lastUsedAt: new Date().toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
 ];
 
 // ── Component ───────────────────────────────────────────────────────────────
@@ -201,21 +201,21 @@ export default function Dashboard() {
 
   // ── Quick actions ───────────────────────────────────────────────────────
   const quickActions = [
-    { label: 'New Project', icon: Plus, route: '/projects', color: 'text-blue-400', bg: 'bg-blue-500/10 hover:bg-blue-500/20' },
-    { label: 'Prompt Lab', icon: Wand2, route: '/prompts', color: 'text-purple-400', bg: 'bg-purple-500/10 hover:bg-purple-500/20' },
-    { label: 'Log Analyzer', icon: FileText, route: '/log-analyzer', color: 'text-amber-400', bg: 'bg-amber-500/10 hover:bg-amber-500/20' },
-    { label: 'Safety Box', icon: Shield, route: '/safety', color: 'text-green-400', bg: 'bg-green-500/10 hover:bg-green-500/20' },
-    { label: 'Shared Memory Hub', icon: Brain, route: '/memory', color: 'text-pink-400', bg: 'bg-pink-500/10 hover:bg-pink-500/20' },
-    { label: 'Codex Handoff', icon: Package, route: '/skills', color: 'text-cyan-400', bg: 'bg-cyan-500/10 hover:bg-cyan-500/20' },
+    { label: '新建项目', icon: Plus, route: '/projects', color: 'text-blue-400', bg: 'bg-blue-500/10 hover:bg-blue-500/20' },
+    { label: '提示词实验室', icon: Wand2, route: '/prompts', color: 'text-purple-400', bg: 'bg-purple-500/10 hover:bg-purple-500/20' },
+    { label: '日志分析', icon: FileText, route: '/log-analyzer', color: 'text-amber-400', bg: 'bg-amber-500/10 hover:bg-amber-500/20' },
+    { label: '安全检查', icon: Shield, route: '/safety', color: 'text-green-400', bg: 'bg-green-500/10 hover:bg-green-500/20' },
+    { label: '共享记忆中心', icon: Brain, route: '/memory', color: 'text-pink-400', bg: 'bg-pink-500/10 hover:bg-pink-500/20' },
+    { label: 'Codex 交接', icon: Package, route: '/skills', color: 'text-cyan-400', bg: 'bg-cyan-500/10 hover:bg-cyan-500/20' },
   ];
 
   // ── Status badge helper ─────────────────────────────────────────────────
   const statusBadge = (status: string) => {
     const map: Record<string, { label: string; cls: string }> = {
-      active:   { label: 'Active', cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
-      planning: { label: 'Planning', cls: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
-      paused:   { label: 'Paused', cls: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
-      done:     { label: 'Done', cls: 'bg-zinc-500/20 text-zinc-300 border-zinc-500/30' },
+      active:   { label: '进行中', cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
+      planning: { label: '规划中', cls: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
+      paused:   { label: '已暂停', cls: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+      done:     { label: '已完成', cls: 'bg-zinc-500/20 text-zinc-300 border-zinc-500/30' },
     };
     const m = map[status] || { label: status, cls: 'bg-zinc-500/20 text-zinc-300 border-zinc-500/30' };
     return (

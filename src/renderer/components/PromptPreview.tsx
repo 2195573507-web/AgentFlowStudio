@@ -36,10 +36,10 @@ export interface PromptPreviewProps {
 }
 
 const injectionLabels: Record<MemoryInjectionMode, { label: string; variant: 'default' | 'info' | 'warning' }> = {
-  off: { label: 'No Memory', variant: 'default' },
-  minimal: { label: 'Minimal Context', variant: 'info' },
-  balanced: { label: 'Balanced Context', variant: 'info' },
-  full: { label: 'Full Context', variant: 'warning' },
+  off: { label: '不注入记忆', variant: 'default' },
+  minimal: { label: '最小上下文', variant: 'info' },
+  balanced: { label: '平衡上下文', variant: 'info' },
+  full: { label: '完整上下文', variant: 'warning' },
 };
 
 const PromptPreview: React.FC<PromptPreviewProps> = ({
@@ -93,8 +93,8 @@ const PromptPreview: React.FC<PromptPreviewProps> = ({
               icon={<Brain className="w-3 h-3" />}
             >
               {memoryItemCount > 0
-                ? `${memoryItemCount} memories`
-                : 'Memory'}
+                ? `${memoryItemCount} 条记忆`
+                : '记忆'}
             </Badge>
           )}
         </div>
@@ -106,7 +106,7 @@ const PromptPreview: React.FC<PromptPreviewProps> = ({
             icon={copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
             onClick={handleCopy}
           >
-            {copied ? 'Copied' : 'Copy'}
+            {copied ? '已复制' : '复制'}
           </Button>
 
           {onSave && (
@@ -118,7 +118,7 @@ const PromptPreview: React.FC<PromptPreviewProps> = ({
               loading={saving}
               disabled={saved}
             >
-              {saved ? 'Saved' : 'Save'}
+              {saved ? '已保存' : '保存'}
             </Button>
           )}
         </div>
@@ -157,12 +157,12 @@ const PromptPreview: React.FC<PromptPreviewProps> = ({
             {expanded ? (
               <>
                 <ChevronUp className="w-3.5 h-3.5" />
-                Show less
+                收起
               </>
             ) : (
               <>
                 <ChevronDown className="w-3.5 h-3.5" />
-                Show more
+                展开
               </>
             )}
           </button>
@@ -172,12 +172,12 @@ const PromptPreview: React.FC<PromptPreviewProps> = ({
       {/* Footer metadata */}
       <div className="flex items-center gap-3 px-5 py-2.5 border-t border-slate-200/60 dark:border-slate-700/40">
         <span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums">
-          {content.length.toLocaleString()} characters
+          {content.length.toLocaleString()} 个字符
         </span>
         {memoryInjected && (
           <span className="inline-flex items-center gap-1 text-xs text-sky-500 dark:text-sky-400">
             <Brain className="w-3 h-3" />
-            Memory injected
+            已注入共享记忆
           </span>
         )}
         {injectionMode && injectionMode !== 'off' && (

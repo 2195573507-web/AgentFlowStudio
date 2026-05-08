@@ -1,52 +1,64 @@
 # Next Codex Loop Prompt
 
-Continue the AgentFlow Studio stability loop in `D:\AgentFlowStudio`.
+Continue AgentFlow Studio in `D:\AgentFlowStudio`.
 
 Read first:
+
 - `AGENTS.md`
-- `.codex-parallel/PARALLEL_SUMMARY.md`
 - `handoff/TEST_REPORT.md`
 - `handoff/TASK_STATUS.md`
 - `handoff/CURRENT_CONTEXT_FOR_ANY_MODEL.md`
+- `handoff/CODEX_HANDOFF.md`
+- `.codex-parallel/PARALLEL_SUMMARY.md`
 
-Current verified deliverable:
-- Static fallback is the active usable scheme.
-- Launch with `D:\AgentFlowStudio\start-agentflow-static.bat`.
-- Desktop shortcut exists at `C:\Users\至亲\Desktop\AgentFlow Studio.lnk`.
-- Shortcut target is `D:\AgentFlowStudio\start-agentflow-static.bat`.
-- Shortcut icon is `D:\AgentFlowStudio\assets\icon.ico,0`.
+Important: old `.codex-parallel` results were archived to `handoff\archived-agents\run-20260508-125051`. Do not use the archived reports as current PASS evidence.
 
-Known environment limitation in the last main Codex run:
-- `npm.cmd run dev`, `dev:web`, `test`, `build`, and `build:web` all failed at Vite/Vitest config loading with esbuild `spawn EPERM`.
-- Direct `node_modules\.bin\esbuild.cmd --version` worked.
-- Treat this as a Windows/sandbox/antivirus child-process restriction unless reproduced in a normal terminal.
+## Current Verified Deliverable
 
-Start by running:
+Static fallback is the active usable scheme.
 
 ```bat
-cd /d D:\AgentFlowStudio
-npm.cmd install
+D:\AgentFlowStudio\start-agentflow-static.bat
+```
+
+Desktop shortcut:
+
+```text
+C:\Users\至亲\Desktop\AgentFlow Studio.lnk
+TargetPath: D:\AgentFlowStudio\start-agentflow-static.bat
+WorkingDirectory: D:\AgentFlowStudio
+IconLocation: D:\AgentFlowStudio\assets\icon.ico,0
+```
+
+The static app is in:
+
+```text
+D:\AgentFlowStudio\static-app
+```
+
+It is Chinese-first and covers 仪表盘、项目管理、项目详情、提示词实验室、日志分析、安全检查、共享记忆中心、设置.
+
+The high-frequency React UI has also been localized in the main shell, TaskBoard, Charts, Dashboard, Projects, SharedMemoryHub, Settings, and Skills. Remaining English should be limited to allowed product/technical terms or future deep polish.
+
+## Verified In Latest Loop
+
+Run evidence from 2026-05-08:
+
+```bat
 npm.cmd run icon
-npm.cmd run typecheck
 npm.cmd run smoke
-npm.cmd run verify
+npm.cmd run test:launch-static
+npm.cmd run shortcut
 ```
 
-Then, in a normal unrestricted Windows terminal if possible, retry:
+`test:launch-static` and `shortcut` required running outside the sandbox because the sandbox can block child process spawn and Desktop writes. Real bat launch was also verified: `cmd /k start-agentflow-static.bat` stayed open after 15 seconds, wrote `logs\launcher-static.log` and `logs\static-server.log`, and `http://127.0.0.1:4173` returned HTTP 200 with the required Chinese keywords.
 
-```bat
-npm.cmd run test
-npm.cmd run build
-npm.cmd run dev
-```
+## Recommended Next Work
 
-If Electron works, switch `scripts/create-shortcut.ps1` launcher priority back to packaged exe > Electron > Web > Static and rerun `npm.cmd run shortcut`.
+1. Continue low-frequency React localization polish beyond the already-localized high-frequency UI.
+2. Retry `npm.cmd run test`, `npm.cmd run build`, and `npm.cmd run dev` in a normal unrestricted Windows shell.
+3. Keep the shortcut pointed at Static fallback until Electron/Vite are truly verified.
+4. Add route-level ErrorBoundary.
+5. Harden Shared Memory Hub redaction and context generation.
 
-If Electron remains blocked, keep Static as the deliverable and work on:
-1. Prompt Lab and SharedMemoryHub context generation so Shared Memory Context is injected reliably.
-2. Main-process recursive redaction for memory create/update/import/export/generateContext.
-3. Route-level ErrorBoundary in `src/renderer/App.tsx`.
-4. Lint warning cleanup without disabling lint.
-5. Packaging once `npm.cmd run build` works outside the EPERM-restricted environment.
-
-Do not rebuild from scratch. Do not delete handoff. Do not remove Shared Memory Hub. Use `npm.cmd`, not `npm`, from PowerShell.
+Do not rebuild from scratch. Do not remove Shared Memory Hub. Use `npm.cmd`, not `npm`, from PowerShell.

@@ -6,11 +6,21 @@ import { spawn } from 'node:child_process'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectDir = path.resolve(__dirname, '..')
-const rootArg = process.argv[2] || 'dist'
-const portArg = Number(process.argv[3] || process.env.PORT || 4173)
+const logsDir = path.join(projectDir, 'logs')
+const logPath = path.join(logsDir, 'static-server.log')
 const host = process.env.HOST || '127.0.0.1'
-const rootDir = path.resolve(projectDir, rootArg)
-const url = `http://${host}:${portArg}`
+const preferredPort = Number(process.argv[3] || process.env.PORT || 4173)
+const portCandidates = [preferredPort, 4173, 4174, 4175, 4176, 4177]
+  .filter((port, index, ports) => Number.isInteger(port) && port > 0 && ports.indexOf(port) === index)
+const requestedRoot = process.argv[2]
+const rootCandidates = [
+  'static-app',
+  'static-app/dist',
+  requestedRoot,
+  'dist',
+  'dist-web',
+  'public',
+].filter((item, index, items) => Boolean(item) && items.indexOf(item) === index)
 
 const contentTypes = {
   '.html': 'text/html; charset=utf-8',
@@ -26,62 +36,206 @@ const contentTypes = {
   '.webp': 'image/webp',
   '.woff': 'font/woff',
   '.woff2': 'font/woff2',
+  '.txt': 'text/plain; charset=utf-8',
 }
 
-function resolveRequestPath(requestUrl) {
-  const url = new URL(requestUrl || '/', `http://${host}:${portArg}`)
-  const decodedPath = decodeURIComponent(url.pathname)
-  const normalizedPath = path.normalize(decodedPath).replace(/^(\.\.[/\\])+/, '')
-  let filePath = path.join(rootDir, normalizedPath)
+let activeServer = null
+let activeRoot = null
 
-  if (!filePath.startsWith(rootDir)) {
-    return null
-  }
-
-  if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory()) {
-    filePath = path.join(filePath, 'index.html')
-  }
-
-  if (!fs.existsSync(filePath)) {
-    filePath = path.join(rootDir, 'index.html')
-  }
-
-  return filePath.startsWith(rootDir) ? filePath : null
+function ensureDir(dir) {
+  fs.mkdirSync(dir, { recursive: true })
 }
 
-if (!fs.existsSync(rootDir)) {
-  console.error(`Static root not found: ${rootDir}`)
-  console.error('Run "npm run build:web" first, or use "npm run fallback:static".')
-  process.exit(1)
+function log(message) {
+  ensureDir(logsDir)
+  const line = `[${new Date().toISOString()}] ${message}`
+  console.log(line)
+  fs.appendFileSync(logPath, `${line}\n`, 'utf8')
 }
 
-const server = http.createServer((req, res) => {
-  const filePath = resolveRequestPath(req.url)
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
 
-  if (!filePath) {
-    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' })
-    res.end('Forbidden')
+function writeFallbackApp(reason) {
+  const staticDir = path.join(projectDir, 'static-app')
+  ensureDir(staticDir)
+
+  const indexPath = path.join(staticDir, 'index.html')
+  const cssPath = path.join(staticDir, 'styles.css')
+  const appPath = path.join(staticDir, 'app.js')
+
+  if (!fs.existsSync(indexPath)) {
+    fs.writeFileSync(indexPath, `<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AgentFlow Studio - 静态可交付模式</title>
+    <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="fallback-shell">
+      <h1>AgentFlow Studio</h1>
+      <p>静态可交付模式已启动。</p>
+      <p>自动生成原因：${escapeHtml(reason)}</p>
+      <nav>
+        <a href="/">仪表盘</a>
+        <a href="/projects">项目管理</a>
+        <a href="/prompt-lab">提示词实验室</a>
+        <a href="/log-analyzer">日志分析</a>
+        <a href="/safety-box">安全检查</a>
+        <a href="/shared-memory-hub">共享记忆中心</a>
+        <a href="/settings">设置</a>
+      </nav>
+    </div>
+    <script src="/app.js"></script>
+  </body>
+</html>
+`, 'utf8')
+  }
+
+  if (!fs.existsSync(cssPath)) {
+    fs.writeFileSync(cssPath, `body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f7fb;color:#162033}.fallback-shell{max-width:880px;margin:10vh auto;padding:32px}.fallback-shell a{display:inline-block;margin:8px 12px 8px 0;color:#2563eb}`, 'utf8')
+  }
+
+  if (!fs.existsSync(appPath)) {
+    fs.writeFileSync(appPath, `console.log('AgentFlow Studio 静态可交付模式已启动')\n`, 'utf8')
+  }
+
+  return staticDir
+}
+
+function hasUsableIndex(dir) {
+  try {
+    return fs.statSync(dir).isDirectory() && fs.statSync(path.join(dir, 'index.html')).isFile()
+  } catch {
+    return false
+  }
+}
+
+function selectStaticRoot() {
+  for (const candidate of rootCandidates) {
+    const resolved = path.resolve(projectDir, candidate)
+    if (hasUsableIndex(resolved)) {
+      return resolved
+    }
+    log(`静态目录不可用，继续尝试下一个：${resolved}`)
+  }
+
+  log('未找到可用静态目录，正在自动创建 static-app 降级页面。')
+  return writeFallbackApp('未找到 static-app、dist、dist-web 或 public 中可用的 index.html')
+}
+
+function isInsideRoot(filePath) {
+  const relative = path.relative(activeRoot, filePath)
+  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative))
+}
+
+function wantsHtml(req, pathname) {
+  const accept = req.headers.accept || ''
+  return req.method === 'GET' && (accept.includes('text/html') || !path.extname(pathname))
+}
+
+async function resolveRequestPath(req) {
+  const requestUrl = req.url || '/'
+  let pathname = '/'
+
+  try {
+    pathname = decodeURIComponent(new URL(requestUrl, `http://${host}`).pathname)
+  } catch (error) {
+    const err = new Error(`URL 无法解析：${requestUrl}`)
+    err.statusCode = 400
+    err.cause = error
+    throw err
+  }
+
+  const normalized = path.normalize(pathname).replace(/^([/\\])+/, '')
+  let filePath = path.join(activeRoot, normalized)
+
+  if (!isInsideRoot(filePath)) {
+    const err = new Error(`拒绝访问静态目录之外的路径：${pathname}`)
+    err.statusCode = 403
+    throw err
+  }
+
+  try {
+    const stat = await fs.promises.stat(filePath)
+    if (stat.isDirectory()) {
+      filePath = path.join(filePath, 'index.html')
+    }
+  } catch {
+    if (path.extname(pathname) && !wantsHtml(req, pathname)) {
+      const err = new Error(`静态资源不存在：${pathname}`)
+      err.statusCode = 404
+      throw err
+    }
+    filePath = path.join(activeRoot, 'index.html')
+  }
+
+  if (!isInsideRoot(filePath)) {
+    const err = new Error(`拒绝访问静态目录之外的路径：${pathname}`)
+    err.statusCode = 403
+    throw err
+  }
+
+  try {
+    const finalStat = await fs.promises.stat(filePath)
+    if (!finalStat.isFile()) {
+      throw new Error('不是文件')
+    }
+  } catch {
+    const err = new Error(`静态文件不可用：${pathname}`)
+    err.statusCode = 404
+    throw err
+  }
+
+  return filePath
+}
+
+async function handleRequest(req, res) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    res.writeHead(405, {
+      'Content-Type': 'text/plain; charset=utf-8',
+      Allow: 'GET, HEAD',
+    })
+    res.end('仅支持 GET 和 HEAD 请求')
     return
   }
 
-  fs.readFile(filePath, (error, data) => {
-    if (error) {
-      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' })
-      res.end('Not found')
-      return
-    }
-
+  try {
+    const filePath = await resolveRequestPath(req)
     const ext = path.extname(filePath).toLowerCase()
+    const data = req.method === 'HEAD' ? null : await fs.promises.readFile(filePath)
+
     res.writeHead(200, {
       'Content-Type': contentTypes[ext] || 'application/octet-stream',
-      'Cache-Control': ext === '.html' ? 'no-store' : 'public, max-age=31536000, immutable',
+      'Cache-Control': ext === '.html' ? 'no-store' : 'public, max-age=3600',
     })
-    res.end(data)
-  })
-})
+
+    if (data) {
+      res.end(data)
+    } else {
+      res.end()
+    }
+  } catch (error) {
+    const statusCode = error.statusCode || 500
+    const message = statusCode === 500 ? '服务器读取静态文件失败' : error.message
+    log(`[HTTP ${statusCode}] ${message}`)
+    res.writeHead(statusCode, { 'Content-Type': 'text/plain; charset=utf-8' })
+    res.end(message)
+  }
+}
 
 function openBrowser(targetUrl) {
   if (process.env.AGENTFLOW_NO_OPEN === '1') {
+    log('已跳过自动打开浏览器：AGENTFLOW_NO_OPEN=1')
     return
   }
 
@@ -93,19 +247,87 @@ function openBrowser(targetUrl) {
         : { file: 'xdg-open', args: [targetUrl] }
 
   try {
+    log(`正在打开浏览器：${targetUrl}`)
     const child = spawn(command.file, command.args, {
       detached: true,
       stdio: 'ignore',
       windowsHide: true,
     })
+    child.on('error', (error) => log(`自动打开浏览器失败：${error.message}`))
     child.unref()
   } catch (error) {
-    console.warn(`Unable to open browser automatically: ${error instanceof Error ? error.message : String(error)}`)
+    log(`自动打开浏览器失败：${error instanceof Error ? error.message : String(error)}`)
   }
 }
 
-server.listen(portArg, host, () => {
-  console.log(`AgentFlow Studio static fallback: ${url}`)
-  console.log(`Serving: ${rootDir}`)
-  openBrowser(url)
+function startServer(portIndex = 0) {
+  if (portIndex >= portCandidates.length) {
+    log(`端口 ${portCandidates.join(', ')} 都不可用，静态服务器无法启动。`)
+    process.exitCode = 1
+    return
+  }
+
+  const port = portCandidates[portIndex]
+  const server = http.createServer((req, res) => {
+    handleRequest(req, res).catch((error) => {
+      log(`请求处理异常：${error instanceof Error ? error.stack || error.message : String(error)}`)
+      if (!res.headersSent) {
+        res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' })
+      }
+      res.end('服务器请求处理异常')
+    })
+  })
+
+  server.on('error', (error) => {
+    if (error.code === 'EADDRINUSE') {
+      log(`端口 ${port} 被占用，尝试下一个端口。`)
+      startServer(portIndex + 1)
+      return
+    }
+
+    log(`静态服务器启动失败：${error.code || 'UNKNOWN'} ${error.message}`)
+    process.exitCode = 1
+  })
+
+  server.listen(port, host, () => {
+    activeServer = server
+    const actualPort = server.address().port
+    const url = `http://${host}:${actualPort}`
+    log('静态服务器已启动。')
+    log(`服务地址：${url}`)
+    log(`静态目录：${activeRoot}`)
+    log(`日志文件：${logPath}`)
+    log('请保持此窗口打开；按 Ctrl+C 可以停止服务。')
+    openBrowser(url)
+  })
+}
+
+function shutdown(signal) {
+  log(`收到 ${signal}，正在关闭静态服务器。`)
+  if (!activeServer) {
+    process.exit(0)
+  }
+  activeServer.close(() => {
+    log('静态服务器已关闭。')
+    process.exit(0)
+  })
+}
+
+process.on('uncaughtException', (error) => {
+  log(`未捕获异常：${error instanceof Error ? error.stack || error.message : String(error)}`)
+  process.exitCode = 1
 })
+
+process.on('unhandledRejection', (reason) => {
+  log(`未处理 Promise 拒绝：${reason instanceof Error ? reason.stack || reason.message : String(reason)}`)
+  process.exitCode = 1
+})
+
+process.on('SIGINT', () => shutdown('SIGINT'))
+process.on('SIGTERM', () => shutdown('SIGTERM'))
+
+ensureDir(logsDir)
+fs.writeFileSync(logPath, `[${new Date().toISOString()}] AgentFlow Studio 静态服务器日志开始\n`, 'utf8')
+log(`项目路径：${projectDir}`)
+activeRoot = selectStaticRoot()
+startServer()

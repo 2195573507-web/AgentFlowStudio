@@ -27,45 +27,45 @@ import { generateId, formatRelativeDate, truncate, classNames } from '../lib/uti
 // ── Demo data ──────────────────────────────────────────────────────────────
 const DEMO_PROJECTS: Project[] = [
   {
-    id: 'demo-1', name: 'AI Chat Assistant',
-    idea: 'A cross-platform AI chat app with memory persistence and multi-provider support.',
+    id: 'demo-1', name: 'AI 聊天助手',
+    idea: '带有记忆持久化和多接口支持的跨平台 AI 聊天应用。',
     platform: 'Desktop', techStack: 'Electron, React, TypeScript, Tailwind',
-    uiStyle: 'Glassmorphism', difficulty: 'Medium', status: 'active',
+    uiStyle: '玻璃拟态工作台', difficulty: 'Medium', status: 'active',
     createdAt: new Date(Date.now() - 7 * 864e5).toISOString(), updatedAt: new Date().toISOString(),
   },
   {
-    id: 'demo-2', name: 'DevTool CLI',
-    idea: 'Command-line productivity suite for developers with git integration and log analysis.',
+    id: 'demo-2', name: '开发工具 CLI',
+    idea: '面向开发者的命令行效率工具，集成 Git、日志分析和项目恢复上下文。',
     platform: 'CLI', techStack: 'Node.js, TypeScript, Ink',
-    uiStyle: 'Minimal', difficulty: 'Hard', status: 'planning',
+    uiStyle: '极简终端', difficulty: 'Hard', status: 'planning',
     createdAt: new Date(Date.now() - 3 * 864e5).toISOString(), updatedAt: new Date().toISOString(),
   },
   {
-    id: 'demo-3', name: 'Memory Sync Service',
-    idea: 'Background service that syncs shared AI memories across projects and providers.',
+    id: 'demo-3', name: '记忆同步服务',
+    idea: '在项目与 AI 接口之间同步共享记忆的本地后台服务。',
     platform: 'Web', techStack: 'Go, SQLite, gRPC',
     uiStyle: 'Linear', difficulty: 'Hard', status: 'active',
     createdAt: new Date(Date.now() - 14 * 864e5).toISOString(), updatedAt: new Date(Date.now() - 2 * 864e5).toISOString(),
   },
   {
-    id: 'demo-4', name: 'Prompt Template Manager',
-    idea: 'Web UI for managing and versioning AI prompt templates with variable injection.',
+    id: 'demo-4', name: 'Prompt 模板管理器',
+    idea: '用于管理、版本化和变量注入的 Prompt 模板界面。',
     platform: 'Web', techStack: 'Next.js, Prisma, PostgreSQL',
     uiStyle: 'Raycast', difficulty: 'Easy', status: 'done',
     createdAt: new Date(Date.now() - 30 * 864e5).toISOString(), updatedAt: new Date(Date.now() - 10 * 864e5).toISOString(),
   },
   {
-    id: 'demo-5', name: 'Safety Sandbox',
-    idea: 'Isolated environment for testing AI-generated shell commands with risk analysis.',
+    id: 'demo-5', name: '安全沙盒',
+    idea: '用于测试 AI 生成命令、分析风险并给出替代方案的隔离环境。',
     platform: 'Desktop', techStack: 'Tauri, Rust, React',
-    uiStyle: 'Glassmorphism', difficulty: 'Medium', status: 'paused',
+    uiStyle: '玻璃拟态工作台', difficulty: 'Medium', status: 'paused',
     createdAt: new Date(Date.now() - 21 * 864e5).toISOString(), updatedAt: new Date(Date.now() - 5 * 864e5).toISOString(),
   },
   {
     id: 'demo-6', name: 'API Gateway',
-    idea: 'Unified API gateway with rate limiting, auth, and request transformation.',
+    idea: '统一 API 网关，包含限流、鉴权和请求转换能力。',
     platform: 'Web', techStack: 'Rust, Axum, Redis',
-    uiStyle: 'Minimal', difficulty: 'Hard', status: 'planning',
+    uiStyle: '极简控制台', difficulty: 'Hard', status: 'planning',
     createdAt: new Date(Date.now() - 2 * 864e5).toISOString(), updatedAt: new Date().toISOString(),
   },
 ];
@@ -80,6 +80,21 @@ const STATUSES: { value: ProjectStatus | 'all'; label: string }[] = [
   { value: 'paused', label: '已暂停' },
   { value: 'done', label: '已完成' },
 ];
+
+const PLATFORM_LABELS: Record<Platform, string> = {
+  Web: 'Web 网页',
+  Desktop: '桌面应用',
+  CLI: '命令行',
+  Mobile: '移动端',
+  Embedded: '嵌入式',
+  Other: '其他',
+};
+
+const DIFFICULTY_LABELS: Record<Difficulty, string> = {
+  Easy: '简单',
+  Medium: '中等',
+  Hard: '困难',
+};
 
 // ── Icons ──────────────────────────────────────────────────────────────────
 const PlatformIcon: Record<Platform, React.ComponentType<any>> = {
@@ -315,7 +330,7 @@ export default function Projects() {
                        focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
           >
             {PLATFORMS.map((p) => (
-              <option key={p} value={p} className="bg-zinc-900">{p}</option>
+              <option key={p} value={p} className="bg-zinc-900">{PLATFORM_LABELS[p]}</option>
             ))}
           </select>
         </div>
@@ -328,7 +343,7 @@ export default function Projects() {
                        focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
           >
             {DIFFICULTIES.map((d) => (
-              <option key={d} value={d} className="bg-zinc-900">{d}</option>
+              <option key={d} value={d} className="bg-zinc-900">{DIFFICULTY_LABELS[d]}</option>
             ))}
           </select>
         </div>
@@ -488,10 +503,10 @@ export default function Projects() {
                   </Badge>
                   <Badge className={platformColor[project.platform]}>
                     <PIcon className="w-3 h-3 mr-1" />
-                    {project.platform}
+                    {PLATFORM_LABELS[project.platform] ?? project.platform}
                   </Badge>
                   <Badge className={difficultyColor[project.difficulty]}>
-                    {project.difficulty}
+                    {DIFFICULTY_LABELS[project.difficulty] ?? project.difficulty}
                   </Badge>
                 </div>
 

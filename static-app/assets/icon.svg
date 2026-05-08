@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">AgentFlow Studio 图标</title>
+  <desc id="desc">带有流程节点的 AgentFlow Studio 标识。</desc>
+  <defs>
+    <linearGradient id="bg" x1="14" y1="12" x2="114" y2="116" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#13b7a4"/>
+      <stop offset="0.55" stop-color="#126bff"/>
+      <stop offset="1" stop-color="#6d5df6"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="#101827"/>
+  <rect x="8" y="8" width="112" height="112" rx="24" fill="url(#bg)"/>
+  <rect x="27" y="24" width="74" height="80" rx="22" fill="#fff" fill-opacity=".18" stroke="#fff" stroke-opacity=".36" stroke-width="2"/>
+  <path d="M43 53h42M48 58l16 25 16-25" fill="none" stroke="#f8fffd" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="41" cy="53" r="13" fill="#f8fffd"/>
+  <circle cx="87" cy="53" r="13" fill="#f8fffd"/>
+  <circle cx="64" cy="86" r="13" fill="#f8fffd"/>
+  <path d="M37 59l7-17h7l7 17h-6l-1-3h-8l-1 3h-5Zm8-8h5l-2-6h-1l-2 6Z" fill="#155e75"/>
+  <path d="M80 60V43h14v5h-8v3h7v5h-7v4h-6Z" fill="#3730a3"/>
+  <path d="M58 93V77h6v11h8v5H58Z" fill="#126bff"/>
+</svg>

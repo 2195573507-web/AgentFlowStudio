@@ -1,133 +1,85 @@
-# AgentFlow Studio — Test Report
+# AgentFlow Studio - Test Report
 
-## Codex Stability Loop Update - 2026-05-07
+## Localized Static Launcher Repair - 2026-05-08
 
-**Adopted deliverable scheme**: Static fallback.
+This is the latest verified state. Do not treat the older 2026-05-07 PASS entries as proof of current usability; this loop re-ran the launcher, HTTP, shortcut, icon, smoke, and localization checks.
 
-Electron and Web dev remain in the project, but this execution environment repeatedly blocks Vite/Vitest while loading config because Node `child_process.spawn()` of esbuild returns `EPERM`. Direct `node_modules\.bin\esbuild.cmd --version` succeeds, and TypeScript compilers succeed, so this is recorded as an environment execution restriction. The current usable entry is:
+### Current Usable Entry
 
 ```bat
 D:\AgentFlowStudio\start-agentflow-static.bat
 ```
 
-### Latest Verified Results
-
-| Command / Check | Status | Details |
-|---|---:|---|
-| `npm.cmd install` | PASS | Dependencies up to date. |
-| `npm.cmd run icon` | PASS | Generated real `icon.svg`, 512 PNG, and multi-size ICO. |
-| `npm.cmd run typecheck` | PASS | Renderer/shared TypeScript check passed. |
-| `node_modules\.bin\tsc.cmd -p tsconfig.node.json` | PASS | Main/preload TypeScript compile passed. |
-| `npm.cmd run lint` | PASS | Exit 0 with 36 warnings; no blocking errors. |
-| `npm.cmd run smoke` | PASS | 53 checks passed, 0 failed. |
-| `npm.cmd run verify` | PASS | 97 build-file checks + 53 smoke checks passed. |
-| Static HTTP smoke | PASS | Local server returned `STATUS=200`, title `AgentFlow Studio`. |
-| `npm.cmd run shortcut` | PASS | Required elevated Desktop write; shortcut created. |
-| Desktop shortcut target | PASS | `D:\AgentFlowStudio\start-agentflow-static.bat`. |
-| Desktop shortcut icon | PASS | `D:\AgentFlowStudio\assets\icon.ico,0`. |
-| `npm.cmd run test` | ENV BLOCKED | Vitest/Vite config load fails: esbuild `spawn EPERM`. |
-| `npm.cmd run build` | ENV BLOCKED | Vite config load fails: esbuild `spawn EPERM`. |
-| `npm.cmd run build:web` | ENV BLOCKED | Same esbuild `spawn EPERM`. |
-| `npm.cmd run dev` | ENV BLOCKED | Same esbuild `spawn EPERM`. |
-| `npm.cmd run dev:web` | ENV BLOCKED | Same esbuild `spawn EPERM`. |
-
-### Desktop Shortcut Verification
+Desktop shortcut:
 
 ```text
-ShortcutPath: C:\Users\至亲\Desktop\AgentFlow Studio.lnk
+C:\Users\至亲\Desktop\AgentFlow Studio.lnk
 TargetPath: D:\AgentFlowStudio\start-agentflow-static.bat
-TargetExists: True
 WorkingDirectory: D:\AgentFlowStudio
 IconLocation: D:\AgentFlowStudio\assets\icon.ico,0
-IconExists: True
 ```
 
-### Notes
+### Latest Verified Results
 
-- PowerShell blocks `npm.ps1`; use `npm.cmd`.
-- Desktop shortcut creation requires permission to write to the user's Desktop.
-- `dist/index.html` and assets exist and are served by `scripts/static-server.js`.
-- Remaining functional risks are documented in `.codex-parallel/PARALLEL_SUMMARY.md`: route ErrorBoundary and Shared Memory context/redaction hardening.
+| Check | Status | Details |
+|---|---:|---|
+| Old parallel agents reset | PASS | Old `.codex-parallel` archived to `handoff\archived-agents\run-20260508-125051`; clean `.codex-parallel\logs` created. |
+| New agent logs | PASS | Seven role logs exist under `.codex-parallel\logs`; Agent G reporter work handled by main thread due subagent limit. |
+| `npm.cmd run icon` | PASS | Regenerated `assets\icon.svg`, `assets\icon.png`, and `assets\icon.ico` (57784 bytes). |
+| `npm.cmd run smoke` | PASS | 64 checks passed, including `static-app` files and Chinese keyword checks. |
+| `npm.cmd run test:launch-static` | PASS | Starts `scripts\static-server.js`, returns HTTP 200, validates title and Chinese keywords, confirms process stays alive >5 seconds. |
+| `npm.cmd run shortcut` | PASS | Required Desktop write outside sandbox; recreated `AgentFlow Studio.lnk`. |
+| Desktop shortcut COM verification | PASS | Target, working directory, icon, target file, and icon file all verified. |
+| Real bat launch | PASS | `cmd /k start-agentflow-static.bat` stayed open after 15 seconds and wrote launcher/server logs. |
+| Static HTTP smoke | PASS | `http://127.0.0.1:4173` returned HTTP 200, contained `AgentFlow Studio`, and contained `仪表盘、项目管理、提示词实验室、日志分析、安全检查、共享记忆中心、设置`. |
+| Port fallback | PASS | With 4173 occupied, test server logged `端口 4173 被占用，尝试下一个端口` and used 4174 during test. |
 
-## Latest Test Run
+### Runtime Evidence
 
-**Date**: 2026-05-07
-**Environment**: Windows 11 Home China, Node.js v24.14.1, npm 11.11.0, Git 2.54.0
+```text
+Listening: 127.0.0.1:4173
+Owning process: node "scripts\static-server.js"
+Parent process: cmd launched from start-agentflow-static.bat
+HTTP: 200
+Title: AgentFlow Studio - 静态可交付模式
+Static root: D:\AgentFlowStudio\static-app
+```
 
-## Test Results Summary
+### Fixed Failure Cause
 
-| Command | Status | Details |
-|---------|--------|---------|
-| `npm install` | PASS | 735 packages installed. 17 vulnerabilities (typical for Electron projects, all in devDependencies). |
-| `npm run icon` | PASS | SVG icon generated. PNG/ICO are SVG copies (need rasterization for production). |
-| `npm run typecheck` | PARTIAL | Vite build passes (esbuild). Main process tsc compiles. Some renderer TypeScript warnings from agent-generated code (non-blocking). |
-| `npm run lint` | NOT RUN | ESLint not executed — build takes priority over lint for initial phase. |
-| `npm run test` | PASS | All 106 tests pass across 9 test suites (Vitest). |
-| `npm run test:e2e` | NOT RUN | Playwright browsers not installed. E2E test file is ready, tests skip gracefully. |
-| `npm run build` | PASS | Vite renderer build + main/preload compilation successful. |
-| `npm run shortcut` | PASS | Desktop shortcut created. start-agentflow.bat generated. |
-| `npm run dist` | NOT RUN | electron-builder requires proper icon rasterization. Deferred to Codex phase. |
+- The old launcher delegated to `npm.cmd run fallback:static`, opened the browser before the server was ready, and was sensitive to PATH/npm and cmd parsing behavior.
+- The first UTF-8 Chinese `.bat` rewrite was not safe enough for Windows cmd parsing in the user's double-click path and produced errors such as `'errorlevel' is not recognized`, `for /f` fragments, and broken redirection.
+- The final launcher uses an ASCII-safe batch control skeleton and lets the Node static server provide Chinese runtime logs and the Chinese UI. This prevents the console from closing immediately and avoids cmd parsing corruption.
+- Chinese console prompts are emitted via `scripts\launcher-message.ps1`, keeping `start-agentflow-static.bat` command syntax ASCII-safe while still showing user-facing Chinese text.
+- `scripts\static-server.js` no longer exits when `dist` is missing; it prioritizes `static-app`, includes `static-app/dist` fallback, writes logs, catches uncaught exceptions and unhandled rejections, retries ports 4173-4177, and keeps the process alive.
 
-## Unit Test Results
+### Localization Verification
 
-| Test Suite | Tests | Passed | Failed | Duration |
-|-----------|-------|--------|--------|----------|
-| planner.test.ts | 8 | 8 | 0 | 4ms |
-| templates.test.ts | 9 | 9 | 0 | 6ms |
-| logAnalyzer.test.ts | 12 | 12 | 0 | 4ms |
-| safetyRules.test.ts | 16 | 16 | 0 | 4ms |
-| exporters.test.ts | 13 | 13 | 0 | 20ms |
-| memoryStore.test.ts | 12 | 12 | 0 | 6ms |
-| memoryRetriever.test.ts | 10 | 10 | 0 | 6ms |
-| memoryInjection.test.ts | 9 | 9 | 0 | 4ms |
-| secretRedaction.test.ts | 17 | 17 | 0 | 4ms |
-| **Total** | **106** | **106** | **0** | **~1.2s** |
+`static-app` is Chinese-first and includes:
 
-## Build Output
+- 仪表盘 / 项目总控台
+- 项目管理
+- 项目详情
+- 提示词实验室
+- 日志分析
+- 安全检查
+- 共享记忆中心
+- 设置
 
-### Renderer (Vite)
-- 2192 modules transformed
-- Output: dist/ (index.html + CSS + JS chunks)
-- Largest chunk: Charts-*.js (532 KB — ECharts)
-- Total JS size: ~430 KB gzipped
+Core actions are localized: 新建项目、保存、删除、导出、复制、生成、分析、检查风险、新增记忆、生成跨模型恢复上下文、清空、重置.
 
-### Main Process (Vite + tsc)
-- dist-electron/main/index.js (28.72 KB)
-- dist-electron/main/preload.js (3.68 KB)
+Allowed English terms are retained only as product or domain names in Chinese context: AgentFlow Studio, Codex, Claude Code, Cursor, API, Prompt, Git, Shared Memory Hub, localStorage, Static fallback.
 
-## Verification
+### Environment Notes
 
-`npm run verify`: 97 passed, 0 failed.
+- In the sandbox, Node child-process spawning can fail with `spawn EPERM`. The required `test:launch-static` command passed outside the sandbox with approval.
+- Electron/Vite/Vitest remain de-prioritized for this loop because previous runs hit esbuild `spawn EPERM`. The current deliverable is the pure Node Static fallback.
 
-## Known Issues
+### Logs To Inspect
 
-1. **Icon rasterization**: `assets/icon.png` and `assets/icon.ico` are SVG copies. For `npm run dist` to work, proper raster icons are needed. Use `sharp` npm package or online converter.
-
-2. **Playwright browsers**: Not installed. Run `npx playwright install chromium` for E2E tests.
-
-3. **electron-builder packaging**: Deferred. Requires icon fix first. Build pipeline works manually.
-
-4. **PowerShell encoding**: Shortcut creation script may show encoding-related warnings with Chinese characters in paths. The `.ToString()` conversion handles most cases.
-
-5. **ECharts bundle size**: The Charts chunk is 532 KB. Consider code-splitting ECharts imports.
-
-## Fixes Applied During Development
-
-1. Fixed `../components/` directory imports by creating barrel export file
-2. Fixed `EChartsOption` → `EChartsCoreOption` type mismatch
-3. Fixed `DataRecord` type constraint in storage layer
-4. Fixed `readdir` `withFileTypes` → string-based in filesystem.ts
-5. Fixed `tsconfig.node.json` rootDir to include shared types
-6. Fixed dynamic JSX component rendering in ProjectDetail.tsx
-7. Fixed secret redaction regex to include hyphens in API key patterns
-8. Fixed PowerShell shortcut creation path handling
-9. Aligned 19 test assertions with actual library implementations
-
-## Remaining for Codex
-
-- Install Playwright browsers and run E2E tests
-- Generate proper PNG/ICO raster icons
-- Run `npm run dist` for Windows NSIS installer
-- Add ESLint check and fix any warnings
-- UI polish and consistency pass
-- Bundle size optimization (especially ECharts)
+```text
+D:\AgentFlowStudio\logs\launcher-static.log
+D:\AgentFlowStudio\logs\static-server.log
+D:\AgentFlowStudio\.codex-parallel\PARALLEL_SUMMARY.md
+D:\AgentFlowStudio\.codex-parallel\logs\
+```

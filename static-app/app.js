@@ -1,0 +1,1059 @@
+const STORAGE_KEY = 'agentflow.static.v1';
+
+const statusLabels = {
+  active: '进行中',
+  pending: '待确认',
+  archived: '已归档',
+  planning: '规划中',
+  paused: '已暂停',
+  done: '已完成',
+  todo: '待办',
+  doing: '进行中',
+  blocked: '受阻',
+};
+
+const riskLabels = {
+  Safe: '安全',
+  Low: '低风险',
+  Medium: '中风险',
+  High: '高风险',
+  Critical: '严重风险',
+};
+
+const memoryTypeLabels = {
+  decision: '决策',
+  pattern: '模式',
+  insight: '洞察',
+  knowledge: '知识',
+  issue_fix: '问题修复',
+  security: '安全',
+  git_summary: 'Git 摘要',
+  log_analysis: '日志分析',
+  safety_check: '安全检查',
+};
+
+const pages = [
+  { id: 'dashboard', label: '仪表盘', icon: '▦', description: '项目总控台与运行概览' },
+  { id: 'projects', label: '项目管理', icon: '□', description: '创建、查看和整理 AI 项目' },
+  { id: 'project-detail', label: '项目详情', icon: '◇', description: '计划、任务和开发 Prompt' },
+  { id: 'prompt-lab', label: '提示词实验室', icon: '✦', description: '模板化生成 Prompt 并注入共享记忆' },
+  { id: 'log-analyzer', label: '日志分析', icon: '⌕', description: '识别错误类型、原因与修复步骤' },
+  { id: 'safety-box', label: '安全检查', icon: '◈', description: '检查命令风险等级和更安全替代命令' },
+  { id: 'shared-memory', label: '共享记忆中心', icon: '◎', description: '维护跨模型恢复上下文' },
+  { id: 'settings', label: '设置', icon: '⚙', description: 'AI 接口配置、本地数据和主题' },
+];
+
+const promptTemplates = [
+  {
+    id: 'feature',
+    name: '功能开发 Prompt',
+    template:
+      '你是资深工程师。请为「{{project}}」实现「{{task}}」。\n\n要求：\n1. 阅读现有代码并遵循项目风格。\n2. 输出清晰的实现步骤。\n3. 完成后说明验证方式。',
+  },
+  {
+    id: 'fix',
+    name: '问题修复 Prompt',
+    template:
+      '请分析并修复以下问题：\n\n项目：{{project}}\n问题：{{task}}\n\n请定位根因、给出最小修复，并补充测试或验证步骤。',
+  },
+  {
+    id: 'handoff',
+    name: '跨模型交接 Prompt',
+    template:
+      '请接手 AgentFlow Studio 项目。\n\n当前目标：{{task}}\n\n请先读取项目上下文，再继续执行，不要重建项目，不要删除 Shared Memory Hub。',
+  },
+];
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function uid(prefix) {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function defaultState() {
+  return {
+    theme: 'light',
+    activePage: 'dashboard',
+    selectedProjectId: 'project-agentflow',
+    settings: {
+      providerName: 'OpenAI-compatible API',
+      baseUrl: 'http://127.0.0.1:11434/v1',
+      apiKey: '',
+      modelName: 'gpt-4.1-mini',
+      memoryEnabled: true,
+      memoryInjectionMode: 'balanced',
+      maxMemoryItems: 10,
+      maxMemoryChars: 8000,
+      defaultProjectPath: 'D:\\AgentFlowStudio',
+    },
+    projects: [
+      {
+        id: 'project-agentflow',
+        name: 'AgentFlow Studio 本地交付修复',
+        idea: '修复双击启动闪退，提供静态可交付模式，并完成中文界面。',
+        platform: 'Windows Desktop / Static Web',
+        techStack: 'Node.js, 静态 HTML, CSS, JavaScript, localStorage',
+        uiStyle: 'Apple Liquid Glass + Linear 工作台',
+        difficulty: 'Medium',
+        status: 'active',
+        updatedAt: nowIso(),
+        createdAt: nowIso(),
+        tasks: [
+          { id: uid('task'), title: '修复 start-agentflow-static.bat 闪退', status: 'done' },
+          { id: uid('task'), title: '生成 static-app 静态降级版', status: 'doing' },
+          { id: uid('task'), title: '重建桌面快捷方式并验证 HTTP', status: 'todo' },
+          { id: uid('task'), title: '更新 handoff 测试报告', status: 'blocked' },
+        ],
+      },
+      {
+        id: 'project-memory',
+        name: '共享记忆中心增强',
+        idea: '沉淀项目决策、错误修复和跨模型恢复上下文。',
+        platform: 'Local first',
+        techStack: 'localStorage, JSON, Prompt',
+        uiStyle: '安静、清晰、面向重复工作',
+        difficulty: 'Easy',
+        status: 'planning',
+        updatedAt: new Date(Date.now() - 86400000).toISOString(),
+        createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+        tasks: [
+          { id: uid('task'), title: '梳理记忆类型', status: 'todo' },
+          { id: uid('task'), title: '生成恢复上下文 Prompt', status: 'todo' },
+        ],
+      },
+    ],
+    memories: [
+      {
+        id: 'memory-static',
+        type: 'decision',
+        title: '当前采用 Static fallback',
+        content:
+          'Electron / Vite 在当前环境可能受 esbuild spawn EPERM 限制，因此本轮交付优先使用纯 Node 静态服务器和 static-app。',
+        tags: ['launcher', 'static', 'handoff'],
+        importance: 5,
+        status: 'active',
+        providerScope: 'all',
+        modelScope: 'all',
+        lastUsedAt: nowIso(),
+        createdAt: nowIso(),
+      },
+      {
+        id: 'memory-localized',
+        type: 'knowledge',
+        title: '用户要求界面汉化',
+        content:
+          '用户明确要求网站 / 应用界面不能继续大面积英文。保留 AgentFlow Studio、Codex、Claude Code、Cursor、API、Prompt、Git 等专有名词，但要放在中文上下文中。',
+        tags: ['localization', 'zh-CN'],
+        importance: 5,
+        status: 'active',
+        providerScope: 'all',
+        modelScope: 'all',
+        lastUsedAt: nowIso(),
+        createdAt: nowIso(),
+      },
+    ],
+    prompts: [],
+    riskChecks: [],
+    logAnalyses: [],
+  };
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    return { ...defaultState(), ...JSON.parse(raw) };
+  } catch {
+    return defaultState();
+  }
+}
+
+let state = loadState();
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function setTheme(theme) {
+  state.theme = theme;
+  document.documentElement.dataset.theme = theme;
+  saveState();
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatDate(value) {
+  if (!value) return '未知';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '未知' : date.toLocaleString('zh-CN', { hour12: false });
+}
+
+function selectedProject() {
+  return state.projects.find((project) => project.id === state.selectedProjectId) || state.projects[0];
+}
+
+function toast(message) {
+  const old = document.querySelector('.toast');
+  if (old) old.remove();
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = message;
+  document.body.appendChild(el);
+  window.setTimeout(() => el.remove(), 2600);
+}
+
+function copyText(text, label = '内容') {
+  navigator.clipboard
+    ?.writeText(text)
+    .then(() => toast(`${label}已复制`))
+    .catch(() => {
+      const box = document.createElement('textarea');
+      box.value = text;
+      document.body.appendChild(box);
+      box.select();
+      document.execCommand('copy');
+      box.remove();
+      toast(`${label}已复制`);
+    });
+}
+
+function navigate(pageId) {
+  state.activePage = pageId;
+  saveState();
+  render();
+}
+
+function statusBadge(status) {
+  return `<span class="status-pill">${statusLabels[status] || status}</span>`;
+}
+
+function riskBadge(level) {
+  const cls = {
+    Safe: 'risk-safe',
+    Low: 'risk-low',
+    Medium: 'risk-medium',
+    High: 'risk-high',
+    Critical: 'risk-critical',
+  }[level] || 'risk-low';
+  return `<span class="risk-pill ${cls}">${riskLabels[level] || level}</span>`;
+}
+
+function field(name, label, value = '', type = 'text', placeholder = '') {
+  return `
+    <div class="field">
+      <label for="${name}">${label}</label>
+      <input id="${name}" name="${name}" type="${type}" value="${escapeHtml(value)}" placeholder="${escapeHtml(placeholder)}" />
+    </div>
+  `;
+}
+
+function textarea(name, label, value = '', placeholder = '') {
+  return `
+    <div class="field">
+      <label for="${name}">${label}</label>
+      <textarea id="${name}" name="${name}" placeholder="${escapeHtml(placeholder)}">${escapeHtml(value)}</textarea>
+    </div>
+  `;
+}
+
+function select(name, label, value, options) {
+  return `
+    <div class="field">
+      <label for="${name}">${label}</label>
+      <select id="${name}" name="${name}">
+        ${options
+          .map(
+            (option) =>
+              `<option value="${escapeHtml(option.value)}" ${option.value === value ? 'selected' : ''}>${escapeHtml(option.label)}</option>`,
+          )
+          .join('')}
+      </select>
+    </div>
+  `;
+}
+
+function shell(content) {
+  const page = pages.find((item) => item.id === state.activePage) || pages[0];
+  return `
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="brand">
+          <img src="/assets/icon.svg" alt="AgentFlow Studio 图标" />
+          <div>
+            <p class="brand-title">AgentFlow Studio</p>
+            <p class="brand-subtitle">AI 项目编排中枢</p>
+          </div>
+        </div>
+        <nav class="nav" aria-label="主导航">
+          ${pages
+            .map(
+              (item) => `
+                <button type="button" class="${item.id === state.activePage ? 'active' : ''}" data-page="${item.id}" title="${escapeHtml(item.label)}">
+                  <span class="nav-icon">${item.icon}</span>
+                  <span>${item.label}</span>
+                </button>
+              `,
+            )
+            .join('')}
+        </nav>
+        <div class="sidebar-footer">
+          <strong>静态可交付模式</strong><br />
+          纯 Node 静态服务，无需 Vite、Electron 或 esbuild。数据保存在 localStorage。
+        </div>
+      </aside>
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <h1>${escapeHtml(page.label)}</h1>
+            <p>${escapeHtml(page.description)}</p>
+          </div>
+          <div class="topbar-actions">
+            <span class="mode-pill">静态可交付模式</span>
+            <button class="btn ghost small" type="button" data-action="toggle-theme">${state.theme === 'dark' ? '浅色' : '深色'}</button>
+            <button class="btn ghost small" type="button" data-action="export-data">导出</button>
+          </div>
+        </header>
+        ${content}
+      </main>
+    </div>
+  `;
+}
+
+function renderDashboard() {
+  const totalTasks = state.projects.reduce((sum, project) => sum + (project.tasks?.length || 0), 0);
+  const activeProject = selectedProject();
+  const riskCount = state.riskChecks.length;
+  return shell(`
+    <section class="grid stats-grid">
+      <div class="stat-card"><div class="stat-label">项目总数</div><div class="stat-value">${state.projects.length}</div><div class="stat-note">当前项目管理池</div></div>
+      <div class="stat-card"><div class="stat-label">任务总数</div><div class="stat-value">${totalTasks}</div><div class="stat-note">待办、进行中、受阻、已完成</div></div>
+      <div class="stat-card"><div class="stat-label">提示词数量</div><div class="stat-value">${state.prompts.length}</div><div class="stat-note">Prompt Lab 生成结果</div></div>
+      <div class="stat-card"><div class="stat-label">风险检查</div><div class="stat-value">${riskCount}</div><div class="stat-note">命令安全扫描记录</div></div>
+      <div class="stat-card"><div class="stat-label">共享记忆</div><div class="stat-value">${state.memories.length}</div><div class="stat-note">跨模型恢复上下文素材</div></div>
+    </section>
+
+    <section class="grid two-col" style="margin-top:16px">
+      <div class="panel">
+        <div class="section-title">
+          <div><h2>项目总控台</h2><p>核心入口保持可用，先让桌面快捷方式能真实打开。</p></div>
+        </div>
+        <div class="row">
+          <button class="btn primary" type="button" data-page="projects">新建项目</button>
+          <button class="btn" type="button" data-page="prompt-lab">生成 Prompt</button>
+          <button class="btn" type="button" data-page="log-analyzer">分析日志</button>
+          <button class="btn" type="button" data-page="safety-box">检查风险</button>
+          <button class="btn" type="button" data-page="shared-memory">生成跨模型恢复上下文</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="section-title">
+          <div><h2>当前项目</h2><p>${escapeHtml(activeProject?.name || '暂无项目')}</p></div>
+          ${activeProject ? statusBadge(activeProject.status) : ''}
+        </div>
+        <p class="muted">${escapeHtml(activeProject?.idea || '请先创建项目。')}</p>
+      </div>
+    </section>
+
+    <section class="grid two-col" style="margin-top:16px">
+      <div class="panel">
+        <div class="section-title"><h2>最近项目</h2><button class="btn small" type="button" data-page="projects">项目管理</button></div>
+        <div class="stack">
+          ${state.projects
+            .slice()
+            .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+            .slice(0, 4)
+            .map(
+              (project) => `
+                <article class="item-card">
+                  <div class="spread">
+                    <div>
+                      <h3>${escapeHtml(project.name)}</h3>
+                      <p>${escapeHtml(project.idea)}</p>
+                    </div>
+                    ${statusBadge(project.status)}
+                  </div>
+                </article>
+              `,
+            )
+            .join('')}
+        </div>
+      </div>
+      <div class="panel">
+        <div class="section-title"><h2>快捷操作</h2><span class="tag">localStorage 已启用</span></div>
+        <div class="stack">
+          <button class="btn" type="button" data-page="project-detail">查看项目详情</button>
+          <button class="btn" type="button" data-page="shared-memory">新增记忆</button>
+          <button class="btn" type="button" data-action="reset-demo">重置演示数据</button>
+        </div>
+      </div>
+    </section>
+  `);
+}
+
+function renderProjects() {
+  return shell(`
+    <section class="grid two-col">
+      <div class="panel">
+        <div class="section-title"><h2>新建项目</h2><span class="tag">保存到 localStorage</span></div>
+        <form class="grid" data-form="project">
+          ${field('name', '项目名称', '', 'text', '例如：AgentFlow Studio 修复任务')}
+          ${textarea('idea', '项目想法', '', '描述目标、约束和交付物')}
+          <div class="grid three-col">
+            ${field('platform', '平台', 'Static Web')}
+            ${field('techStack', '技术栈', 'Node.js, HTML, CSS, JavaScript')}
+            ${select('difficulty', '难度', 'Medium', [
+              { value: 'Easy', label: '简单' },
+              { value: 'Medium', label: '中等' },
+              { value: 'Hard', label: '困难' },
+            ])}
+          </div>
+          <button class="btn primary" type="submit">新建项目</button>
+        </form>
+      </div>
+      <div class="panel">
+        <div class="section-title"><h2>项目列表</h2><span class="tag">${state.projects.length} 个项目</span></div>
+        <div class="stack">
+          ${state.projects
+            .map(
+              (project) => `
+                <article class="item-card">
+                  <div class="spread">
+                    <div>
+                      <h3>${escapeHtml(project.name)}</h3>
+                      <p>${escapeHtml(project.idea)}</p>
+                      <div class="row">
+                        <span class="tag">${escapeHtml(project.platform)}</span>
+                        <span class="tag">${escapeHtml(project.techStack)}</span>
+                      </div>
+                    </div>
+                    <div class="stack">
+                      ${statusBadge(project.status)}
+                      <button class="btn small" type="button" data-select-project="${project.id}">查看详情</button>
+                      <button class="btn danger small" type="button" data-delete-project="${project.id}">删除</button>
+                    </div>
+                  </div>
+                </article>
+              `,
+            )
+            .join('')}
+        </div>
+      </div>
+    </section>
+  `);
+}
+
+function renderProjectDetail() {
+  const project = selectedProject();
+  if (!project) {
+    return shell('<div class="empty">暂无项目，请先进入项目管理新建项目。</div>');
+  }
+  const columns = [
+    ['todo', '待办'],
+    ['doing', '进行中'],
+    ['blocked', '受阻'],
+    ['done', '已完成'],
+  ];
+  return shell(`
+    <section class="grid two-col">
+      <div class="panel">
+        <div class="section-title">
+          <div><h2>${escapeHtml(project.name)}</h2><p>${escapeHtml(project.idea)}</p></div>
+          ${statusBadge(project.status)}
+        </div>
+        <div class="grid three-col">
+          <div class="stat-card"><div class="stat-label">平台</div><div class="stat-note">${escapeHtml(project.platform)}</div></div>
+          <div class="stat-card"><div class="stat-label">技术栈</div><div class="stat-note">${escapeHtml(project.techStack)}</div></div>
+          <div class="stat-card"><div class="stat-label">更新时间</div><div class="stat-note">${formatDate(project.updatedAt)}</div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="section-title"><h2>新增任务</h2><span class="tag">项目详情</span></div>
+        <form class="row" data-form="task">
+          <div class="field" style="flex:1;min-width:220px">
+            <label for="taskTitle">任务标题</label>
+            <input id="taskTitle" name="taskTitle" placeholder="例如：修复桌面快捷方式" />
+          </div>
+          ${select('taskStatus', '状态', 'todo', columns.map(([value, label]) => ({ value, label })))}
+          <button class="btn primary" type="submit">保存</button>
+        </form>
+      </div>
+    </section>
+    <section class="panel" style="margin-top:16px">
+      <div class="section-title">
+        <div><h2>任务看板</h2><p>基础看板保留待办、进行中、受阻、已完成状态。</p></div>
+      </div>
+      <div class="kanban">
+        ${columns
+          .map(
+            ([status, label]) => `
+              <div class="kanban-col">
+                <div class="kanban-title">${label}</div>
+                ${(project.tasks || [])
+                  .filter((task) => task.status === status)
+                  .map((task) => `<div class="task">${escapeHtml(task.title)}</div>`)
+                  .join('') || '<div class="empty">暂无任务</div>'}
+              </div>
+            `,
+          )
+          .join('')}
+      </div>
+    </section>
+    <section class="panel" style="margin-top:16px">
+      <div class="section-title">
+        <div><h2>开发 Prompt</h2><p>可复制给 Codex、Claude Code 或 Cursor 继续处理。</p></div>
+        <button class="btn small" type="button" data-copy-project-prompt>复制</button>
+      </div>
+      <pre class="output">${escapeHtml(projectPrompt(project))}</pre>
+    </section>
+  `);
+}
+
+function projectPrompt(project) {
+  return `# AgentFlow Studio 项目详情 Prompt
+
+项目：${project.name}
+目标：${project.idea}
+平台：${project.platform}
+技术栈：${project.techStack}
+
+请继续完成该项目，遵循本地优先、中文界面、Shared Memory Hub 不可移除的约束。`;
+}
+
+function fillPrompt(template, values) {
+  return template
+    .replaceAll('{{project}}', values.project || 'AgentFlow Studio')
+    .replaceAll('{{task}}', values.task || '继续完成当前修复任务');
+}
+
+function memoryContext() {
+  const active = state.memories.filter((memory) => memory.status === 'active');
+  const limit = state.settings.memoryInjectionMode === 'minimal' ? 3 : state.settings.memoryInjectionMode === 'full' ? 20 : 8;
+  return [
+    '[共享记忆上下文 / Shared Memory Context]',
+    ...active
+      .slice(0, limit)
+      .map((memory) => `- ${memoryTypeLabels[memory.type] || memory.type}：${memory.title}\n  ${memory.content}`),
+    '[/共享记忆上下文]',
+  ].join('\n');
+}
+
+function renderPromptLab() {
+  const project = selectedProject();
+  return shell(`
+    <section class="grid two-col">
+      <div class="panel">
+        <div class="section-title"><h2>提示词模板</h2><span class="tag">Prompt Template</span></div>
+        <form class="grid" data-form="prompt">
+          ${select(
+            'templateId',
+            '提示词模板',
+            'feature',
+            promptTemplates.map((template) => ({ value: template.id, label: template.name })),
+          )}
+          ${field('project', '变量：项目', project?.name || 'AgentFlow Studio')}
+          ${textarea('task', '变量：任务', '修复静态启动链路并完成中文界面', '填写本次要交给 AI 的任务')}
+          ${select('memoryMode', '注入共享记忆', state.settings.memoryInjectionMode, [
+            { value: 'minimal', label: '最小' },
+            { value: 'balanced', label: '平衡' },
+            { value: 'full', label: '完整' },
+          ])}
+          <button class="btn primary" type="submit">生成</button>
+        </form>
+      </div>
+      <div class="panel">
+        <div class="section-title">
+          <div><h2>生成结果</h2><p>Generated Prompt</p></div>
+          <button class="btn small" type="button" data-copy-last-prompt>复制</button>
+        </div>
+        <pre class="output">${escapeHtml(state.lastPrompt || '请填写变量后点击“生成”。')}</pre>
+      </div>
+    </section>
+    <section class="panel" style="margin-top:16px">
+      <div class="section-title"><h2>最近提示词</h2><span class="tag">${state.prompts.length} 条</span></div>
+      <div class="stack">
+        ${state.prompts
+          .slice(0, 5)
+          .map(
+            (prompt) => `
+              <article class="item-card">
+                <div class="spread">
+                  <div>
+                    <h3>${escapeHtml(prompt.title)}</h3>
+                    <p>${escapeHtml(prompt.content.slice(0, 130))}...</p>
+                  </div>
+                  <button class="btn small" type="button" data-copy-prompt="${prompt.id}">复制</button>
+                </div>
+              </article>
+            `,
+          )
+          .join('') || '<div class="empty">暂无已保存的 Prompt。</div>'}
+      </div>
+    </section>
+  `);
+}
+
+function analyzeLog(text) {
+  const lower = text.toLowerCase();
+  if (!text.trim()) {
+    return {
+      type: '空日志',
+      cause: '尚未输入日志内容。',
+      steps: ['粘贴控制台、构建或启动日志。', '点击“分析”。'],
+      command: 'npm.cmd run test:launch-static',
+      prompt: '请先提供完整日志。',
+    };
+  }
+  if (lower.includes('eaddrinuse') || text.includes('端口')) {
+    return {
+      type: '端口占用',
+      cause: '目标端口已有进程监听，旧服务器未关闭或其他应用占用。',
+      steps: ['查看 static-server.log 中的实际端口。', '让服务器自动切换到 4174-4177。', '浏览器访问日志中的服务地址。'],
+      command: 'netstat -ano | findstr :4173',
+      prompt: `请帮我处理端口占用问题，并确保服务自动切换端口：\n\n${text}`,
+    };
+  }
+  if (lower.includes('eperm') && lower.includes('esbuild')) {
+    return {
+      type: 'esbuild EPERM',
+      cause: '当前环境限制 Vite/Vitest 启动 esbuild 子进程。',
+      steps: ['不要继续死磕 Vite build。', '使用 Static fallback 验证真实可用入口。', '在普通 Windows 终端后续复测 Electron。'],
+      command: 'npm.cmd run test:launch-static',
+      prompt: `当前环境出现 esbuild EPERM，请改用静态交付链路并记录限制：\n\n${text}`,
+    };
+  }
+  if (lower.includes('not found') || text.includes('未找到')) {
+    return {
+      type: '文件缺失',
+      cause: '启动脚本或静态资源路径缺失。',
+      steps: ['确认 start-agentflow-static.bat 存在。', '确认 scripts/static-server.js 存在。', '确认 static-app/index.html 存在。'],
+      command: 'npm.cmd run smoke',
+      prompt: `请定位缺失文件并修复静态启动链路：\n\n${text}`,
+    };
+  }
+  return {
+    type: '一般运行错误',
+    cause: '日志未命中特定规则，需要结合上下文进一步判断。',
+    steps: ['保留完整日志。', '检查 launcher-static.log 与 static-server.log。', '先运行 test:launch-static 复现。'],
+    command: 'npm.cmd run test:launch-static',
+    prompt: `请分析以下日志，找出可能原因并给出修复步骤：\n\n${text}`,
+  };
+}
+
+function renderLogAnalyzer() {
+  const latest = state.lastLogAnalysis;
+  return shell(`
+    <section class="grid two-col">
+      <div class="panel">
+        <div class="section-title"><h2>日志分析</h2><span class="tag">Log Analyzer</span></div>
+        <form class="grid" data-form="log">
+          ${textarea('logText', '日志内容', state.lastLogInput || '', '粘贴启动、构建、测试或浏览器控制台日志')}
+          <button class="btn primary" type="submit">分析</button>
+        </form>
+      </div>
+      <div class="panel">
+        <div class="section-title">
+          <div><h2>分析结果</h2><p>错误类型、可能原因、修复步骤、建议命令。</p></div>
+          <button class="btn small" type="button" data-copy-fix-prompt>生成修复提示词</button>
+        </div>
+        ${
+          latest
+            ? `
+              <div class="stack">
+                <div class="item-card"><h3>错误类型</h3><p>${escapeHtml(latest.type)}</p></div>
+                <div class="item-card"><h3>可能原因</h3><p>${escapeHtml(latest.cause)}</p></div>
+                <div class="item-card"><h3>修复步骤</h3><p>${latest.steps.map((step, index) => `${index + 1}. ${escapeHtml(step)}`).join('<br />')}</p></div>
+                <div class="item-card"><h3>建议命令</h3><p><code>${escapeHtml(latest.command)}</code></p></div>
+                <pre class="output">${escapeHtml(latest.prompt)}</pre>
+              </div>
+            `
+            : '<div class="empty">等待日志输入。</div>'
+        }
+      </div>
+    </section>
+  `);
+}
+
+function checkRisk(command) {
+  const rules = [
+    { pattern: /rm\s+-rf|Remove-Item.+-Recurse|del\s+\/s/i, level: 'Critical', rule: '递归删除', safer: '先列出目标路径并确认范围，再使用备份或移动到临时目录。' },
+    { pattern: /git\s+reset\s+--hard|git\s+clean\s+-fd/i, level: 'High', rule: '破坏性 Git 操作', safer: '先运行 git status 和 git diff，必要时创建备份分支。' },
+    { pattern: /Invoke-WebRequest|curl|wget/i, level: 'Medium', rule: '网络下载', safer: '确认来源可信，下载到临时目录并校验内容。' },
+    { pattern: /npm\s+install|npm\.cmd\s+install/i, level: 'Low', rule: '依赖变更', safer: '检查 package-lock.json 变化并运行 smoke。' },
+  ];
+  const matched = rules.filter((rule) => rule.pattern.test(command));
+  const level = matched[0]?.level || 'Safe';
+  return {
+    id: uid('risk'),
+    command,
+    level,
+    matchedRules: matched.map((rule) => rule.rule),
+    saferAlternative: matched[0]?.safer || '命令未命中高风险规则，仍建议确认工作目录后执行。',
+    backupRecommended: ['High', 'Critical'].includes(level),
+    sandboxRecommended: level !== 'Safe',
+    createdAt: nowIso(),
+  };
+}
+
+function renderSafetyBox() {
+  const result = state.lastRiskCheck;
+  return shell(`
+    <section class="grid two-col">
+      <div class="panel">
+        <div class="section-title"><h2>安全检查</h2><span class="tag">SafetyBox</span></div>
+        <form class="grid" data-form="risk">
+          ${textarea('command', '待检查命令', state.lastCommand || 'npm.cmd run test:launch-static', '粘贴将要执行的 shell 命令')}
+          <button class="btn primary" type="submit">检查风险</button>
+        </form>
+      </div>
+      <div class="panel">
+        <div class="section-title"><h2>风险结果</h2>${result ? riskBadge(result.level) : ''}</div>
+        ${
+          result
+            ? `
+              <div class="stack">
+                <div class="item-card"><h3>风险等级</h3><p>${riskLabels[result.level]}</p></div>
+                <div class="item-card"><h3>命中规则</h3><p>${result.matchedRules.length ? result.matchedRules.map(escapeHtml).join('、') : '未命中危险规则'}</p></div>
+                <div class="item-card"><h3>更安全替代命令</h3><p>${escapeHtml(result.saferAlternative)}</p></div>
+                <div class="item-card"><h3>建议备份</h3><p>${result.backupRecommended ? '建议备份' : '通常无需额外备份'}</p></div>
+                <div class="item-card"><h3>建议隔离运行</h3><p>${result.sandboxRecommended ? '建议在沙箱中运行' : '可在确认目录后运行'}</p></div>
+              </div>
+            `
+            : '<div class="empty">输入命令后点击“检查风险”。</div>'
+        }
+      </div>
+    </section>
+  `);
+}
+
+function recoveryPrompt() {
+  const project = selectedProject();
+  return `# AgentFlow Studio 跨模型恢复上下文 Prompt
+
+你正在接手本地项目：${project?.name || 'AgentFlow Studio'}
+
+当前运行模式：静态可交付模式（Static fallback）
+项目路径：D:\\AgentFlowStudio
+可用入口：start-agentflow-static.bat
+
+${memoryContext()}
+
+请继续工作时遵守：
+1. 不要重建项目。
+2. 不要移除 Shared Memory Hub（共享记忆中心）。
+3. 用户界面保持中文优先。
+4. Electron / Vite 若受 esbuild EPERM 限制，先维护 Static fallback 可用性。`;
+}
+
+function renderSharedMemory() {
+  return shell(`
+    <section class="grid two-col">
+      <div class="panel">
+        <div class="section-title"><h2>新增记忆</h2><span class="tag">Shared Memory Hub</span></div>
+        <form class="grid" data-form="memory">
+          ${select('type', '记忆类型', 'knowledge', Object.entries(memoryTypeLabels).map(([value, label]) => ({ value, label })))}
+          ${field('title', '标题', '', 'text', '例如：静态入口已修复')}
+          ${textarea('content', '内容', '', '记录约束、决策、问题修复或用户偏好')}
+          ${field('tags', '标签', 'static,zh-CN')}
+          ${select('importance', '重要度', '4', [
+            { value: '1', label: '1 - 低' },
+            { value: '3', label: '3 - 中' },
+            { value: '5', label: '5 - 高' },
+          ])}
+          <div class="grid three-col">
+            ${field('providerScope', '接口范围', 'all')}
+            ${field('modelScope', '模型范围', 'all')}
+            ${select('status', '状态', 'active', [
+              { value: 'active', label: '进行中' },
+              { value: 'pending', label: '待确认' },
+              { value: 'archived', label: '已归档' },
+            ])}
+          </div>
+          <button class="btn primary" type="submit">新增记忆</button>
+        </form>
+      </div>
+      <div class="panel">
+        <div class="section-title">
+          <div><h2>跨模型恢复上下文 Prompt</h2><p>可复制到 Codex、Claude Code、Cursor 或其他 API 模型。</p></div>
+          <button class="btn small" type="button" data-copy-recovery>复制</button>
+        </div>
+        <pre class="output">${escapeHtml(recoveryPrompt())}</pre>
+      </div>
+    </section>
+    <section class="panel" style="margin-top:16px">
+      <div class="section-title"><h2>共享记忆</h2><span class="tag">${state.memories.length} 条</span></div>
+      <div class="grid three-col">
+        ${state.memories
+          .map(
+            (memory) => `
+              <article class="item-card">
+                <div class="spread">
+                  <h3>${escapeHtml(memory.title)}</h3>
+                  ${statusBadge(memory.status)}
+                </div>
+                <p>${escapeHtml(memory.content)}</p>
+                <div class="row">
+                  <span class="tag">${memoryTypeLabels[memory.type] || memory.type}</span>
+                  <span class="tag">重要度 ${memory.importance}</span>
+                  <span class="tag">最近使用 ${formatDate(memory.lastUsedAt)}</span>
+                </div>
+              </article>
+            `,
+          )
+          .join('')}
+      </div>
+    </section>
+  `);
+}
+
+function renderSettings() {
+  const s = state.settings;
+  return shell(`
+    <section class="grid two-col">
+      <div class="panel">
+        <div class="section-title"><h2>AI 接口配置</h2><span class="tag">API Provider</span></div>
+        <form class="grid" data-form="settings">
+          ${field('providerName', '接口名称', s.providerName)}
+          ${field('baseUrl', '接口地址', s.baseUrl)}
+          ${field('apiKey', 'API 密钥', s.apiKey ? `已保存，尾号 ${s.apiKey.slice(-4)}` : '', 'password', '仅本地保存，导出前请自行确认')}
+          ${field('modelName', '模型名称', s.modelName)}
+          ${select('memoryEnabled', '启用共享记忆', String(s.memoryEnabled), [
+            { value: 'true', label: '启用' },
+            { value: 'false', label: '关闭' },
+          ])}
+          ${select('memoryInjectionMode', '记忆注入模式', s.memoryInjectionMode, [
+            { value: 'minimal', label: '最小' },
+            { value: 'balanced', label: '平衡' },
+            { value: 'full', label: '完整' },
+          ])}
+          <div class="grid three-col">
+            ${field('maxMemoryItems', '最大记忆条数', s.maxMemoryItems, 'number')}
+            ${field('maxMemoryChars', '最大记忆字符数', s.maxMemoryChars, 'number')}
+            ${select('theme', '主题', state.theme, [
+              { value: 'light', label: '浅色' },
+              { value: 'dark', label: '深色' },
+            ])}
+          </div>
+          ${field('defaultProjectPath', '默认项目路径', s.defaultProjectPath)}
+          <button class="btn primary" type="submit">保存</button>
+        </form>
+      </div>
+      <div class="panel">
+        <div class="section-title"><h2>数据管理</h2><span class="tag">localStorage</span></div>
+        <div class="stack">
+          <p class="muted">静态可交付模式不连接云服务，所有项目、Prompt、风险检查和共享记忆都保存在本机浏览器 localStorage。</p>
+          <button class="btn" type="button" data-action="export-data">导出</button>
+          <button class="btn danger" type="button" data-action="clear-data">清空</button>
+          <button class="btn" type="button" data-action="reset-demo">重置</button>
+        </div>
+      </div>
+    </section>
+  `);
+}
+
+function render() {
+  document.documentElement.dataset.theme = state.theme;
+  const renderers = {
+    dashboard: renderDashboard,
+    projects: renderProjects,
+    'project-detail': renderProjectDetail,
+    'prompt-lab': renderPromptLab,
+    'log-analyzer': renderLogAnalyzer,
+    'safety-box': renderSafetyBox,
+    'shared-memory': renderSharedMemory,
+    settings: renderSettings,
+  };
+  document.querySelector('#app').innerHTML = (renderers[state.activePage] || renderDashboard)();
+}
+
+function onSubmit(event) {
+  const form = event.target.closest('form');
+  if (!form) return;
+  event.preventDefault();
+  const data = Object.fromEntries(new FormData(form).entries());
+
+  if (form.dataset.form === 'project') {
+    const project = {
+      id: uid('project'),
+      name: data.name || '未命名项目',
+      idea: data.idea || '暂无描述',
+      platform: data.platform || 'Static Web',
+      techStack: data.techStack || 'HTML, CSS, JavaScript',
+      uiStyle: '中文工作台',
+      difficulty: data.difficulty || 'Medium',
+      status: 'active',
+      tasks: [],
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    };
+    state.projects.unshift(project);
+    state.selectedProjectId = project.id;
+    state.activePage = 'project-detail';
+    saveState();
+    render();
+    toast('项目已创建');
+  }
+
+  if (form.dataset.form === 'task') {
+    const project = selectedProject();
+    if (!project) return;
+    project.tasks = project.tasks || [];
+    project.tasks.push({ id: uid('task'), title: data.taskTitle || '未命名任务', status: data.taskStatus || 'todo' });
+    project.updatedAt = nowIso();
+    saveState();
+    render();
+    toast('任务已保存');
+  }
+
+  if (form.dataset.form === 'prompt') {
+    const template = promptTemplates.find((item) => item.id === data.templateId) || promptTemplates[0];
+    state.settings.memoryInjectionMode = data.memoryMode || state.settings.memoryInjectionMode;
+    const content = `${memoryContext()}\n\n${fillPrompt(template.template, data)}`;
+    state.lastPrompt = content;
+    state.prompts.unshift({
+      id: uid('prompt'),
+      title: template.name,
+      content,
+      createdAt: nowIso(),
+    });
+    saveState();
+    render();
+    toast('Prompt 已生成');
+  }
+
+  if (form.dataset.form === 'log') {
+    state.lastLogInput = data.logText || '';
+    state.lastLogAnalysis = analyzeLog(state.lastLogInput);
+    state.logAnalyses.unshift({ id: uid('log'), ...state.lastLogAnalysis, createdAt: nowIso() });
+    saveState();
+    render();
+    toast('日志分析完成');
+  }
+
+  if (form.dataset.form === 'risk') {
+    state.lastCommand = data.command || '';
+    const result = checkRisk(state.lastCommand);
+    state.lastRiskCheck = result;
+    state.riskChecks.unshift(result);
+    saveState();
+    render();
+    toast('风险检查完成');
+  }
+
+  if (form.dataset.form === 'memory') {
+    state.memories.unshift({
+      id: uid('memory'),
+      type: data.type || 'knowledge',
+      title: data.title || '未命名记忆',
+      content: data.content || '',
+      tags: String(data.tags || '')
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+      importance: Number(data.importance || 3),
+      status: data.status || 'active',
+      providerScope: data.providerScope || 'all',
+      modelScope: data.modelScope || 'all',
+      lastUsedAt: nowIso(),
+      createdAt: nowIso(),
+    });
+    saveState();
+    render();
+    toast('记忆已新增');
+  }
+
+  if (form.dataset.form === 'settings') {
+    state.settings = {
+      providerName: data.providerName || '',
+      baseUrl: data.baseUrl || '',
+      apiKey: data.apiKey?.startsWith('已保存') ? state.settings.apiKey : data.apiKey || '',
+      modelName: data.modelName || '',
+      memoryEnabled: data.memoryEnabled === 'true',
+      memoryInjectionMode: data.memoryInjectionMode || 'balanced',
+      maxMemoryItems: Number(data.maxMemoryItems || 10),
+      maxMemoryChars: Number(data.maxMemoryChars || 8000),
+      defaultProjectPath: data.defaultProjectPath || '',
+    };
+    setTheme(data.theme || state.theme);
+    saveState();
+    render();
+    toast('设置已保存');
+  }
+}
+
+function onClick(event) {
+  const target = event.target.closest('button');
+  if (!target) return;
+
+  if (target.dataset.page) {
+    navigate(target.dataset.page);
+    return;
+  }
+
+  if (target.dataset.selectProject) {
+    state.selectedProjectId = target.dataset.selectProject;
+    state.activePage = 'project-detail';
+    saveState();
+    render();
+    return;
+  }
+
+  if (target.dataset.deleteProject) {
+    state.projects = state.projects.filter((project) => project.id !== target.dataset.deleteProject);
+    if (state.selectedProjectId === target.dataset.deleteProject) {
+      state.selectedProjectId = state.projects[0]?.id;
+    }
+    saveState();
+    render();
+    toast('项目已删除');
+    return;
+  }
+
+  if (target.dataset.copyProjectPrompt !== undefined) copyText(projectPrompt(selectedProject()), '项目 Prompt');
+  if (target.dataset.copyLastPrompt !== undefined) copyText(state.lastPrompt || '', '生成结果');
+  if (target.dataset.copyFixPrompt !== undefined) copyText(state.lastLogAnalysis?.prompt || '', '修复提示词');
+  if (target.dataset.copyRecovery !== undefined) copyText(recoveryPrompt(), '跨模型恢复上下文 Prompt');
+  if (target.dataset.copyPrompt) {
+    const prompt = state.prompts.find((item) => item.id === target.dataset.copyPrompt);
+    copyText(prompt?.content || '', 'Prompt');
+  }
+
+  if (target.dataset.action === 'toggle-theme') {
+    setTheme(state.theme === 'dark' ? 'light' : 'dark');
+    render();
+  }
+
+  if (target.dataset.action === 'export-data') {
+    copyText(JSON.stringify(state, null, 2), '导出数据');
+  }
+
+  if (target.dataset.action === 'clear-data') {
+    if (confirm('确认清空所有 localStorage 数据？此操作不可撤销。')) {
+      localStorage.removeItem(STORAGE_KEY);
+      state = defaultState();
+      saveState();
+      render();
+      toast('数据已清空并恢复默认状态');
+    }
+  }
+
+  if (target.dataset.action === 'reset-demo') {
+    state = defaultState();
+    saveState();
+    render();
+    toast('演示数据已重置');
+  }
+}
+
+document.addEventListener('submit', onSubmit);
+document.addEventListener('click', onClick);
+setTheme(state.theme || 'light');
+render();

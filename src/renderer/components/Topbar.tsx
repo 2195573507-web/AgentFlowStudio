@@ -26,15 +26,20 @@ const Topbar: React.FC<TopbarProps> = ({
   className,
 }) => {
   const location = useLocation();
+  const themeLabels: Record<ThemeMode, string> = {
+    system: '跟随系统',
+    light: '浅色',
+    dark: '深色',
+  };
 
   // Derive page title from current route
   const routeTitle = (() => {
     const path = location.pathname;
-    if (path === '/') return 'Dashboard';
+    if (path === '/') return '仪表盘';
     const item = navItems.find(
       (nav) => nav.to !== '/' && path.startsWith(nav.to),
     );
-    return item ? item.label : path.slice(1).charAt(0).toUpperCase() + path.slice(2);
+    return item ? item.label : path.slice(1);
   })();
 
   const displayTitle = titleOverride || routeTitle;
@@ -81,7 +86,7 @@ const Topbar: React.FC<TopbarProps> = ({
               'hover:text-slate-600 dark:hover:text-slate-300',
               'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-400',
             )}
-            title={`Theme: ${theme}. Click to cycle.`}
+            title={`主题：${themeLabels[theme]}，点击切换。`}
           >
             <ThemeIcon className="w-4 h-4" />
           </button>

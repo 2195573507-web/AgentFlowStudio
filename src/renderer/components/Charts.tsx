@@ -109,11 +109,11 @@ const statusColors: Record<TaskStatus, string> = {
 };
 
 const statusLabels: Record<TaskStatus, string> = {
-  todo: 'Todo',
-  doing: 'Doing',
-  in_progress: 'In Progress',
-  blocked: 'Blocked',
-  done: 'Done',
+  todo: '待办',
+  doing: '进行中',
+  in_progress: '进行中',
+  blocked: '受阻',
+  done: '已完成',
 };
 
 export const TaskStatusChart: React.FC<TaskStatusChartProps> = ({ data, className }) => {
@@ -160,7 +160,7 @@ export const TaskStatusChart: React.FC<TaskStatusChartProps> = ({ data, classNam
             },
             scaleSize: 8,
           },
-          data: seriesData.length > 0 ? seriesData : [{ name: 'No data', value: 1, itemStyle: { color: '#e2e8f0' } }],
+          data: seriesData.length > 0 ? seriesData : [{ name: '暂无数据', value: 1, itemStyle: { color: '#e2e8f0' } }],
         },
       ],
     });
@@ -189,21 +189,21 @@ export interface MemoryTypeChartProps {
 }
 
 const memoryTypeLabels: Record<MemoryType, string> = {
-  user_preference: 'Preferences',
-  project_context: 'Context',
-  decision: 'Decisions',
-  issue_fix: 'Issue Fixes',
-  api_provider: 'API Providers',
-  prompt_pattern: 'Patterns',
-  environment: 'Environment',
-  pattern: 'Patterns',
-  insight: 'Insights',
-  knowledge: 'Knowledge',
-  code_snippet: 'Code',
-  security: 'Security',
-  git_summary: 'Git',
-  log_analysis: 'Logs',
-  safety_check: 'Safety',
+  user_preference: '用户偏好',
+  project_context: '项目上下文',
+  decision: '决策',
+  issue_fix: '问题修复',
+  api_provider: 'API 配置',
+  prompt_pattern: 'Prompt 模式',
+  environment: '环境',
+  pattern: '模式',
+  insight: '洞察',
+  knowledge: '知识',
+  code_snippet: '代码片段',
+  security: '安全',
+  git_summary: 'Git 摘要',
+  log_analysis: '日志分析',
+  safety_check: '安全检查',
 };
 
 export const MemoryTypeChart: React.FC<MemoryTypeChartProps> = ({ data, className }) => {
@@ -233,7 +233,7 @@ export const MemoryTypeChart: React.FC<MemoryTypeChartProps> = ({ data, classNam
       },
       xAxis: {
         type: 'category',
-        data: categories.length > 0 ? categories : ['No data'],
+        data: categories.length > 0 ? categories : ['暂无数据'],
         axisLine: { lineStyle: { color: '#cbd5e1' } },
         axisTick: { show: false },
         axisLabel: {
@@ -334,7 +334,7 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ data, classN
       },
       xAxis: {
         type: 'category',
-        data: hasData ? dates : ['No data'],
+        data: hasData ? dates : ['暂无数据'],
         boundaryGap: false,
         axisLine: { lineStyle: { color: '#cbd5e1' } },
         axisTick: { show: false },
@@ -354,9 +354,9 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({ data, classN
         axisLabel: { color: '#94a3b8', fontSize: 11 },
       },
       series: [
-        makeSeries('Tasks', 'tasks', CHART_COLORS[0]),
-        makeSeries('Prompts', 'prompts', CHART_COLORS[3]),
-        makeSeries('Memories', 'memories', CHART_COLORS[5]),
+        makeSeries('任务', 'tasks', CHART_COLORS[0]),
+        makeSeries('Prompt', 'prompts', CHART_COLORS[3]),
+        makeSeries('记忆', 'memories', CHART_COLORS[5]),
       ],
     });
   }, [data, chartRef, setOption]);

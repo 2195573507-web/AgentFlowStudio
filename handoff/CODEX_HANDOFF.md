@@ -1,12 +1,10 @@
-# Codex Handoff Document — AgentFlow Studio
+# Codex Handoff - AgentFlow Studio
 
-## Last Stability Loop Result - 2026-05-07
+## Latest Verified State - 2026-05-08
 
-Codex ran a multi-agent stability loop. Six real subagents completed startup, shortcut/icon, build/smoke, UI runtime, shared memory, and fallback delivery checks. The seventh handoff reporter agent could not launch because of the platform thread limit, so the main thread completed reporting.
+Current deliverable: **Static fallback / 静态可交付模式**.
 
-Current adopted launch scheme: **Static fallback**.
-
-Use:
+Use this launcher:
 
 ```bat
 D:\AgentFlowStudio\start-agentflow-static.bat
@@ -16,285 +14,61 @@ Desktop shortcut:
 
 ```text
 C:\Users\至亲\Desktop\AgentFlow Studio.lnk
-Target: D:\AgentFlowStudio\start-agentflow-static.bat
-Icon: D:\AgentFlowStudio\assets\icon.ico,0
+TargetPath: D:\AgentFlowStudio\start-agentflow-static.bat
+WorkingDirectory: D:\AgentFlowStudio
+IconLocation: D:\AgentFlowStudio\assets\icon.ico,0
 ```
 
-Verified pass:
+This loop deliberately reset stale parallel-agent state. The old `.codex-parallel` directory was archived to `handoff\archived-agents\run-20260508-125051`, a clean `.codex-parallel\logs` directory was created, and seven fresh role logs now cover launcher crash, static server, shortcut, fallback app, localization, runtime smoke, and reporting. Agent G reporting was completed by the main Codex thread because the subagent limit was reached.
 
-- `npm.cmd install`
-- `npm.cmd run icon`
-- `npm.cmd run typecheck`
-- `node_modules\.bin\tsc.cmd -p tsconfig.node.json`
-- `npm.cmd run lint` with warnings only
-- `npm.cmd run smoke` with 53/53 checks
-- `npm.cmd run verify`
-- Static HTTP smoke returning `STATUS=200`, title `AgentFlow Studio`
-- `npm.cmd run shortcut` with Desktop write permission
+## What Was Fixed
 
-Environment blocked in this main execution context:
+- `start-agentflow-static.bat` no longer delegates through npm and no longer embeds UTF-8 Chinese command text that Windows cmd can mis-parse. It now uses an ASCII-safe batch skeleton, prints Chinese prompts through `scripts\launcher-message.ps1`, writes `logs\launcher-static.log`, runs `node scripts\static-server.js` directly, and pauses if the server exits.
+- `scripts\static-server.js` is a pure Node HTTP server. It prioritizes `static-app`, includes `static-app/dist` fallback, falls back through `dist`, `dist-web`, and `public`, auto-creates a minimal fallback if needed, retries ports 4173-4177, opens the browser, logs to `logs\static-server.log`, and catches uncaught exceptions and unhandled rejections.
+- `static-app` is a real Chinese static app with `index.html`, `app.js`, `styles.css`, and `assets/icon.svg`.
+- `scripts\launch-static-test.js` and `npm.cmd run test:launch-static` were added for real runtime verification.
+- `scripts\create-shortcut.ps1` now targets `D:\AgentFlowStudio\start-agentflow-static.bat` directly while Electron/Vite are blocked.
 
-- `npm.cmd run dev`
-- `npm.cmd run dev:web`
-- `npm.cmd run test`
-- `npm.cmd run build`
-- `npm.cmd run build:web`
+## Verified Commands And Checks
 
-They all fail while loading Vite/Vitest config because Node child-process spawning of esbuild returns `EPERM`. Direct `node_modules\.bin\esbuild.cmd --version` succeeds.
+- `npm.cmd run icon`: PASS.
+- `npm.cmd run smoke`: PASS, 64/64.
+- `npm.cmd run test:launch-static`: PASS outside sandbox.
+- `npm.cmd run shortcut`: PASS outside sandbox.
+- PowerShell COM shortcut verification: PASS.
+- Real bat launch: PASS; `cmd /k start-agentflow-static.bat` stayed open after 15 seconds and wrote logs.
+- HTTP smoke: PASS; `http://127.0.0.1:4173` returned 200 and included `AgentFlow Studio`, `仪表盘`, `项目管理`, `提示词实验室`, `日志分析`, `安全检查`, `共享记忆中心`, and `设置`.
 
-Important follow-up: Shared Memory CRUD exists, but Prompt Lab / recovery prompt fallback context and main-process redaction enforcement should be hardened next.
+## Static Fallback Feature Scope
 
-## One-Line Summary
+The current fallback app is not a blank placeholder. It includes:
 
-AgentFlow Studio is a local Electron desktop app that serves as an AI project orchestration hub — it turns project ideas into structured plans, prompts, tasks, and persistent cross-model memories.
+- 仪表盘 / 项目总控台
+- 项目管理 with localStorage create/delete/select project
+- 项目详情 with task board and copyable project Prompt
+- 提示词实验室 with templates, variables, shared memory injection, copy/save
+- 日志分析 with error type, possible cause, fix steps, suggested command, and fix Prompt
+- 安全检查 with risk level, matched rules, safer alternative, backup recommendation, and sandbox recommendation
+- 共享记忆中心 with add memory and cross-model recovery Prompt
+- 设置 with AI Provider/API fields, memory injection mode, theme, data export/clear/reset
 
-## Project Goal
+Allowed English terms remain as product/domain names in Chinese context: AgentFlow Studio, Codex, Claude Code, Cursor, API, Prompt, Git, Shared Memory Hub, localStorage, Static fallback.
 
-Build a local-first desktop tool that helps developers manage AI-assisted coding projects end-to-end. The app generates PRDs, architectures, task breakdowns, AI dev prompts, analyzes errors, checks command safety, manages shared project memories across AI tools/models, and produces Codex-ready handoff packages.
+## Why Static Fallback Remains Active
 
-## Tech Stack
+Electron, Vite, Vitest, and Vite build were not the focus of this repair because the environment has repeatedly shown esbuild `spawn EPERM`. The user-facing problem was double-click launch failure and English UI. The stable verified path is now:
 
-| Layer | Technology |
-|-------|-----------|
-| Desktop Shell | Electron 33 |
-| Frontend | React 18 + TypeScript 5.7 |
-| Build | Vite 6 + vite-plugin-electron |
-| Styling | Tailwind CSS 3.4 (Apple Liquid Glass design) |
-| Charts | ECharts 5 |
-| Icons | lucide-react |
-| Git Integration | simple-git |
-| Storage | JSON files (local filesystem, adapter pattern for future SQLite) |
-| Testing | Vitest (unit), Playwright (E2E) |
-| Packaging | electron-builder (NSIS on Windows) |
-
-## Directory Structure
-
-```
-AgentFlowStudio/
-├── src/main/          # Electron main process (8 files)
-├── src/renderer/      # React renderer (10 pages, 15 components, 12 lib modules)
-├── src/shared/        # Shared TypeScript types
-├── tests/             # Unit tests (9) + E2E tests (1)
-├── handoff/           # Codex handoff package (8 files)
-├── .agents/skills/    # 6 agent skill definitions
-├── scripts/           # 4 utility scripts
-├── assets/            # App icons
-└── data/              # Demo/seed data
+```text
+Desktop shortcut -> start-agentflow-static.bat -> node scripts/static-server.js -> static-app
 ```
 
-## Main Process (src/main/)
+Do not switch the shortcut back to Electron or a packaged executable until `npm.cmd run dev`, `npm.cmd run build`, and the packaged app are truly verified in a normal Windows shell.
 
-### index.ts — App Entry Point
-- Creates BrowserWindow (1400x900, min 1024x680)
-- Sets contextIsolation: true, nodeIntegration: false
-- Registers all IPC handlers
-- Seeds demo data on first launch (2 projects, 8 tasks, 5 memories)
+## Next Work
 
-### preload.ts — Security Boundary
-- Uses contextBridge.exposeInMainWorld('agentflow', api)
-- Exposes typed API for: projects, tasks, prompts, runs, git, memory, settings, providers, export, skills, app, dialog
-- This is the ONLY bridge between renderer and main process
+1. Continue low-frequency React localization polish while keeping allowed product/technical terms in Chinese context.
+2. Retry Electron/Vite/Vitest in a normal unrestricted Windows terminal.
+3. Add a route-level ErrorBoundary to the React app.
+4. Harden Shared Memory Hub redaction and context generation in the Electron main process.
 
-### ipc.ts — IPC Handler Registry
-- Registers ipcMain.handle for ALL IPC_CHANNELS
-- Every handler wrapped in try-catch returning { error } on failure
-- Memory handlers: full CRUD + export/import + generateContext
-- Settings handlers: key-value pair storage
-- Export handlers: dialog.showSaveDialog + fs.writeFile
-
-### storage.ts — JSON File Storage
-- Singleton Storage class
-- Data in app.getPath('userData')/agentflow-data/
-- Each collection = one JSON file
-- Promise-chain write queue per collection (prevents concurrent writes)
-- Interface: getAll, getById, create, update, delete
-- IDs via crypto.randomUUID()
-
-### git.ts — Git Operations
-- Uses simple-git library
-- getGitLog(repoPath) → GitCommitEntry[]
-- getGitStatus(repoPath) → status string
-- getGitSummary(repoPath) → { branch, commitCount, recentCommits }
-- Graceful error handling for non-repos
-
-### filesystem.ts — File Operations
-- ensureDir, readFile, writeFile, fileExists, listDir
-- readSkillsFromDir(dir) → scans .agents/skills for SKILL.md frontmatter
-- All wrapped in try-catch
-
-### security.ts — Safety Utilities
-- sanitizeFilePath(input) — prevents path traversal
-- redactSecrets(text) — redacts API keys, tokens, passwords
-- validateCommand(command) — checks for dangerous patterns
-
-### shortcut.ts — Desktop Integration
-- createDesktopShortcut() — creates .lnk on Windows desktop
-- Points to built .exe if available, otherwise creates start-agentflow.bat
-
-## Renderer Process (src/renderer/)
-
-### Pages (routes/)
-1. **Dashboard** — Stats, charts (ECharts), recent projects, quick actions
-2. **Projects** — CRUD, search, filter, project cards grid
-3. **ProjectDetail** — PRD generation, architecture, tasks board, dev prompts
-4. **PromptLab** — Template selection, variable filling, memory injection, save/copy/export
-5. **LogAnalyzer** — Paste logs, detect errors, get fix suggestions + AI fix prompts
-6. **GitTimeline** — Browse commits, see changed files, generate summary
-7. **SafetyBox** — Command safety checker with RiskMeter visualization
-8. **SharedMemoryHub** — Full memory CRUD, search, filter, export/import, context generation
-9. **Skills** — Scan and display .agents/skills
-10. **Settings** — Theme, provider config, data management, about
-
-### Components (15 reusable)
-Layout, Sidebar, Topbar, GlassCard, Button, Input, Textarea, Badge, Modal, EmptyState, StatCard, TaskBoard, PromptPreview, RiskMeter, Charts
-
-### Lib Modules (12 pure logic)
-types, api, utils, planner, templates, logAnalyzer, safetyRules, memoryStore, memoryRetriever, memoryInjection, secretRedaction, exporters
-
-## Storage Design
-
-JSON file-based, one file per collection in userData/agentflow-data/:
-
-```
-projects.json, tasks.json, prompts.json, memories.json,
-runs.json, riskChecks.json, providerSettings.json, settings.json
-```
-
-The Storage class implements a simple adapter interface:
-```typescript
-interface StorageAdapter {
-  getAll(collection: string): Promise<T[]>
-  getById(collection: string, id: string): Promise<T | null>
-  create(collection: string, item: T): Promise<T>
-  update(collection: string, id: string, updates: Partial<T>): Promise<T>
-  delete(collection: string, id: string): Promise<boolean>
-}
-```
-
-Future: implement SQLite adapter with same interface.
-
-## Shared Memory Hub Design
-
-### Data Model
-Each memory has: id, type (7 types), title, content, tags[], projectId, providerScope, modelScope, importance (1-5), status (active/pending/archived), timestamps.
-
-### Injection Modes
-- **off**: No memory injection
-- **minimal**: Top 3 highest-importance active memories
-- **balanced**: Active project memories (context, decisions, preferences)
-- **full**: Active + pending, capped by maxItems and maxChars
-
-### Context Format
-```
-[Shared Memory Context]
-- Project background: ...
-- Decisions made: ...
-- Current progress: ...
-- Known issues: ...
-- User preferences: ...
-- API Provider notes: ...
-[/Shared Memory Context]
-```
-
-### Security
-- API keys NEVER stored in memory
-- Automatic redaction of secrets (sk-*, Bearer, api_key=, password=, secret=, tokens)
-- Import validation: secret-only entries are skipped
-- Export redaction: all secrets redacted in output
-- All data local, no cloud upload
-
-## AI Provider Configuration
-
-Each provider has: providerName, baseUrl, apiKey (masked), modelName, enabled flag, memoryEnabled, memoryInjectionMode, maxMemoryItems, maxMemoryChars.
-
-Supports any OpenAI-compatible API. apiKey is stored locally but masked in UI and never saved to memory.
-
-## Completed Features
-
-- [x] Full Electron shell with security best practices
-- [x] All 10 pages with complete implementations
-- [x] All 15 reusable components
-- [x] Project planning engine (PRD, architecture, tasks, prompts)
-- [x] 13 prompt templates with variable filling
-- [x] Log analyzer with 15+ error patterns
-- [x] Safety checker with 20+ dangerous command patterns
-- [x] Git timeline integration via simple-git
-- [x] Shared Memory Hub with full CRUD
-- [x] Memory injection (3 modes)
-- [x] Secret redaction system
-- [x] Cross-model context recovery prompt generation
-- [x] Export to Markdown and JSON
-- [x] Settings with provider configuration
-- [x] 6 agent skill definitions
-- [x] Desktop shortcut creation
-- [x] Build verification script
-- [x] Unit tests (9 test suites)
-- [x] E2E tests (Playwright)
-- [x] Demo data seeding
-- [x] Dark mode support
-- [x] Complete Codex handoff documentation
-
-## Incomplete / Needs Optimization
-
-- [ ] Proper icon rasterization (PNG/ICO are SVG copies, need real conversion with sharp)
-- [ ] Playwright browser installation for E2E tests
-- [ ] electron-builder packaging may need icon fixes for .ico
-- [ ] SQLite storage adapter (interface exists, implementation not yet done)
-- [ ] Drag-and-drop for TaskBoard kanban
-- [ ] Undo/redo for memory edits
-- [ ] Memory auto-archiving based on age
-- [ ] More comprehensive test coverage (edge cases)
-- [ ] Performance profiling and optimization
-- [ ] Accessibility audit
-
-## Test Commands
-
-```bash
-npm run test          # Vitest unit tests (9 suites)
-npm run test:e2e      # Playwright E2E tests (requires browsers)
-npm run typecheck     # TypeScript type checking
-npm run lint          # ESLint
-```
-
-## Build Commands
-
-```bash
-npm run build         # Vite build + main process TypeScript compilation
-npm run dist          # Full build + electron-builder packaging
-npm run verify        # Check all files present
-npm run shortcut      # Create desktop shortcut
-```
-
-## Common Errors & Fixes
-
-| Error | Cause | Fix |
-|-------|-------|-----|
-| Preload script not found | vite-plugin-electron output path mismatch | Check vite.config.ts entry.output |
-| port 5173 in use | Another Vite instance | Kill the other process or use another port |
-| simple-git not working | Not a git repo or no git installed | Ensure project is in a git repo |
-| electron-builder fails | Missing icon.ico or icon format wrong | Run `npm run icon` first |
-| E2E tests skip | Playwright browsers not installed | `npx playwright install chromium` |
-| TypeScript errors in build | Missing type declarations | Run `npm run typecheck` first |
-
-## Codex: First Steps After Handoff
-
-1. Run `npm install` to ensure all dependencies are installed
-2. Run `npm run test` to see current test status
-3. Run `npm run build` to verify the build works
-4. Read `handoff/CODEX_OPTIMIZE_PROMPT.md` for specific optimization tasks
-5. Start with UI polish (the most impactful quick win)
-6. Then improve test coverage
-7. Then optimize build/packaging
-
-## Codex: What NOT to Do
-
-- Do NOT rebuild the project from scratch
-- Do NOT change the storage strategy (JSON → SQLite) without discussion
-- Do NOT remove the Shared Memory Hub
-- Do NOT delete the handoff/ directory
-- Do NOT modify the Electron security settings (contextIsolation, nodeIntegration)
-- Do NOT expose arbitrary command execution via IPC
-- Do NOT remove the secret redaction system
-- Do NOT disable TypeScript strict mode
-- Do NOT change the UI framework (stay with React + Tailwind)
-- Do NOT add cloud dependencies to core features
+Do not rebuild from scratch. Do not remove Shared Memory Hub. Treat archived agent reports as historical only.

@@ -21,7 +21,7 @@ import { classNames, formatRelativeDate } from '../lib/utils';
 const DEMO_SKILLS: SkillMeta[] = [
   {
     name: 'react-component-builder',
-    description: 'Builds React components with TypeScript, Tailwind CSS, and proper accessibility patterns.',
+    description: '生成符合可访问性要求的 React、TypeScript 和 Tailwind CSS 组件。',
     filePath: '.agents/skills/react-component-builder.md',
     valid: true,
     missingFields: [],
@@ -29,7 +29,7 @@ const DEMO_SKILLS: SkillMeta[] = [
   },
   {
     name: 'api-integration',
-    description: 'Creates API integration layers with type-safe clients, error handling, and retry logic.',
+    description: '创建类型安全的 API 集成层，包含错误处理和重试逻辑。',
     filePath: '.agents/skills/api-integration.md',
     valid: true,
     missingFields: [],
@@ -37,7 +37,7 @@ const DEMO_SKILLS: SkillMeta[] = [
   },
   {
     name: 'database-migration',
-    description: 'Generates database migration scripts with rollback support.',
+    description: '生成数据库迁移脚本，并提供回滚支持。',
     filePath: '.agents/skills/database-migration.md',
     valid: false,
     missingFields: ['version', 'dependencies'],
@@ -53,7 +53,7 @@ const DEMO_SKILLS: SkillMeta[] = [
   },
   {
     name: 'security-audit',
-    description: 'Performs security audits on codebases, checking for common vulnerabilities and OWASP Top 10 risks.',
+    description: '审查代码库中的常见漏洞和 OWASP Top 10 风险。',
     filePath: '.agents/skills/security-audit.md',
     valid: true,
     missingFields: [],
@@ -61,7 +61,7 @@ const DEMO_SKILLS: SkillMeta[] = [
   },
   {
     name: 'documentation-generator',
-    description: 'Generates comprehensive API and code documentation from JSDoc/TSDoc comments.',
+    description: '根据 JSDoc/TSDoc 注释生成 API 和代码文档。',
     filePath: '.agents/skills/documentation-generator.md',
     valid: true,
     missingFields: [],
@@ -186,7 +186,7 @@ export default function Skills() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-zinc-100 tracking-tight">Skills</h1>
+          <h1 className="text-3xl font-bold text-zinc-100 tracking-tight">技能管理</h1>
           <p className="text-zinc-400 text-sm mt-1">
             .agents/skills 目录中的 AI 技能定义
           </p>
@@ -269,21 +269,21 @@ export default function Skills() {
                       : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
                   }
                 >
-                  {skill.valid ? 'Valid' : 'Invalid'}
+                  {skill.valid ? '有效' : '无效'}
                 </Badge>
               </div>
 
               {/* Description */}
               <p className="text-xs text-zinc-400 mb-3 line-clamp-2 leading-relaxed flex-1">
                 {skill.description || (
-                  <span className="text-zinc-600 italic">No description provided</span>
+                  <span className="text-zinc-600 italic">暂无描述</span>
                 )}
               </p>
 
               {/* File path */}
               <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 mb-2">
                 <FileCode className="w-3 h-3 flex-shrink-0" />
-                <code className="truncate font-mono">{skill.filePath ?? skill.path ?? 'Unknown path'}</code>
+                <code className="truncate font-mono">{skill.filePath ?? skill.path ?? '未知路径'}</code>
               </div>
 
               {/* Missing fields warning */}
@@ -291,7 +291,7 @@ export default function Skills() {
                 <div className="flex items-start gap-1.5 mt-2 p-2 rounded-lg bg-amber-500/5 border border-amber-500/10">
                   <Info className="w-3 h-3 text-amber-400 flex-shrink-0 mt-0.5" />
                   <div className="text-[10px] text-amber-300">
-                    Missing: {skill.missingFields.join(', ')}
+                    缺少字段：{skill.missingFields.join(', ')}
                   </div>
                 </div>
               )}
@@ -327,7 +327,7 @@ export default function Skills() {
           <pre className="p-3 rounded-lg bg-zinc-900/30 text-zinc-400 font-mono text-[11px] overflow-x-auto">
 {`---
 name: skill-name
-description: What this skill does
+description: 说明这个技能的用途
 category: development
 version: 1.0.0
 dependencies: []

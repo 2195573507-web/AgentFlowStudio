@@ -24,15 +24,15 @@ export interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/projects', icon: FolderKanban, label: 'Projects' },
-  { to: '/prompts', icon: Wand2, label: 'Prompt Lab' },
-  { to: '/logs', icon: FileSearch, label: 'Log Analyzer' },
-  { to: '/git', icon: GitBranch, label: 'Git Timeline' },
-  { to: '/safety', icon: Shield, label: 'Safety Box' },
-  { to: '/memory', icon: Brain, label: 'Memory Hub' },
-  { to: '/skills', icon: Puzzle, label: 'Skills' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
+  { to: '/', icon: LayoutDashboard, label: '仪表盘' },
+  { to: '/projects', icon: FolderKanban, label: '项目管理' },
+  { to: '/prompts', icon: Wand2, label: '提示词实验室' },
+  { to: '/logs', icon: FileSearch, label: '日志分析' },
+  { to: '/git', icon: GitBranch, label: 'Git 时间线' },
+  { to: '/safety', icon: Shield, label: '安全检查' },
+  { to: '/memory', icon: Brain, label: '共享记忆中心' },
+  { to: '/skills', icon: Puzzle, label: '技能管理' },
+  { to: '/settings', icon: Settings, label: '设置' },
 ];
 
 export interface SidebarProps {
@@ -126,14 +126,14 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse }) => {
             'hover:bg-slate-200/50 dark:hover:bg-white/5',
             collapsed ? 'justify-center py-2.5' : 'px-3 py-2.5',
           )}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? '展开侧边栏' : '收起侧边栏'}
         >
           {collapsed ? (
             <PanelLeftOpen className="w-4 h-4" />
           ) : (
             <>
               <PanelLeftClose className="w-4 h-4 shrink-0" />
-              <span className="text-sm font-medium truncate">Collapse</span>
+              <span className="text-sm font-medium truncate">收起</span>
             </>
           )}
         </button>

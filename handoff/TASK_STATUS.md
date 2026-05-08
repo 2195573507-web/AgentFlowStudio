@@ -1,113 +1,57 @@
-# AgentFlow Studio — Task Status
+# AgentFlow Studio - Task Status
 
-## Codex Stability Loop - 2026-05-07
+## Localized Static Launcher Repair - 2026-05-08
 
 | Item | Status | Verification |
 |---|---:|---|
-| Multi-agent mode | Completed | Six subagents launched; Agent G handled by main thread because of thread limit. |
-| Icon generation | Completed | `npm.cmd run icon` PASS; ICO is 57784 bytes and valid. |
-| Smoke test | Completed | `npm.cmd run smoke` PASS, 53/53. |
-| Build-file verification | Completed | `npm.cmd run verify` PASS, 97 verify checks + smoke. |
-| Desktop shortcut | Completed | `C:\Users\至亲\Desktop\AgentFlow Studio.lnk` exists. |
-| Current launch entry | Completed | Static fallback: `D:\AgentFlowStudio\start-agentflow-static.bat`. |
-| Static app availability | Completed | HTTP 200 and title `AgentFlow Studio`. |
-| Electron dev | Environment blocked | `npm.cmd run dev` fails at Vite/esbuild `spawn EPERM` in this environment. |
-| Web dev/build | Environment blocked | `dev:web` and `build:web` fail at same esbuild `spawn EPERM`. |
-| Vitest | Environment blocked | `npm.cmd run test` fails at Vitest config load, esbuild `spawn EPERM`. |
+| Old `.codex-parallel` cleanup | Complete | Archived to `handoff\archived-agents\run-20260508-125051`; clean `.codex-parallel\logs` recreated. |
+| New parallel checks | Complete | Seven role logs exist for A-G; Agent G reporter work was completed in the main thread because of thread limit. |
+| Launcher crash repair | Complete | `start-agentflow-static.bat` now uses an ASCII-safe batch skeleton, prints Chinese prompts through `scripts\launcher-message.ps1`, writes `logs\launcher-static.log`, runs Node directly, and pauses if the server exits. |
+| Static server hardening | Complete | `scripts\static-server.js` is pure Node HTTP, prioritizes `static-app`, includes `static-app/dist` fallback, logs to `logs\static-server.log`, catches process errors, retries ports 4173-4177, opens browser, and keeps serving. |
+| Static fallback app | Complete | `static-app/index.html`, `app.js`, `styles.css`, and `assets/icon.svg` created. |
+| Chinese UI | Complete for Static fallback | Static app navigation, cards, forms, buttons, empty states, risk/status labels, settings, and helper text are Chinese-first. |
+| React high-frequency localization | Complete | Sidebar, Topbar, PromptPreview, TaskBoard, Charts, Dashboard, Projects, SharedMemoryHub, Settings, and Skills high-frequency user text are Chinese-first. |
+| Icon | Complete | `npm.cmd run icon` PASS; `assets\icon.ico` exists and is valid. |
+| Shortcut | Complete | `npm.cmd run shortcut` PASS outside sandbox; COM verification confirms target, working directory, and icon. |
+| Runtime smoke | Complete | `npm.cmd run test:launch-static` PASS outside sandbox; real bat launch and HTTP 200 verified. |
+| Handoff docs | Complete | `TEST_REPORT`, `TASK_STATUS`, `CURRENT_CONTEXT_FOR_ANY_MODEL`, `CODEX_HANDOFF`, `NEXT_CODEX_LOOP_PROMPT`, and `.codex-parallel\PARALLEL_SUMMARY.md` updated. |
 
-## Remaining Stability Work
+## Current Launch Entry
 
-| Task | Priority | Status |
+```bat
+D:\AgentFlowStudio\start-agentflow-static.bat
+```
+
+Desktop shortcut:
+
+```text
+C:\Users\至亲\Desktop\AgentFlow Studio.lnk
+```
+
+## Features Available In Static Fallback
+
+- 仪表盘 / 项目总控台
+- 项目管理 with create/delete/select project
+- 项目详情 with task board and copyable project Prompt
+- 提示词实验室 with templates, variables, shared memory injection, copy/save
+- 日志分析 with error type, possible cause, fix steps, suggested command, fix Prompt
+- 安全检查 with risk level, matched rules, safer alternative, backup/sandbox recommendations
+- 共享记忆中心 with add memory and cross-model recovery Prompt
+- 设置 with AI Provider/API fields, memory injection mode, theme, data export/clear/reset
+- localStorage persistence
+
+## Temporarily Degraded Electron Capabilities
+
+- Native Electron IPC file dialogs, Git scanning, JSON userData storage, and packaged app shell are not used by the Static fallback.
+- Static fallback stores data in browser `localStorage`.
+- Electron/Vite/Vitest should be retried later in a normal Windows shell because this environment has shown esbuild `spawn EPERM`.
+
+## Remaining Work
+
+| Task | Priority | Notes |
 |---|---:|---|
-| Re-run `npm.cmd run test` and `npm.cmd run build` in a normal Windows shell | High | Pending outside EPERM-restricted environment |
-| Switch shortcut back to Electron or packaged exe when Electron passes | High | Pending |
-| Add route-level ErrorBoundary | Medium | Recommended |
-| Fix Shared Memory fallback context generation and IPC redaction | High | Recommended |
-
-## Completed Tasks
-
-| Task | Status | Related Files | Verification | Notes |
-|------|--------|---------------|-------------|-------|
-| Project structure and config | Completed | package.json, tsconfig.json, vite.config.ts, tailwind.config.ts, postcss.config.js, .gitignore, index.html | `npm run dev` starts | All config files created |
-| Electron main process (index.ts) | Completed | src/main/index.ts | App launches, window created | Demo data seeding on first launch |
-| Preload script | Completed | src/main/preload.ts | window.agentflow API available in renderer | contextBridge with full API |
-| IPC handler registration | Completed | src/main/ipc.ts | All IPC channels functional | 20+ handlers registered |
-| JSON storage system | Completed | src/main/storage.ts | Data persists across restarts | Write queue, adapter interface |
-| Git integration (simple-git) | Completed | src/main/git.ts | Git log/status/summary work | Graceful error handling |
-| File system utilities | Completed | src/main/filesystem.ts | File ops + skill scanning | Path sanitization |
-| Security utilities | Completed | src/main/security.ts | Secrets redacted, paths safe | Pattern-based detection |
-| Shortcut creation | Completed | src/main/shortcut.ts | Desktop .lnk created | PowerShell COM approach |
-| Shared types | Completed | src/shared/types.ts | All types exported | IPC_CHANNELS constants |
-| Dashboard page | Completed | src/renderer/routes/Dashboard.tsx | Stats, charts, recent items displayed | Demo data fallback |
-| Projects page | Completed | src/renderer/routes/Projects.tsx | CRUD + search + filter | Card grid layout |
-| Project Detail page | Completed | src/renderer/routes/ProjectDetail.tsx | Plan generation, task board | All plan sections |
-| Prompt Lab page | Completed | src/renderer/routes/PromptLab.tsx | Template selection, generation, copy | Memory injection |
-| Log Analyzer page | Completed | src/renderer/routes/LogAnalyzer.tsx | Error detection + fix suggestions | 15+ patterns |
-| Git Timeline page | Completed | src/renderer/routes/GitTimeline.tsx | Commit history browser | Summary generation |
-| Safety Box page | Completed | src/renderer/routes/SafetyBox.tsx | Command risk checking | 20+ patterns |
-| Shared Memory Hub page | Completed | src/renderer/routes/SharedMemoryHub.tsx | Full CRUD + search + export/import | Context generation |
-| Skills page | Completed | src/renderer/routes/Skills.tsx | Skill scanning + validation | 6 skills |
-| Settings page | Completed | src/renderer/routes/Settings.tsx | Theme + provider + data config | Full settings |
-| Layout + Sidebar + Topbar | Completed | src/renderer/components/ | Navigation + theme toggle | Collapsible sidebar |
-| 12 reusable UI components | Completed | src/renderer/components/ | GlassCard, Button, Input, etc. | Apple Liquid Glass style |
-| 3 chart components | Completed | src/renderer/components/Charts.tsx | ECharts integration | ResizeObserver |
-| Types + API + Utils libs | Completed | src/renderer/lib/{types,api,utils}.ts | IPC proxy + helpers | Fallback for test env |
-| Project planner engine | Completed | src/renderer/lib/planner.ts | Generates full project plans | All 9 sections |
-| Prompt templates (13) | Completed | src/renderer/lib/templates.ts | Fill + get by name | Chinese content |
-| Log analyzer engine | Completed | src/renderer/lib/logAnalyzer.ts | 15+ error patterns | AI fix prompt gen |
-| Safety rules engine | Completed | src/renderer/lib/safetyRules.ts | 20+ danger patterns | Risk levels |
-| Memory store | Completed | src/renderer/lib/memoryStore.ts | Client-side cache ops | Search + filter |
-| Memory retriever | Completed | src/renderer/lib/memoryRetriever.ts | Mode-based retrieval | 3 injection modes |
-| Memory injection | Completed | src/renderer/lib/memoryInjection.ts | Context formatting | [Shared Memory Context] |
-| Secret redaction | Completed | src/renderer/lib/secretRedaction.ts | 8+ secret patterns | Redact + detect |
-| Exporters | Completed | src/renderer/lib/exporters.ts | MD + JSON + memory + plan | Secret redaction |
-| 9 unit test suites | Completed | tests/unit/ | All key modules tested | Vitest |
-| E2E tests | Completed | tests/e2e/app.spec.ts | Navigation + page tests | Playwright |
-| Demo data | Completed | data/demo.json | Fallback data | 2 projects, 8 tasks, 5 memories |
-| App icons | Completed | assets/ | SVG + PNG/ICO placeholders | Need raster conversion |
-| Build verification | Completed | scripts/verify-build.js | All files checked | Exit code on failure |
-| Create icon script | Completed | scripts/create-icon.js | SVG generation | PNG/ICO as SVG copy |
-| Create shortcut script | Completed | scripts/create-shortcut.ps1 | Desktop shortcut | Batch fallback |
-| README.md | Completed | README.md | Full documentation | Feature list + FAQ |
-| AGENTS.md | Completed | AGENTS.md | AI agent guidance | Rules + conventions |
-| CHANGELOG.md | Completed | CHANGELOG.md | Version history | v1.0.0 entries |
-| CODEX_HANDOFF.md | Completed | handoff/CODEX_HANDOFF.md | Full Codex overview | All sections |
-| PROJECT_MEMORY.md | Completed | handoff/PROJECT_MEMORY.md | Long-term memory | Decisions + rationale |
-| ARCHITECTURE.md | Completed | handoff/ARCHITECTURE.md | Architecture docs | All system layers |
-| FILE_MAP.md | Completed | handoff/FILE_MAP.md | File reference | All files documented |
-| 6 agent skills | Completed | .agents/skills/*/SKILL.md | Valid frontmatter | All have name + desc |
-
-## Partially Complete Tasks
-
-| Task | Status | Related Files | What's Missing | Notes |
-|------|--------|---------------|----------------|-------|
-| npm install | Pending execution | package.json | Need to run | Dependencies need installation |
-| npm run build | Pending execution | All source | Need to verify build passes | May have type errors to fix |
-| npm run test | Pending execution | tests/ | Need to run and fix failures | Tests are written, need verification |
-| Icon rasterization | Partial | assets/icon.png, assets/icon.ico | SVG copies, need real PNG/ICO | Use sharp or png-to-ico |
-
-## Tasks Requiring Codex Optimization
-
-| Task | Priority | Related Files | What Codex Should Do |
-|------|----------|---------------|---------------------|
-| UI consistency audit | High | All routes/ and components/ | Review all pages for consistent spacing, color, typography |
-| Test coverage expansion | High | tests/ | Add edge case tests, integration tests |
-| Build/package config | Medium | package.json, vite.config.ts | Fix any build warnings, optimize bundle size |
-| Performance optimization | Medium | All source | Profile and optimize renders, reduce bundle |
-| Accessibility audit | Medium | All components | Add ARIA labels, keyboard nav, focus management |
-| Icon generation | Medium | assets/, scripts/create-icon.js | Generate proper PNG (512x512) and ICO files |
-| Playwright E2E setup | Medium | tests/e2e/ | Install browsers, verify tests run, add more scenarios |
-| SQLite adapter (optional) | Low | src/main/storage.ts | Implement StorageAdapter interface for SQLite |
-| Drag-and-drop TaskBoard | Low | src/renderer/components/TaskBoard.tsx | Add DnD library for kanban columns |
-| Memory auto-archiving | Low | src/renderer/lib/memoryStore.ts | Auto-archive old pending memories |
-
-## Not Started / Optional Enhancements
-
-| Task | Status | Notes |
-|------|--------|-------|
-| Plugin system | Not started | Architecture supports it, not implemented |
-| Cloud sync (encrypted) | Not started | Deliberately deferred — local-first priority |
-| Collaborative features | Not started | Out of scope for v1 |
-| Mobile companion app | Not started | Out of scope |
-| VS Code extension | Not started | Would complement the desktop app well |
-| Multiple window support | Not started | Single window is sufficient for v1 |
+| Continue low-frequency React localization polish | Medium | Required static fallback and high-frequency React UI are Chinese-first; remaining English should be limited to allowed product/technical terms or future deep content polish. |
+| Retry `npm.cmd run test` and `npm.cmd run build` outside EPERM-restricted environment | High | Do not block Static fallback on esbuild. |
+| Switch shortcut back to packaged Electron only after Electron build/dev are truly verified | Medium | Current shortcut must remain static. |
+| Add route-level ErrorBoundary | Medium | Recommended for React app robustness. |
+| Harden main-process memory redaction | Medium | Follow-up for Shared Memory Hub security. |

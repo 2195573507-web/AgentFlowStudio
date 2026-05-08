@@ -1,5 +1,5 @@
 # AgentFlow Studio - Create Desktop Shortcut
-# Target priority: packaged exe > static fallback > web fallback > Electron dev bat.
+# Current delivery target: stable static fallback launcher.
 
 [CmdletBinding()]
 param(
@@ -37,57 +37,17 @@ function Test-AgentFlowIcon {
 function Get-AgentFlowLauncher {
     param([Parameter(Mandatory = $true)][string]$Root)
 
-    $exeCandidates = @(
-        "release\win-unpacked\AgentFlow Studio.exe",
-        "release\AgentFlow Studio.exe",
-        "dist\win-unpacked\AgentFlow Studio.exe",
-        "dist\AgentFlow Studio.exe",
-        "out\AgentFlow Studio.exe"
-    ) | ForEach-Object { Join-Path $Root $_ }
-
-    $exePath = $exeCandidates | Where-Object { Test-Path $_ -PathType Leaf } | Select-Object -First 1
-
-    if (-not $exePath) {
-        $searchRoots = @("release", "dist", "out") |
-            ForEach-Object { Join-Path $Root $_ } |
-            Where-Object { Test-Path $_ -PathType Container }
-
-        if ($searchRoots) {
-            $exePath = Get-ChildItem -Path $searchRoots -Filter "*.exe" -Recurse -File -ErrorAction SilentlyContinue |
-                Sort-Object @{ Expression = { if ($_.BaseName -eq "AgentFlow Studio") { 0 } else { 1 } } }, FullName |
-                Select-Object -ExpandProperty FullName -First 1
-        }
-    }
-
-    if ($exePath) {
+    $staticLauncher = Join-Path $Root "start-agentflow-static.bat"
+    if (Test-Path $staticLauncher -PathType Leaf) {
         return [PSCustomObject]@{
-            Kind = "PackagedExe"
-            TargetPath = $exePath
-            WorkingDirectory = Split-Path $exePath
+            Kind = "StaticFallbackBat"
+            TargetPath = $staticLauncher
+            WorkingDirectory = $Root
             WindowStyle = 1
         }
     }
 
-    $batCandidates = @(
-        @{ Kind = "StaticBat"; Path = "start-agentflow-static.bat" },
-        @{ Kind = "WebBat"; Path = "start-agentflow-web.bat" },
-        @{ Kind = "ElectronBat"; Path = "start-agentflow-electron.bat" },
-        @{ Kind = "ElectronBat"; Path = "start-agentflow.bat" }
-    )
-
-    foreach ($candidate in $batCandidates) {
-        $candidatePath = Join-Path $Root $candidate.Path
-        if (Test-Path $candidatePath -PathType Leaf) {
-            return [PSCustomObject]@{
-                Kind = $candidate.Kind
-                TargetPath = $candidatePath
-                WorkingDirectory = $Root
-                WindowStyle = 7
-            }
-        }
-    }
-
-    throw "No launcher found. Expected packaged exe or start-agentflow*.bat in $Root."
+    throw "Static launcher not found. Expected start-agentflow-static.bat in $Root."
 }
 
 $iconSize = Test-AgentFlowIcon -Path $icoPath
@@ -119,7 +79,10 @@ $shortcut.TargetPath = $launcher.TargetPath
 $shortcut.WorkingDirectory = $launcher.WorkingDirectory
 $shortcut.Description = $shortcutDescription
 $shortcut.WindowStyle = $launcher.WindowStyle
-$shortcut.IconLocation = $icoPath
+$shortcut.IconLocation = "$icoPath,0"
 $shortcut.Save()
 
 Write-Host "Desktop shortcut created: $shortcutPath"
+Write-Host "Shortcut target: $($shortcut.TargetPath)"
+Write-Host "Working directory: $($shortcut.WorkingDirectory)"
+Write-Host "Icon location: $($shortcut.IconLocation)"

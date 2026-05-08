@@ -229,7 +229,7 @@ export default function Settings() {
       if (api && typeof api.export?.exportAll === 'function') {
         await api.export.exportAll();
       } else {
-        alert('Export not available in demo mode');
+        alert('演示模式暂不支持导出');
       }
     } catch {}
   };
@@ -247,7 +247,7 @@ export default function Settings() {
           }
         }
       } else {
-        alert('Import not available in demo mode');
+        alert('演示模式暂不支持导入');
       }
     } catch {}
   };
@@ -277,7 +277,7 @@ export default function Settings() {
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">Provider 名称</label>
+          <label className="block text-xs font-medium text-zinc-400 mb-1.5">接口名称</label>
           <Input
             value={providerForm.providerName}
             onChange={(e) => setProviderForm((f) => ({ ...f, providerName: e.target.value }))}
@@ -285,7 +285,7 @@ export default function Settings() {
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">Model 名称</label>
+          <label className="block text-xs font-medium text-zinc-400 mb-1.5">模型名称</label>
           <Input
             value={providerForm.modelName}
             onChange={(e) => setProviderForm((f) => ({ ...f, modelName: e.target.value }))}
@@ -304,7 +304,7 @@ export default function Settings() {
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-zinc-400 mb-1.5">API Key</label>
+        <label className="block text-xs font-medium text-zinc-400 mb-1.5">API 密钥</label>
         <div className="relative">
           <Input
             type={showApiKey ? 'text' : 'password'}
@@ -343,7 +343,7 @@ export default function Settings() {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">Max Memory Items</label>
+          <label className="block text-xs font-medium text-zinc-400 mb-1.5">最大记忆条数</label>
           <Input
             type="number"
             value={String(providerForm.maxMemoryItems)}
@@ -357,7 +357,7 @@ export default function Settings() {
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-zinc-400 mb-1.5">Max Memory Chars</label>
+        <label className="block text-xs font-medium text-zinc-400 mb-1.5">最大记忆字符数</label>
         <Input
           type="number"
           value={String(providerForm.maxMemoryChars)}
@@ -511,14 +511,14 @@ export default function Settings() {
       <GlassCard className="p-6 space-y-5">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold text-zinc-200 flex items-center gap-2">
-            <Server className="w-5 h-5 text-purple-400" /> AI Provider 配置
+            <Server className="w-5 h-5 text-purple-400" /> AI 接口配置
           </h2>
           <Button
             size="sm"
             onClick={() => { resetProviderForm(); setEditingProvider(null); setShowProviderModal(true); }}
             icon={<Plus className="w-4 h-4" />}
           >
-            添加 Provider
+            添加接口
           </Button>
         </div>
 
@@ -573,9 +573,9 @@ export default function Settings() {
         ) : (
           <EmptyState
             icon={Server}
-            title="暂无 Provider"
-            description="添加 AI Provider 以配置 API 连接"
-            actionLabel="添加 Provider"
+            title="暂无接口"
+            description="添加 AI 接口以配置 API 连接"
+            actionLabel="添加接口"
             onAction={() => { resetProviderForm(); setShowProviderModal(true); }}
           />
         )}
@@ -668,14 +668,14 @@ export default function Settings() {
             <span className="text-zinc-300">{settings.defaultAITool}</span>
           </div>
           <div className="flex justify-between py-2">
-            <span className="text-zinc-500">Providers</span>
+            <span className="text-zinc-500">AI 接口</span>
             <span className="text-zinc-300">{providers.filter((p) => p.enabled).length} 已启用 / {providers.length} 总计</span>
           </div>
         </div>
 
         <div className="pt-4 flex items-center gap-4 text-xs text-zinc-600">
           <Sparkles className="w-3.5 h-3.5" />
-          AgentFlow Studio — AI-powered project planning and development management
+          AgentFlow Studio - AI 项目规划与开发管理工作台
         </div>
       </GlassCard>
 
@@ -683,7 +683,7 @@ export default function Settings() {
       <Modal
         open={showProviderModal || !!editingProvider}
         onClose={() => { setShowProviderModal(false); setEditingProvider(null); resetProviderForm(); }}
-        title={editingProvider ? '编辑 Provider' : '添加 Provider'}
+        title={editingProvider ? '编辑接口' : '添加接口'}
         size="lg"
       >
         {renderProviderForm()}

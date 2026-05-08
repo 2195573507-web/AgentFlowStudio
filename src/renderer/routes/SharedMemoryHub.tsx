@@ -49,8 +49,8 @@ import { generateId, formatRelativeDate, copyToClipboard, classNames, truncate }
 // ── Demo data ──────────────────────────────────────────────────────────────
 const DEMO_MEMORIES: Memory[] = [
   {
-    id: 'm1', type: 'decision', title: 'Use Electron for cross-platform desktop',
-    content: 'Decision: Use Electron for the cross-platform desktop application. Reasoning: Mature ecosystem, good TypeScript support, extensive community. Alternatives considered: Tauri (too new), Qt (C++ overhead too high).',
+    id: 'm1', type: 'decision', title: '采用 Electron 作为跨平台桌面方案',
+    content: '决策：桌面正式方案保留 Electron。理由：生态成熟、TypeScript 支持好、社区资料充足。当前环境如遇 esbuild EPERM，则优先使用 Static fallback 交付。',
     tags: ['architecture', 'frontend', 'decision'],
     importance: 5, status: 'active',
     projectId: 'demo-1',
@@ -59,8 +59,8 @@ const DEMO_MEMORIES: Memory[] = [
     updatedAt: new Date().toISOString(),
   },
   {
-    id: 'm2', type: 'pattern', title: 'Repository pattern for data access',
-    content: 'Pattern: All data access goes through repository classes that abstract the underlying SQLite database. Each entity (Project, Task, Memory) has its own repository with CRUD operations.',
+    id: 'm2', type: 'pattern', title: '数据访问统一走仓储模式',
+    content: '模式：项目、任务、记忆等实体通过仓储类访问，隐藏底层 JSON/SQLite 存储细节，便于后续替换存储层。',
     tags: ['backend', 'architecture', 'pattern'],
     importance: 4, status: 'active',
     projectId: 'demo-1',
@@ -69,8 +69,8 @@ const DEMO_MEMORIES: Memory[] = [
     updatedAt: new Date().toISOString(),
   },
   {
-    id: 'm3', type: 'insight', title: 'Memory injection improves output quality ~40%',
-    content: 'Insight: Testing across 50 prompts showed that injecting relevant shared memories improves output quality by approximately 40%. Most effective with "balanced" injection mode.',
+    id: 'm3', type: 'insight', title: '记忆注入能提升 Prompt 输出质量',
+    content: '洞察：在生成 Prompt 前注入相关共享记忆，可以减少上下文丢失、重复解释和跨模型接力时的信息断层。推荐默认使用“平衡”模式。',
     tags: ['research', 'ai', 'quality'],
     importance: 5, status: 'active',
     lastUsedAt: new Date(Date.now() - 24 * 3600e3).toISOString(),
@@ -78,8 +78,8 @@ const DEMO_MEMORIES: Memory[] = [
     updatedAt: new Date().toISOString(),
   },
   {
-    id: 'm4', type: 'security', title: 'Use contextBridge for IPC security',
-    content: 'Security: Always use contextBridge.exposeInMainWorld() for IPC communication. Never enable nodeIntegration or use remote module. Follow Electron security best practices.',
+    id: 'm4', type: 'security', title: 'IPC 安全使用 contextBridge',
+    content: '安全规则：所有原生能力通过 preload 和 contextBridge 暴露，禁止在渲染进程开启 nodeIntegration，也不使用 remote module。',
     tags: ['security', 'electron', 'best-practice'],
     importance: 5, status: 'active',
     projectId: 'demo-1',
@@ -98,8 +98,8 @@ const DEMO_MEMORIES: Memory[] = [
     updatedAt: new Date().toISOString(),
   },
   {
-    id: 'm6', type: 'issue_fix', title: 'Fix: streaming response buffer overflow',
-    content: 'Fix: Increased streaming buffer size from 4KB to 64KB. Implemented backpressure handling. Added chunk boundary detection for UTF-8 multi-byte characters.',
+    id: 'm6', type: 'issue_fix', title: '修复流式响应缓冲区溢出',
+    content: '修复：将流式缓冲区从 4KB 提升到 64KB，补充背压处理，并增加 UTF-8 多字节字符边界检测。',
     tags: ['bug', 'streaming', 'fix'],
     importance: 3, status: 'pending',
     projectId: 'demo-1',
@@ -108,8 +108,8 @@ const DEMO_MEMORIES: Memory[] = [
     updatedAt: new Date().toISOString(),
   },
   {
-    id: 'm7', type: 'knowledge', title: 'Electron IPC best practices',
-    content: 'Knowledge: 1) Use invoke/handle pattern for request-response. 2) Use on/send for events. 3) Validate all data crossing IPC boundary. 4) Keep main process logic minimal. 5) Use preload script for contextBridge.',
+    id: 'm7', type: 'knowledge', title: 'Electron IPC 最佳实践',
+    content: '知识：请求响应使用 invoke/handle，事件使用 on/send；所有跨 IPC 边界的数据都要校验；主进程逻辑保持最小化。',
     tags: ['electron', 'ipc', 'best-practice'],
     importance: 4, status: 'active',
     lastUsedAt: new Date(Date.now() - 12 * 3600e3).toISOString(),
@@ -117,8 +117,8 @@ const DEMO_MEMORIES: Memory[] = [
     updatedAt: new Date().toISOString(),
   },
   {
-    id: 'm8', type: 'decision', title: 'Tailwind over CSS Modules',
-    content: 'Decision: Use Tailwind CSS over CSS Modules. Reasoning: Faster prototyping, utility-first approach suits component architecture, built-in dark mode support, smaller bundle with purging.',
+    id: 'm8', type: 'decision', title: '优先使用 Tailwind CSS',
+    content: '决策：界面层优先使用 Tailwind CSS。理由：原型速度快、组件协作清晰、暗色模式支持完整，并可通过构建裁剪体积。',
     tags: ['frontend', 'styling', 'decision'],
     importance: 3, status: 'archived',
     projectId: 'demo-1',
@@ -129,14 +129,45 @@ const DEMO_MEMORIES: Memory[] = [
 ];
 
 const DEMO_PROJECTS: Project[] = [
-  { id: 'demo-1', name: 'AI Chat Assistant', idea: '', platform: 'Desktop', techStack: '', uiStyle: '', difficulty: 'Medium', status: 'active', createdAt: '', updatedAt: '' },
-  { id: 'demo-2', name: 'DevTool CLI', idea: '', platform: 'CLI', techStack: '', uiStyle: '', difficulty: 'Hard', status: 'planning', createdAt: '', updatedAt: '' },
+  { id: 'demo-1', name: 'AI 聊天助手', idea: '', platform: 'Desktop', techStack: '', uiStyle: '', difficulty: 'Medium', status: 'active', createdAt: '', updatedAt: '' },
+  { id: 'demo-2', name: '开发工具 CLI', idea: '', platform: 'CLI', techStack: '', uiStyle: '', difficulty: 'Hard', status: 'planning', createdAt: '', updatedAt: '' },
 ];
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const MEMORY_TYPES: MemoryType[] = ['decision', 'pattern', 'insight', 'knowledge', 'code_snippet', 'security', 'issue_fix', 'git_summary', 'log_analysis', 'safety_check'];
 const MEMORY_STATUSES: MemoryStatus[] = ['active', 'pending', 'archived'];
 const INJECTION_MODES: MemoryInjectionMode[] = ['off', 'minimal', 'balanced', 'full'];
+
+const MEMORY_TYPE_LABELS: Record<MemoryType, string> = {
+  user_preference: '用户偏好',
+  project_context: '项目上下文',
+  decision: '决策',
+  issue_fix: '问题修复',
+  api_provider: 'API 配置',
+  prompt_pattern: 'Prompt 模式',
+  environment: '环境',
+  pattern: '模式',
+  insight: '洞察',
+  knowledge: '知识',
+  code_snippet: '代码片段',
+  security: '安全',
+  git_summary: 'Git 摘要',
+  log_analysis: '日志分析',
+  safety_check: '安全检查',
+};
+
+const MEMORY_STATUS_LABELS: Record<MemoryStatus, string> = {
+  active: '进行中',
+  pending: '待确认',
+  archived: '已归档',
+};
+
+const INJECTION_MODE_LABELS: Record<MemoryInjectionMode, string> = {
+  off: '关闭',
+  minimal: '最小',
+  balanced: '平衡',
+  full: '完整',
+};
 
 const TYPE_COLORS: Record<string, string> = {
   decision: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
@@ -461,7 +492,7 @@ export default function SharedMemoryHub() {
         const memory: Memory = {
           id: item.id || generateId(),
           type: item.type || 'knowledge',
-          title: item.title || 'Imported Memory',
+          title: item.title || '导入的记忆',
           content: item.content || '',
           tags: item.tags || [],
           importance: Math.min(5, Math.max(1, item.importance || 3)),
@@ -478,7 +509,7 @@ export default function SharedMemoryHub() {
           try {
             await api.memory.create(memory);
           } catch {
-            importErrors.push(`Failed to import: ${memory.title}`);
+            importErrors.push(`导入失败：${memory.title}`);
             continue;
           }
         }
@@ -494,7 +525,7 @@ export default function SharedMemoryHub() {
 
       setImportResult({ imported, skipped, errors: importErrors });
     } catch (err: any) {
-      setImportResult({ imported: 0, skipped: 0, errors: [`Parse error: ${err.message}`] });
+      setImportResult({ imported: 0, skipped: 0, errors: [`解析失败：${err.message}`] });
     }
 
     // Reset file input
@@ -516,14 +547,14 @@ export default function SharedMemoryHub() {
         const limit = modeLimits[contextInjectionMode] || 5;
 
         const contextParts = sortedMemories.slice(0, limit).map((m) =>
-          `### [${m.type}] ${m.title}\n${m.content}\nTags: ${(m.tags || []).join(', ')}`
+          `### [${MEMORY_TYPE_LABELS[m.type] ?? m.type}] ${m.title}\n${m.content}\n标签：${(m.tags || []).join(', ')}`
         );
-        context = `# Shared Memory Context (${contextInjectionMode})\n\n${contextParts.join('\n\n')}`;
+        context = `# 共享记忆上下文 Prompt (${INJECTION_MODE_LABELS[contextInjectionMode]})\n\n${contextParts.join('\n\n')}`;
       }
 
       setGeneratedContext(context);
     } catch {
-      setGeneratedContext('# Error generating context\n\nPlease try again.');
+      setGeneratedContext('# 生成上下文失败\n\n请稍后重试。');
     } finally {
       setGeneratingContext(false);
     }
@@ -564,7 +595,7 @@ export default function SharedMemoryHub() {
                        focus:outline-none focus:ring-2 focus:ring-blue-500/50"
           >
             {MEMORY_TYPES.map((t) => (
-              <option key={t} value={t} className="bg-zinc-900">{t}</option>
+              <option key={t} value={t} className="bg-zinc-900">{MEMORY_TYPE_LABELS[t] ?? t}</option>
             ))}
           </select>
         </div>
@@ -578,7 +609,7 @@ export default function SharedMemoryHub() {
           >
             {MEMORY_STATUSES.map((s) => (
               <option key={s} value={s} className="bg-zinc-900">
-                {{ active: 'Active', pending: 'Pending', archived: 'Archived' }[s]}
+                {MEMORY_STATUS_LABELS[s]}
               </option>
             ))}
           </select>
@@ -633,7 +664,7 @@ export default function SharedMemoryHub() {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">Provider Scope</label>
+          <label className="block text-xs font-medium text-zinc-400 mb-1.5">接口范围</label>
           <Input
             value={form.providerScope}
             onChange={(e) => setForm((f) => ({ ...f, providerScope: e.target.value }))}
@@ -641,7 +672,7 @@ export default function SharedMemoryHub() {
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">Model Scope</label>
+          <label className="block text-xs font-medium text-zinc-400 mb-1.5">模型范围</label>
           <Input
             value={form.modelScope}
             onChange={(e) => setForm((f) => ({ ...f, modelScope: e.target.value }))}
@@ -708,7 +739,7 @@ export default function SharedMemoryHub() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-zinc-100 tracking-tight">Shared Memory Hub</h1>
+          <h1 className="text-3xl font-bold text-zinc-100 tracking-tight">共享记忆中心</h1>
           <p className="text-zinc-400 text-sm mt-1">
             {filteredMemories.length} / {memories.length} 条记忆
           </p>
@@ -761,7 +792,7 @@ export default function SharedMemoryHub() {
           >
             <option value="all" className="bg-zinc-900">全部类型</option>
             {MEMORY_TYPES.map((t) => (
-              <option key={t} value={t} className="bg-zinc-900">{t}</option>
+              <option key={t} value={t} className="bg-zinc-900">{MEMORY_TYPE_LABELS[t] ?? t}</option>
             ))}
           </select>
 
@@ -784,9 +815,9 @@ export default function SharedMemoryHub() {
                        focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-w-[100px]"
           >
             <option value="all" className="bg-zinc-900">全部状态</option>
-            <option value="active" className="bg-zinc-900">Active</option>
-            <option value="pending" className="bg-zinc-900">Pending</option>
-            <option value="archived" className="bg-zinc-900">Archived</option>
+            <option value="active" className="bg-zinc-900">进行中</option>
+            <option value="pending" className="bg-zinc-900">待确认</option>
+            <option value="archived" className="bg-zinc-900">已归档</option>
           </select>
         </div>
       </GlassCard>
@@ -812,7 +843,9 @@ export default function SharedMemoryHub() {
             {pendingMemories.slice(0, 3).map((m) => (
               <div key={m.id} className="flex items-center justify-between p-2 rounded-lg bg-amber-500/5 border border-amber-500/10">
                 <div className="flex items-center gap-2 min-w-0">
-                  <Badge className={TYPE_COLORS[m.type] || 'bg-zinc-500/20 text-zinc-400'}>{m.type}</Badge>
+                  <Badge className={TYPE_COLORS[m.type] || 'bg-zinc-500/20 text-zinc-400'}>
+                    {MEMORY_TYPE_LABELS[m.type] ?? m.type}
+                  </Badge>
                   <span className="text-sm text-zinc-300 truncate">{m.title}</span>
                 </div>
                 <Button
@@ -852,7 +885,7 @@ export default function SharedMemoryHub() {
                 {/* Top row: type + actions */}
                 <div className="flex items-start justify-between mb-2">
                   <Badge className={TYPE_COLORS[memory.type] || 'bg-zinc-500/20 text-zinc-400'}>
-                    {memory.type}
+                    {MEMORY_TYPE_LABELS[memory.type] ?? memory.type}
                   </Badge>
                   <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
@@ -864,7 +897,7 @@ export default function SharedMemoryHub() {
                     <button
                       onClick={() => handleToggleStatus(memory)}
                       className="p-1 rounded hover:bg-white/10 text-zinc-500 hover:text-zinc-300"
-                      title={memory.status === 'active' ? 'Archive' : 'Activate'}
+                      title={memory.status === 'active' ? '归档' : '恢复为进行中'}
                     >
                       {memory.status === 'archived' ? (
                         <RotateCcw className="w-3 h-3" />
@@ -911,7 +944,7 @@ export default function SharedMemoryHub() {
                 <div className="flex items-center justify-between text-[11px] text-zinc-600 mt-auto pt-2 border-t border-white/5">
                   <div className="flex items-center gap-2">
                     <Badge className={STATUS_COLORS[memory.status] || 'bg-zinc-500/20'}>
-                      {memory.status}
+                      {MEMORY_STATUS_LABELS[memory.status] ?? memory.status}
                     </Badge>
                     {project && (
                       <span className="flex items-center gap-1">
@@ -1065,7 +1098,7 @@ export default function SharedMemoryHub() {
                       : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5'
                   )}
                 >
-                  {{ minimal: '最少', balanced: '均衡', full: '完整' }[mode]}
+                  {INJECTION_MODE_LABELS[mode]}
                 </button>
               ))}
             </div>
