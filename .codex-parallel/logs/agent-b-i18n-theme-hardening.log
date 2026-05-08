@@ -1,0 +1,27 @@
+# Agent B - I18n Theme Hardening Log
+
+Status: complete
+
+Subagent: Euler.
+
+Findings:
+
+- `src\renderer\lib\i18n.ts` and `src\renderer\lib\theme.ts` were missing.
+- Static app only stored one state blob and did not persist `agentflow.language` / `agentflow.theme`.
+- Static settings lacked a dedicated `界面偏好 / Interface Preferences` section.
+- Static CSS lacked explicit `[data-theme="light"]` and `prefers-color-scheme` coverage.
+
+Implemented:
+
+- Added static `translations` with `zh` and `en`, plus `t(key)`.
+- Added topbar language toggle showing `English` in Chinese mode and `中文` in English mode.
+- Added topbar three-state theme cycle and persisted `agentflow.theme`.
+- Added settings Interface Preferences with Language, Theme, Current language, and Current theme.
+- Added React `i18n.ts`, `theme.ts`, language toggle, and migrated theme storage to `agentflow.theme`.
+- Added `[data-theme="light"]`, `[data-theme="dark"]`, and `prefers-color-scheme`.
+
+Verification:
+
+- `npm.cmd run smoke`: PASS, 106/106.
+- `npm.cmd run typecheck`: PASS.
+- `npm.cmd run test:launch-static`: PASS.

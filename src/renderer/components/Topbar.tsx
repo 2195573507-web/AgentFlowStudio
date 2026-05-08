@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { Sun, Moon, Monitor } from 'lucide-react';
+import React from 'react';
+import { Languages, Sun, Moon, Monitor } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { classNames } from '../lib/utils';
 import type { ThemeMode } from '../lib/types';
+import type { Language } from '../lib/i18n';
+import { t } from '../lib/i18n';
 import { navItems } from './Sidebar';
 
 export interface TopbarProps {
@@ -14,6 +16,8 @@ export interface TopbarProps {
   theme?: ThemeMode;
   /** Called when the theme is toggled. */
   onThemeChange?: (theme: ThemeMode) => void;
+  language?: Language;
+  onLanguageChange?: (language: Language) => void;
   /** Additional className. */
   className?: string;
 }
@@ -23,13 +27,15 @@ const Topbar: React.FC<TopbarProps> = ({
   actions,
   theme = 'system',
   onThemeChange,
+  language = 'zh',
+  onLanguageChange,
   className,
 }) => {
   const location = useLocation();
   const themeLabels: Record<ThemeMode, string> = {
-    system: '跟随系统',
-    light: '浅色',
-    dark: '深色',
+    system: t('theme.system', language),
+    light: t('theme.light', language),
+    dark: t('theme.dark', language),
   };
 
   // Derive page title from current route
@@ -39,7 +45,7 @@ const Topbar: React.FC<TopbarProps> = ({
     const item = navItems.find(
       (nav) => nav.to !== '/' && path.startsWith(nav.to),
     );
-    return item ? item.label : path.slice(1);
+    return item ? t(item.labelKey, language) : path.slice(1);
   })();
 
   const displayTitle = titleOverride || routeTitle;
@@ -54,6 +60,7 @@ const Topbar: React.FC<TopbarProps> = ({
   };
 
   const ThemeIcon = theme === 'dark' ? Moon : theme === 'light' ? Sun : Monitor;
+  const nextLanguage: Language = language === 'zh' ? 'en' : 'zh';
 
   return (
     <header
@@ -74,6 +81,23 @@ const Topbar: React.FC<TopbarProps> = ({
       {/* Right: actions + theme toggle */}
       <div className="flex items-center gap-2 shrink-0">
         {actions}
+
+        {onLanguageChange && (
+          <button
+            onClick={() => onLanguageChange(nextLanguage)}
+            className={classNames(
+              'inline-flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-xs font-semibold transition-all duration-200',
+              'text-slate-500 dark:text-slate-400',
+              'hover:bg-slate-200/60 dark:hover:bg-white/10',
+              'hover:text-slate-700 dark:hover:text-slate-200',
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-400',
+            )}
+            title={language === 'zh' ? 'Switch to English' : '切换到中文'}
+          >
+            <Languages className="w-4 h-4" />
+            <span>{t('topbar.language', language)}</span>
+          </button>
+        )}
 
         {/* Theme toggle */}
         {onThemeChange && (

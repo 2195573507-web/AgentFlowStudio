@@ -1,7 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import { classNames, capitalize } from '../lib/utils';
+import { classNames } from '../lib/utils';
 import type { ThemeMode } from '../lib/types';
+import type { Language } from '../lib/i18n';
+import { getLanguage, setLanguage as storeLanguage } from '../lib/i18n';
+import { applyTheme, getTheme, onSystemThemeChange, setStoredTheme, THEME_KEY } from '../lib/theme';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 
@@ -21,41 +23,37 @@ const Layout: React.FC<LayoutProps> = ({
 }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>(() => {
-    // Read from localStorage if available
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('agentflow-theme');
-      if (stored === 'light' || stored === 'dark' || stored === 'system') {
-        return stored;
+      const legacyTheme = localStorage.getItem('agentflow-theme');
+      if (!localStorage.getItem(THEME_KEY) && (legacyTheme === 'light' || legacyTheme === 'dark' || legacyTheme === 'system')) {
+        localStorage.setItem(THEME_KEY, legacyTheme);
       }
     }
-    return 'system';
+    return getTheme();
   });
+  const [language, setLanguageState] = useState<Language>(() => getLanguage());
 
-  // Apply theme class to document
   useEffect(() => {
-    const root = document.documentElement;
-    const isDark =
-      theme === 'dark' ||
-      (theme === 'system' &&
-        window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-    root.classList.toggle('dark', isDark);
+    applyTheme(theme);
   }, [theme]);
 
-  // Listen for system theme changes
   useEffect(() => {
     if (theme !== 'system') return;
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = (e: MediaQueryListEvent) => {
-      document.documentElement.classList.toggle('dark', e.matches);
-    };
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
+    return onSystemThemeChange(() => applyTheme(theme));
   }, [theme]);
+
+  useEffect(() => {
+    storeLanguage(language);
+  }, [language]);
 
   const handleThemeChange = useCallback((newTheme: ThemeMode) => {
     setTheme(newTheme);
-    localStorage.setItem('agentflow-theme', newTheme);
+    setStoredTheme(newTheme);
+  }, []);
+
+  const handleLanguageChange = useCallback((newLanguage: Language) => {
+    setLanguageState(newLanguage);
+    storeLanguage(newLanguage);
   }, []);
 
   return (
@@ -71,6 +69,7 @@ const Layout: React.FC<LayoutProps> = ({
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
+        language={language}
       />
 
       {/* Main area */}
@@ -81,6 +80,8 @@ const Layout: React.FC<LayoutProps> = ({
           actions={topbarActions}
           theme={theme}
           onThemeChange={handleThemeChange}
+          language={language}
+          onLanguageChange={handleLanguageChange}
         />
 
         {/* Scrollable content */}

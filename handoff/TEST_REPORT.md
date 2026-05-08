@@ -1,10 +1,10 @@
 # AgentFlow Studio - Test Report
 
-## Localized Static Launcher Repair - 2026-05-08
+## Static Quality Pass - 2026-05-08
 
-This is the latest verified state. Do not treat the older 2026-05-07 PASS entries as proof of current usability; this loop re-ran the launcher, HTTP, shortcut, icon, smoke, and localization checks.
+Baseline commit: `cec7dfb fix: stabilize localized static launcher`
 
-### Current Usable Entry
+Current usable deliverable remains **Static fallback / 静态可交付模式**:
 
 ```bat
 D:\AgentFlowStudio\start-agentflow-static.bat
@@ -23,57 +23,45 @@ IconLocation: D:\AgentFlowStudio\assets\icon.ico,0
 
 | Check | Status | Details |
 |---|---:|---|
-| Old parallel agents reset | PASS | Old `.codex-parallel` archived to `handoff\archived-agents\run-20260508-125051`; clean `.codex-parallel\logs` created. |
-| New agent logs | PASS | Seven role logs exist under `.codex-parallel\logs`; Agent G reporter work handled by main thread due subagent limit. |
-| `npm.cmd run icon` | PASS | Regenerated `assets\icon.svg`, `assets\icon.png`, and `assets\icon.ico` (57784 bytes). |
-| `npm.cmd run smoke` | PASS | 64 checks passed, including `static-app` files and Chinese keyword checks. |
-| `npm.cmd run test:launch-static` | PASS | Starts `scripts\static-server.js`, returns HTTP 200, validates title and Chinese keywords, confirms process stays alive >5 seconds. |
-| `npm.cmd run shortcut` | PASS | Required Desktop write outside sandbox; recreated `AgentFlow Studio.lnk`. |
-| Desktop shortcut COM verification | PASS | Target, working directory, icon, target file, and icon file all verified. |
+| Fresh agent workspace | PASS | Previous `.codex-parallel` archived to `handoff\archived-agents\run-20260508-173352`; new A-G task/log files created. |
+| New subagents | PASS | Six real subagents B-G were started; Agent A regression guard was run in the main thread. |
+| `npm.cmd run icon` | PASS | Regenerated `assets\icon.svg`, `assets\icon.png`, and `assets\icon.ico`. |
+| `npm.cmd run smoke` | PASS | Expanded static QA passed, 106/106 checks. |
+| `npm.cmd run typecheck` | PASS | `tsc --noEmit -p tsconfig.json` completed successfully. |
+| `npm.cmd run test:launch-static` | PASS | Starts `scripts\static-server.js`, returns HTTP 200, validates Chinese and English keywords, confirms process stays alive >5 seconds. |
+| `npm.cmd run shortcut` | PASS | Recreated/verified Desktop shortcut to the static launcher. |
+| Desktop shortcut COM verification | PASS | Target, working directory, and icon match the required Static fallback values. |
 | Real bat launch | PASS | `cmd /k start-agentflow-static.bat` stayed open after 15 seconds and wrote launcher/server logs. |
-| Static HTTP smoke | PASS | `http://127.0.0.1:4173` returned HTTP 200, contained `AgentFlow Studio`, and contained `仪表盘、项目管理、提示词实验室、日志分析、安全检查、共享记忆中心、设置`. |
-| Port fallback | PASS | With 4173 occupied, test server logged `端口 4173 被占用，尝试下一个端口` and used 4174 during test. |
+| Static HTTP smoke | PASS | `http://127.0.0.1:4173` returned HTTP 200 with AgentFlow Studio, core Chinese navigation, and English preference keywords. |
+| Static JS syntax | PASS | `node --check static-app/app.js` passed. |
 
-### Runtime Evidence
+### Feature Verification
+
+- Chinese-first UI remains the default.
+- Topbar language toggle is present and uses `agentflow.language`.
+- Topbar theme cycle supports `system`, `light`, and `dark` through `agentflow.theme`.
+- Settings includes `界面偏好 / Interface Preferences`, language selector, theme selector, current language, and current theme.
+- Static CSS includes `[data-theme="light"]`, `[data-theme="dark"]`, and `prefers-color-scheme`.
+- Prompt Lab supports `off`, `minimal`, `balanced`, and `full` Shared Memory injection modes.
+- Shared Memory context uses canonical markers:
 
 ```text
-Listening: 127.0.0.1:4173
-Owning process: node "scripts\static-server.js"
-Parent process: cmd launched from start-agentflow-static.bat
-HTTP: 200
-Title: AgentFlow Studio - 静态可交付模式
-Static root: D:\AgentFlowStudio\static-app
+[Shared Memory Context]
+...
+[/Shared Memory Context]
 ```
 
-### Fixed Failure Cause
-
-- The old launcher delegated to `npm.cmd run fallback:static`, opened the browser before the server was ready, and was sensitive to PATH/npm and cmd parsing behavior.
-- The first UTF-8 Chinese `.bat` rewrite was not safe enough for Windows cmd parsing in the user's double-click path and produced errors such as `'errorlevel' is not recognized`, `for /f` fragments, and broken redirection.
-- The final launcher uses an ASCII-safe batch control skeleton and lets the Node static server provide Chinese runtime logs and the Chinese UI. This prevents the console from closing immediately and avoids cmd parsing corruption.
-- Chinese console prompts are emitted via `scripts\launcher-message.ps1`, keeping `start-agentflow-static.bat` command syntax ASCII-safe while still showing user-facing Chinese text.
-- `scripts\static-server.js` no longer exits when `dist` is missing; it prioritizes `static-app`, includes `static-app/dist` fallback, writes logs, catches uncaught exceptions and unhandled rejections, retries ports 4173-4177, and keeps the process alive.
-
-### Localization Verification
-
-`static-app` is Chinese-first and includes:
-
-- 仪表盘 / 项目总控台
-- 项目管理
-- 项目详情
-- 提示词实验室
-- 日志分析
-- 安全检查
-- 共享记忆中心
-- 设置
-
-Core actions are localized: 新建项目、保存、删除、导出、复制、生成、分析、检查风险、新增记忆、生成跨模型恢复上下文、清空、重置.
-
-Allowed English terms are retained only as product or domain names in Chinese context: AgentFlow Studio, Codex, Claude Code, Cursor, API, Prompt, Git, Shared Memory Hub, localStorage, Static fallback.
+- Recovery Prompt includes project name, current scheme, usable launcher, known limitation, and next step.
+- Recursive secret redaction now covers strings, arrays, objects, nested objects, circular references, key-aware fields, and export/injection paths.
+- React routes are wrapped in a route-level ErrorBoundary.
+- Static fallback catches page render errors and shows localized fallback actions.
 
 ### Environment Notes
 
-- In the sandbox, Node child-process spawning can fail with `spawn EPERM`. The required `test:launch-static` command passed outside the sandbox with approval.
-- Electron/Vite/Vitest remain de-prioritized for this loop because previous runs hit esbuild `spawn EPERM`. The current deliverable is the pure Node Static fallback.
+- `npm.cmd run test`: blocked by Vite/Vitest esbuild `spawn EPERM`.
+- `npm.cmd run build`: blocked by Vite esbuild `spawn EPERM`.
+- Playwright browser binary is not installed, so browser click verification could not run in this environment. Static runtime was verified through HTTP, launch tests, and a Node VM execution check.
+- These environment limits do not block the Static fallback.
 
 ### Logs To Inspect
 

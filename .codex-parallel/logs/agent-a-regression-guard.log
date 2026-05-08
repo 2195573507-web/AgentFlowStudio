@@ -1,0 +1,40 @@
+# Agent A - Regression Guard Log
+
+Status: complete
+
+Baseline commit: `cec7dfb fix: stabilize localized static launcher`
+
+Regression commands:
+
+- `npm.cmd run icon`: PASS.
+- `npm.cmd run smoke`: PASS, 64/64 baseline checks.
+- `npm.cmd run typecheck`: PASS.
+- `npm.cmd run test:launch-static`: initial sandbox run failed with `spawn EPERM`; approved rerun PASS with HTTP 200 and service alive over 5 seconds.
+- `npm.cmd run shortcut`: initial sandbox run failed writing Desktop shortcut with UnauthorizedAccessException; approved rerun PASS.
+
+File checks:
+
+- `start-agentflow-static.bat`: present.
+- `scripts\static-server.js`: present.
+- `static-app`: present.
+- `assets\icon.ico`: present.
+
+Shortcut COM check:
+
+- `C:\Users\至亲\Desktop\AgentFlow Studio.lnk`: present.
+- TargetPath: `D:\AgentFlowStudio\start-agentflow-static.bat`.
+- WorkingDirectory: `D:\AgentFlowStudio`.
+- IconLocation: `D:\AgentFlowStudio\assets\icon.ico,0`.
+
+Real launcher check:
+
+- Ran `cmd /c start "AgentFlow Studio Static Regression" cmd /k "cd /d D:\AgentFlowStudio && start-agentflow-static.bat"`.
+- Waited 15 seconds.
+- `logs\launcher-static.log`: present.
+- `logs\static-server.log`: present.
+- HTTP `http://127.0.0.1:4173`: PASS 200.
+- Response included: `AgentFlow Studio`, `仪表盘`, `项目管理`, `提示词实验室`, `共享记忆中心`, `设置`.
+
+Observation:
+
+- The raw HTTP HTML did not include `English` or `深色` before JavaScript execution. That is not a launcher regression, but it is part of this round's topbar language/theme hardening work.

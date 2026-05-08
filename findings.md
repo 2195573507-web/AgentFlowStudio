@@ -1,26 +1,31 @@
-# AgentFlow Studio Localized Static Launcher Repair Findings
+# AgentFlow Studio Static Quality Pass Findings
 
-## Session Findings
+## Baseline
 
-- The user-facing failure is reproducible from file inspection: `start-agentflow-static.bat` starts a browser before the server is guaranteed alive, then calls an npm script. When the Node server exits, the console can close after a pause is missed or hidden by shortcut behavior.
-- `scripts\static-server.js` originally served only the CLI root argument defaulting to `dist`; if that directory is absent or broken it prints English errors and exits immediately.
-- `static-app` was absent at the start of this session, so there was no Vite/esbuild-independent fallback UI.
-- `assets\icon.ico`, `assets\icon.png`, and `assets\icon.svg` already exist and are non-empty; `npm.cmd run icon` must still be rerun for this session.
-- `scripts\create-shortcut.ps1` previously selected packaged exe before static fallback. The current requirement is to point the Desktop shortcut directly at `D:\AgentFlowStudio\start-agentflow-static.bat` while Electron/Vite remain environment-blocked.
-- React renderer still has some English user-visible labels in navigation and shared controls. The static fallback app will be fully Chinese-first; React-side localization should be treated as a follow-up unless this session has time after launch verification.
-- A first attempt to make the batch launcher fully Chinese exposed a real Windows cmd parsing problem in the user's double-click path. The stable launcher now keeps batch control text ASCII-only while the Node server and static app provide Chinese user-facing output.
-- Real HTTP evidence is tied to the bat-launched service on `127.0.0.1:4173`; the separate `test:launch-static` process can temporarily switch to 4174 when 4173 is occupied and then close after the test.
+- Baseline commit for this session is `cec7dfb fix: stabilize localized static launcher`.
+- Initial branch was `codex-stability-loop`; the required branch `codex-static-quality-pass` was created for this session.
+- Previous `.codex-parallel` content was archived to `handoff\archived-agents\run-20260508-173352`.
+- Previous launcher work must be preserved. The current stable delivery path is the Static fallback through `start-agentflow-static.bat` and `scripts\static-server.js`.
 
-## Known Environment Constraint
+## Constraints To Preserve
 
-- Vite, Vitest, Electron dev, and build remain de-prioritized in this session because previous runs hit esbuild `spawn EPERM`. The accepted deliverable for this loop is a pure Node static fallback that does not load Vite, Vitest, Electron, or esbuild.
+- Do not remove or rebuild `static-app`, `start-agentflow-static.bat`, `scripts\static-server.js`, `assets\icon.ico`, or the Desktop shortcut.
+- Do not treat Electron/Vite/Vitest esbuild EPERM as a blocker for this Static fallback pass.
+- Do not commit `node_modules`, `.env`, API keys, secrets, `dist` temporary files, or user data.
 
-## Final Verification Findings
+## Regression Findings
 
-- `npm.cmd run icon`: passed.
-- `npm.cmd run smoke`: passed with 64 checks.
-- `npm.cmd run test:launch-static`: passed outside sandbox.
-- `npm.cmd run shortcut`: passed outside sandbox.
-- Desktop shortcut COM check: passed.
-- Real bat launch: passed; cmd stayed open after 15 seconds and parented a Node static server process.
-- HTTP smoke: passed at `http://127.0.0.1:4173` with required Chinese keywords.
+- Agent A regression gate passed. Static fallback files and Desktop shortcut remain intact.
+- `npm.cmd run test:launch-static` and `npm.cmd run shortcut` require escalation outside the sandbox because they spawn a local server and write the Desktop shortcut.
+- Real `cmd /k` launcher verification returned HTTP 200 on `127.0.0.1:4173` after 15 seconds.
+- The static response includes the core Chinese navigation keywords. The raw HTML did not include the new topbar `English` or theme labels before JavaScript rendering, so that remains part of the B/F hardening and test expansion work.
+
+## Implementation Findings
+
+- Static app now persists `agentflow.language` and `agentflow.theme` separately from `agentflow.static.v1`.
+- Static app now has `translations.zh`, `translations.en`, and `t(key)`.
+- Static app now renders a language toggle, three-state theme toggle, Interface Preferences, Shared Memory injection modes, memory search/archive, and route-level error fallback.
+- Shared redaction is now implemented in `src/shared/secretRedaction.ts` and re-exported by the renderer.
+- React routes are wrapped in `ErrorBoundary`; React helper files `i18n.ts` and `theme.ts` were added.
+- `npm.cmd run test` and `npm.cmd run build` still fail at esbuild `spawn EPERM`; this is an environment limit rather than a Static fallback regression.
+- Playwright click verification could not run because the Chromium headless shell is not installed.

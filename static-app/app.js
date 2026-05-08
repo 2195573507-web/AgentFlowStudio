@@ -1,4 +1,147 @@
 const STORAGE_KEY = 'agentflow.static.v1';
+const LANGUAGE_KEY = 'agentflow.language';
+const THEME_KEY = 'agentflow.theme';
+const REDACTED = '[REDACTED]';
+
+const translations = {
+  zh: {
+    languageName: '中文',
+    languageToggle: 'English',
+    staticMode: '静态可交付模式',
+    brandSubtitle: 'AI 项目编排中枢',
+    export: '导出',
+    dashboard: '仪表盘',
+    projects: '项目管理',
+    projectDetail: '项目详情',
+    promptLab: '提示词实验室',
+    logAnalyzer: '日志分析',
+    safetyBox: '安全检查',
+    sharedMemory: '共享记忆中心',
+    skills: '技能管理',
+    gitTimeline: 'Git 时间线',
+    settings: '设置',
+    interfacePreferences: '界面偏好',
+    language: '语言',
+    theme: '主题',
+    light: '浅色',
+    dark: '深色',
+    system: '跟随系统',
+    currentLanguage: '当前语言',
+    currentTheme: '当前主题',
+    injectMemory: '注入共享记忆',
+    off: '不注入',
+    minimal: '最小',
+    balanced: '平衡',
+    full: '完整',
+    currentPageFailed: '当前页面加载失败',
+    viewLogs: '查看日志',
+    backDashboard: '返回仪表盘',
+    retryHint: '当前页面遇到渲染错误，其他功能仍可继续使用。',
+    searchMemory: '搜索记忆',
+    archive: '归档',
+    restore: '恢复',
+    noMemories: '暂无共享记忆。请先新增记忆，或继续使用不注入模式。',
+  },
+  en: {
+    languageName: 'English',
+    languageToggle: '中文',
+    staticMode: 'Static fallback',
+    brandSubtitle: 'AI project orchestration hub',
+    export: 'Export',
+    dashboard: 'Dashboard',
+    projects: 'Projects',
+    projectDetail: 'Project Detail',
+    promptLab: 'Prompt Lab',
+    logAnalyzer: 'Log Analyzer',
+    safetyBox: 'SafetyBox',
+    sharedMemory: 'Shared Memory Hub',
+    skills: 'Skills',
+    gitTimeline: 'Git Timeline',
+    settings: 'Settings',
+    interfacePreferences: 'Interface Preferences',
+    language: 'Language',
+    theme: 'Theme',
+    light: 'Light',
+    dark: 'Dark',
+    system: 'System',
+    currentLanguage: 'Current language',
+    currentTheme: 'Current theme',
+    injectMemory: 'Inject Shared Memory',
+    off: 'Off',
+    minimal: 'Minimal',
+    balanced: 'Balanced',
+    full: 'Full',
+    currentPageFailed: 'This page failed to load',
+    viewLogs: 'View logs',
+    backDashboard: 'Back to Dashboard',
+    retryHint: 'This page hit a render error. The rest of the app is still available.',
+    searchMemory: 'Search memories',
+    archive: 'Archive',
+    restore: 'Restore',
+    noMemories: 'No shared memories yet. Add one first or keep injection off.',
+  },
+};
+
+function getStoredLanguage() {
+  return localStorage.getItem(LANGUAGE_KEY) === 'en' ? 'en' : 'zh';
+}
+
+function getStoredTheme() {
+  const stored = localStorage.getItem(THEME_KEY);
+  return stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
+}
+
+function t(key) {
+  const language = state?.language || getStoredLanguage();
+  return translations[language]?.[key] || translations.zh[key] || key;
+}
+
+const secretPatterns = [
+  /sk-[a-zA-Z0-9_\-]{16,}/g,
+  /Bearer\s+([a-zA-Z0-9_\-\.=:+/]{8,})/gi,
+  /authorization\s*[=:]\s*['"]?([^'"\s]{4,})['"]?/gi,
+  /api[_-]?key\s*[=:]\s*['"]?([^'"\s]{4,})['"]?/gi,
+  /password\s*[=:]\s*['"]?([^'"\s]{3,})['"]?/gi,
+  /secret\s*[=:]\s*['"]?([^'"\s]{3,})['"]?/gi,
+  /access[_-]?token\s*[=:]\s*['"]?([^'"\s]{3,})['"]?/gi,
+  /refresh[_-]?token\s*[=:]\s*['"]?([^'"\s]{3,})['"]?/gi,
+  /(?:^|[\s,{])token\s*[=:]\s*['"]?([^'"\s]{4,})['"]?/gi,
+];
+
+const sensitiveKeyPattern = /^(apiKey|api_key|API_KEY|authorization|token|password|secret|access_token|refresh_token)$/i;
+
+function redactText(value) {
+  let result = String(value ?? '');
+  for (const pattern of secretPatterns) {
+    pattern.lastIndex = 0;
+    result = result.replace(pattern, (match, group) => {
+      if (typeof group === 'string' && group.length > 0) {
+        const index = match.indexOf(group);
+        return index >= 0 ? `${match.slice(0, index)}${REDACTED}${match.slice(index + group.length)}` : REDACTED;
+      }
+      return REDACTED;
+    });
+  }
+  return result;
+}
+
+function redactDeep(value, seen = new WeakMap(), keyHint = '') {
+  if (typeof value === 'string') return sensitiveKeyPattern.test(keyHint) ? REDACTED : redactText(value);
+  if (!value || typeof value !== 'object') return value;
+  if (seen.has(value)) return '[Circular]';
+  if (Array.isArray(value)) {
+    const result = [];
+    seen.set(value, result);
+    value.forEach((item) => result.push(redactDeep(item, seen)));
+    return result;
+  }
+  const result = {};
+  seen.set(value, result);
+  Object.entries(value).forEach(([key, child]) => {
+    result[key] = sensitiveKeyPattern.test(key) ? REDACTED : redactDeep(child, seen, key);
+  });
+  return result;
+}
 
 const statusLabels = {
   active: '进行中',
@@ -32,16 +175,28 @@ const memoryTypeLabels = {
   safety_check: '安全检查',
 };
 
-const pages = [
-  { id: 'dashboard', label: '仪表盘', icon: '▦', description: '项目总控台与运行概览' },
-  { id: 'projects', label: '项目管理', icon: '□', description: '创建、查看和整理 AI 项目' },
-  { id: 'project-detail', label: '项目详情', icon: '◇', description: '计划、任务和开发 Prompt' },
-  { id: 'prompt-lab', label: '提示词实验室', icon: '✦', description: '模板化生成 Prompt 并注入共享记忆' },
-  { id: 'log-analyzer', label: '日志分析', icon: '⌕', description: '识别错误类型、原因与修复步骤' },
-  { id: 'safety-box', label: '安全检查', icon: '◈', description: '检查命令风险等级和更安全替代命令' },
-  { id: 'shared-memory', label: '共享记忆中心', icon: '◎', description: '维护跨模型恢复上下文' },
-  { id: 'settings', label: '设置', icon: '⚙', description: 'AI 接口配置、本地数据和主题' },
+const pageDefinitions = [
+  { id: 'dashboard', labelKey: 'dashboard', icon: '▦', zhDescription: '项目总控台与运行概览', enDescription: 'Project dashboard and runtime overview' },
+  { id: 'projects', labelKey: 'projects', icon: '□', zhDescription: '创建、查看和整理 AI 项目', enDescription: 'Create, inspect, and organize AI projects' },
+  { id: 'project-detail', labelKey: 'projectDetail', icon: '◇', zhDescription: '计划、任务和开发 Prompt', enDescription: 'Plans, tasks, and development Prompt' },
+  { id: 'prompt-lab', labelKey: 'promptLab', icon: '✦', zhDescription: '模板化生成 Prompt 并注入共享记忆', enDescription: 'Generate Prompt templates and inject Shared Memory' },
+  { id: 'log-analyzer', labelKey: 'logAnalyzer', icon: '⌕', zhDescription: '识别错误类型、原因与修复步骤', enDescription: 'Classify logs and generate repair steps' },
+  { id: 'safety-box', labelKey: 'safetyBox', icon: '◈', zhDescription: '检查命令风险等级和更安全替代命令', enDescription: 'Check shell command risk and safer alternatives' },
+  { id: 'shared-memory', labelKey: 'sharedMemory', icon: '◎', zhDescription: '维护跨模型恢复上下文', enDescription: 'Maintain cross-model recovery context' },
+  { id: 'skills', labelKey: 'skills', icon: '◇', zhDescription: '查看本地 agent 技能与工作流', enDescription: 'Browse local agent skills and workflows' },
+  { id: 'git-timeline', labelKey: 'gitTimeline', icon: '⌁', zhDescription: '查看 Git 提交时间线和交付记录', enDescription: 'Review Git commit timeline and delivery notes' },
+  { id: 'settings', labelKey: 'settings', icon: '⚙', zhDescription: 'AI 接口配置、本地数据和界面偏好', enDescription: 'API configuration, local data, and interface preferences' },
 ];
+
+function pages() {
+  const language = state?.language || getStoredLanguage();
+  return pageDefinitions.map((page) => ({
+    id: page.id,
+    icon: page.icon,
+    label: t(page.labelKey),
+    description: language === 'en' ? page.enDescription : page.zhDescription,
+  }));
+}
 
 const promptTemplates = [
   {
@@ -74,7 +229,9 @@ function uid(prefix) {
 
 function defaultState() {
   return {
-    theme: 'light',
+    language: getStoredLanguage(),
+    theme: getStoredTheme(),
+    memorySearch: '',
     activePage: 'dashboard',
     selectedProjectId: 'project-agentflow',
     settings: {
@@ -163,9 +320,11 @@ function defaultState() {
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultState();
-    return { ...defaultState(), ...JSON.parse(raw) };
-  } catch {
+    const base = defaultState();
+    if (!raw) return base;
+    return { ...base, ...JSON.parse(raw), language: getStoredLanguage(), theme: getStoredTheme() };
+  } catch (error) {
+    console.error('Static state load error:', error);
     return defaultState();
   }
 }
@@ -173,13 +332,42 @@ function loadState() {
 let state = loadState();
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(redactDeep(state)));
+  localStorage.setItem(LANGUAGE_KEY, state.language || 'zh');
+  localStorage.setItem(THEME_KEY, state.theme || 'system');
 }
 
 function setTheme(theme) {
-  state.theme = theme;
-  document.documentElement.dataset.theme = theme;
+  const nextTheme = theme === 'dark' || theme === 'light' || theme === 'system' ? theme : 'system';
+  state.theme = nextTheme;
+  localStorage.setItem(THEME_KEY, nextTheme);
+  applyTheme();
   saveState();
+}
+
+function resolvedTheme() {
+  if (state.theme === 'system') {
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  return state.theme || 'light';
+}
+
+function applyTheme() {
+  document.documentElement.dataset.themePreference = state.theme || 'system';
+  document.documentElement.dataset.theme = resolvedTheme();
+}
+
+function setLanguage(language) {
+  state.language = language === 'en' ? 'en' : 'zh';
+  localStorage.setItem(LANGUAGE_KEY, state.language);
+  document.documentElement.lang = state.language === 'zh' ? 'zh-CN' : 'en';
+  saveState();
+}
+
+function nextThemeLabel() {
+  if (state.theme === 'system') return `${t('system')} / System`;
+  if (state.theme === 'dark') return `${t('light')} / Light`;
+  return `${t('dark')} / Dark`;
 }
 
 function escapeHtml(value) {
@@ -282,7 +470,8 @@ function select(name, label, value, options) {
 }
 
 function shell(content) {
-  const page = pages.find((item) => item.id === state.activePage) || pages[0];
+  const pageList = pages();
+  const page = pageList.find((item) => item.id === state.activePage) || pageList[0];
   return `
     <div class="layout">
       <aside class="sidebar">
@@ -290,11 +479,11 @@ function shell(content) {
           <img src="/assets/icon.svg" alt="AgentFlow Studio 图标" />
           <div>
             <p class="brand-title">AgentFlow Studio</p>
-            <p class="brand-subtitle">AI 项目编排中枢</p>
+            <p class="brand-subtitle">${escapeHtml(t('brandSubtitle'))}</p>
           </div>
         </div>
         <nav class="nav" aria-label="主导航">
-          ${pages
+          ${pageList
             .map(
               (item) => `
                 <button type="button" class="${item.id === state.activePage ? 'active' : ''}" data-page="${item.id}" title="${escapeHtml(item.label)}">
@@ -306,8 +495,8 @@ function shell(content) {
             .join('')}
         </nav>
         <div class="sidebar-footer">
-          <strong>静态可交付模式</strong><br />
-          纯 Node 静态服务，无需 Vite、Electron 或 esbuild。数据保存在 localStorage。
+          <strong>${escapeHtml(t('staticMode'))}</strong><br />
+          ${state.language === 'en' ? 'Pure Node static server. No Vite, Electron, or esbuild required. Data is stored in localStorage.' : '纯 Node 静态服务，无需 Vite、Electron 或 esbuild。数据保存在 localStorage。'}
         </div>
       </aside>
       <main class="main">
@@ -317,9 +506,10 @@ function shell(content) {
             <p>${escapeHtml(page.description)}</p>
           </div>
           <div class="topbar-actions">
-            <span class="mode-pill">静态可交付模式</span>
-            <button class="btn ghost small" type="button" data-action="toggle-theme">${state.theme === 'dark' ? '浅色' : '深色'}</button>
-            <button class="btn ghost small" type="button" data-action="export-data">导出</button>
+            <span class="mode-pill">${escapeHtml(t('staticMode'))}</span>
+            <button class="btn ghost small" type="button" data-action="toggle-language">${escapeHtml(t('languageToggle'))}</button>
+            <button class="btn ghost small" type="button" data-action="cycle-theme">${escapeHtml(nextThemeLabel())}</button>
+            <button class="btn ghost small" type="button" data-action="export-data">${escapeHtml(t('export'))}</button>
           </div>
         </header>
         ${content}
@@ -518,14 +708,14 @@ function renderProjectDetail() {
 }
 
 function projectPrompt(project) {
-  return `# AgentFlow Studio 项目详情 Prompt
+  return redactText(`# AgentFlow Studio 项目详情 Prompt
 
 项目：${project.name}
 目标：${project.idea}
 平台：${project.platform}
 技术栈：${project.techStack}
 
-请继续完成该项目，遵循本地优先、中文界面、Shared Memory Hub 不可移除的约束。`;
+请继续完成该项目，遵循本地优先、中文界面、Shared Memory Hub 不可移除的约束。`);
 }
 
 function fillPrompt(template, values) {
@@ -535,15 +725,39 @@ function fillPrompt(template, values) {
 }
 
 function memoryContext() {
-  const active = state.memories.filter((memory) => memory.status === 'active');
+  if (state.settings.memoryInjectionMode === 'off') return '';
+  const active = redactDeep(state.memories.filter((memory) => memory.status === 'active'));
   const limit = state.settings.memoryInjectionMode === 'minimal' ? 3 : state.settings.memoryInjectionMode === 'full' ? 20 : 8;
-  return [
-    '[共享记忆上下文 / Shared Memory Context]',
-    ...active
-      .slice(0, limit)
-      .map((memory) => `- ${memoryTypeLabels[memory.type] || memory.type}：${memory.title}\n  ${memory.content}`),
-    '[/共享记忆上下文]',
-  ].join('\n');
+  const selected = active.slice(0, limit);
+  const language = state.language || 'zh';
+  const labels =
+    language === 'en'
+      ? ['Project background', 'Decisions', 'Current progress', 'Known issues', 'User preferences', 'API Provider notes']
+      : ['项目背景', '已做决策', '当前进度', '已知问题', '用户偏好', 'API Provider 注意事项'];
+  const colon = language === 'en' ? ':' : '：';
+  const buckets = {
+    0: ['project_context', 'knowledge', 'environment'],
+    1: ['decision', 'pattern'],
+    2: ['git_summary', 'log_analysis', 'prompt_pattern'],
+    3: ['issue_fix', 'security', 'safety_check'],
+    4: ['user_preference', 'insight'],
+    5: ['api_provider'],
+  };
+  const lines = ['[Shared Memory Context]'];
+  labels.forEach((label, index) => {
+    const items = selected.filter((memory) => buckets[index].includes(memory.type));
+    lines.push(`- ${label}${colon}`);
+    if (!items.length) {
+      lines.push(`  - ${language === 'en' ? 'No records yet' : '暂无记录'}`);
+      return;
+    }
+    items.forEach((memory) => {
+      const tags = memory.tags?.length ? ` [${memory.tags.slice(0, 3).map(redactText).join(', ')}]` : '';
+      lines.push(`  - ${redactText(memory.title)}${tags}: ${redactText(memory.content)}`);
+    });
+  });
+  lines.push('[/Shared Memory Context]');
+  return lines.join('\n');
 }
 
 function renderPromptLab() {
@@ -561,10 +775,11 @@ function renderPromptLab() {
           )}
           ${field('project', '变量：项目', project?.name || 'AgentFlow Studio')}
           ${textarea('task', '变量：任务', '修复静态启动链路并完成中文界面', '填写本次要交给 AI 的任务')}
-          ${select('memoryMode', '注入共享记忆', state.settings.memoryInjectionMode, [
-            { value: 'minimal', label: '最小' },
-            { value: 'balanced', label: '平衡' },
-            { value: 'full', label: '完整' },
+          ${select('memoryMode', `${t('injectMemory')} / Inject Shared Memory`, state.settings.memoryInjectionMode, [
+            { value: 'off', label: t('off') },
+            { value: 'minimal', label: t('minimal') },
+            { value: 'balanced', label: t('balanced') },
+            { value: 'full', label: t('full') },
           ])}
           <button class="btn primary" type="submit">生成</button>
         </form>
@@ -734,15 +949,53 @@ function renderSafetyBox() {
   `);
 }
 
+function renderSkills() {
+  return shell(`
+    <section class="grid two-col">
+      <div class="panel">
+        <div class="section-title"><h2>${escapeHtml(t('skills'))}</h2><span class="tag">Skills</span></div>
+        <div class="stack">
+          <article class="item-card"><h3>product-planner</h3><p>生成 PRD、架构、任务拆解和验收标准。</p></article>
+          <article class="item-card"><h3>test-runner</h3><p>运行测试、分析失败并更新测试报告。</p></article>
+          <article class="item-card"><h3>ui-polisher</h3><p>检查界面质量、响应式表现和深浅色兼容性。</p></article>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="section-title"><h2>Agent 工作流</h2><span class="tag">Codex / Claude Code / Cursor</span></div>
+        <p class="muted">Static fallback 保留技能管理入口，用于记录本地 agent skill 的用途和下一轮接手上下文。</p>
+      </div>
+    </section>
+  `);
+}
+
+function renderGitTimeline() {
+  return shell(`
+    <section class="grid two-col">
+      <div class="panel">
+        <div class="section-title"><h2>${escapeHtml(t('gitTimeline'))}</h2><span class="tag">Git Timeline</span></div>
+        <div class="stack">
+          <article class="item-card"><h3>cec7dfb</h3><p>fix: stabilize localized static launcher</p></article>
+          <article class="item-card"><h3>本轮质量加固</h3><p>中英切换、主题偏好、Shared Memory Prompt 注入、递归脱敏和错误边界。</p></article>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="section-title"><h2>当前分支</h2><span class="tag">codex-static-quality-pass</span></div>
+        <p class="muted">Git 时间线在 Static fallback 中展示关键交付节点；完整 Git 操作仍由本地仓库和 Electron 版本承担。</p>
+      </div>
+    </section>
+  `);
+}
+
 function recoveryPrompt() {
   const project = selectedProject();
-  return `# AgentFlow Studio 跨模型恢复上下文 Prompt
+  return redactText(`# AgentFlow Studio 跨模型恢复上下文 Prompt
 
-你正在接手本地项目：${project?.name || 'AgentFlow Studio'}
+项目名：${project?.name || 'AgentFlow Studio'}
 
-当前运行模式：静态可交付模式（Static fallback）
-项目路径：D:\\AgentFlowStudio
-可用入口：start-agentflow-static.bat
+当前方案：Static fallback
+可用启动方式：D:\\AgentFlowStudio\\start-agentflow-static.bat
+已知限制：Electron / Vite / Vitest 在当前环境可能受 esbuild EPERM 限制。
+下一步：继续维护 Static fallback 稳定性，逐步恢复 Electron 验证。
 
 ${memoryContext()}
 
@@ -750,10 +1003,15 @@ ${memoryContext()}
 1. 不要重建项目。
 2. 不要移除 Shared Memory Hub（共享记忆中心）。
 3. 用户界面保持中文优先。
-4. Electron / Vite 若受 esbuild EPERM 限制，先维护 Static fallback 可用性。`;
+4. Electron / Vite 若受 esbuild EPERM 限制，先维护 Static fallback 可用性。`);
 }
 
 function renderSharedMemory() {
+  const query = state.memorySearch || '';
+  const filtered = state.memories.filter((memory) => {
+    const text = `${memory.title} ${memory.content} ${(memory.tags || []).join(' ')}`.toLowerCase();
+    return !query || text.includes(query.toLowerCase());
+  });
   return shell(`
     <section class="grid two-col">
       <div class="panel">
@@ -789,9 +1047,17 @@ function renderSharedMemory() {
       </div>
     </section>
     <section class="panel" style="margin-top:16px">
-      <div class="section-title"><h2>共享记忆</h2><span class="tag">${state.memories.length} 条</span></div>
+      <div class="section-title"><h2>${escapeHtml(t('sharedMemory'))}</h2><span class="tag">${filtered.length} / ${state.memories.length}</span></div>
+      <div class="toolbar">
+        <div class="field">
+          <label for="memorySearch">${escapeHtml(t('searchMemory'))}</label>
+          <input id="memorySearch" value="${escapeHtml(query)}" placeholder="${state.language === 'en' ? 'Search title, content, or tags' : '搜索标题、内容或标签'}" data-input="memory-search" />
+        </div>
+      </div>
       <div class="grid three-col">
-        ${state.memories
+        ${
+          filtered.length
+            ? filtered
           .map(
             (memory) => `
               <article class="item-card">
@@ -805,10 +1071,17 @@ function renderSharedMemory() {
                   <span class="tag">重要度 ${memory.importance}</span>
                   <span class="tag">最近使用 ${formatDate(memory.lastUsedAt)}</span>
                 </div>
+                <div class="row" style="margin-top:10px">
+                  <button class="btn small" type="button" data-archive-memory="${memory.id}">
+                    ${memory.status === 'archived' ? escapeHtml(t('restore')) : escapeHtml(t('archive'))}
+                  </button>
+                </div>
               </article>
             `,
           )
-          .join('')}
+          .join('')
+            : `<div class="empty">${escapeHtml(t('noMemories'))}</div>`
+        }
       </div>
     </section>
   `);
@@ -816,6 +1089,7 @@ function renderSharedMemory() {
 
 function renderSettings() {
   const s = state.settings;
+  const maskedApiKey = s.apiKey ? `已保存，尾号 ${redactText(s.apiKey).includes(REDACTED) ? REDACTED : s.apiKey.slice(-4)}` : '';
   return shell(`
     <section class="grid two-col">
       <div class="panel">
@@ -823,24 +1097,46 @@ function renderSettings() {
         <form class="grid" data-form="settings">
           ${field('providerName', '接口名称', s.providerName)}
           ${field('baseUrl', '接口地址', s.baseUrl)}
-          ${field('apiKey', 'API 密钥', s.apiKey ? `已保存，尾号 ${s.apiKey.slice(-4)}` : '', 'password', '仅本地保存，导出前请自行确认')}
+          ${field('apiKey', 'API 密钥', maskedApiKey, 'password', '仅本地保存，界面和导出会脱敏')}
           ${field('modelName', '模型名称', s.modelName)}
           ${select('memoryEnabled', '启用共享记忆', String(s.memoryEnabled), [
             { value: 'true', label: '启用' },
             { value: 'false', label: '关闭' },
           ])}
           ${select('memoryInjectionMode', '记忆注入模式', s.memoryInjectionMode, [
-            { value: 'minimal', label: '最小' },
-            { value: 'balanced', label: '平衡' },
-            { value: 'full', label: '完整' },
+            { value: 'off', label: t('off') },
+            { value: 'minimal', label: t('minimal') },
+            { value: 'balanced', label: t('balanced') },
+            { value: 'full', label: t('full') },
           ])}
           <div class="grid three-col">
             ${field('maxMemoryItems', '最大记忆条数', s.maxMemoryItems, 'number')}
             ${field('maxMemoryChars', '最大记忆字符数', s.maxMemoryChars, 'number')}
-            ${select('theme', '主题', state.theme, [
-              { value: 'light', label: '浅色' },
-              { value: 'dark', label: '深色' },
+            ${select('theme', t('theme'), state.theme, [
+              { value: 'light', label: `${t('light')} / Light` },
+              { value: 'dark', label: `${t('dark')} / Dark` },
+              { value: 'system', label: `${t('system')} / System` },
             ])}
+          </div>
+          <div class="panel compact-panel">
+            <div class="section-title"><h2>${escapeHtml(t('interfacePreferences'))}</h2><span class="tag">Interface Preferences</span></div>
+            <div class="grid three-col">
+              ${select('language', t('language'), state.language, [
+                { value: 'zh', label: '中文' },
+                { value: 'en', label: 'English' },
+              ])}
+              ${select('preferenceTheme', t('theme'), state.theme, [
+                { value: 'light', label: `${t('light')} / Light` },
+                { value: 'dark', label: `${t('dark')} / Dark` },
+                { value: 'system', label: `${t('system')} / System` },
+              ])}
+              <div class="item-card">
+                <h3>${escapeHtml(t('currentLanguage'))}</h3>
+                <p>${state.language === 'zh' ? '中文' : 'English'}</p>
+                <h3>${escapeHtml(t('currentTheme'))}</h3>
+                <p>${escapeHtml(t(state.theme))}</p>
+              </div>
+            </div>
           </div>
           ${field('defaultProjectPath', '默认项目路径', s.defaultProjectPath)}
           <button class="btn primary" type="submit">保存</button>
@@ -860,18 +1156,53 @@ function renderSettings() {
 }
 
 function render() {
-  document.documentElement.dataset.theme = state.theme;
-  const renderers = {
-    dashboard: renderDashboard,
-    projects: renderProjects,
-    'project-detail': renderProjectDetail,
-    'prompt-lab': renderPromptLab,
-    'log-analyzer': renderLogAnalyzer,
+  applyTheme();
+  document.documentElement.lang = state.language === 'en' ? 'en' : 'zh-CN';
+  const app = document.querySelector('#app');
+  if (!app) return;
+  try {
+    const renderers = {
+      dashboard: renderDashboard,
+      projects: renderProjects,
+      'project-detail': renderProjectDetail,
+      'prompt-lab': renderPromptLab,
+      'log-analyzer': renderLogAnalyzer,
     'safety-box': renderSafetyBox,
     'shared-memory': renderSharedMemory,
+    skills: renderSkills,
+    'git-timeline': renderGitTimeline,
     settings: renderSettings,
   };
-  document.querySelector('#app').innerHTML = (renderers[state.activePage] || renderDashboard)();
+    app.innerHTML = (renderers[state.activePage] || renderDashboard)();
+  } catch (error) {
+    console.error('Static render error:', error);
+    app.innerHTML = `
+      <main class="main route-error">
+        <section class="panel">
+          <div class="section-title">
+            <div>
+              <h1>${escapeHtml(t('currentPageFailed'))}</h1>
+              <p>${escapeHtml(t('retryHint'))}</p>
+            </div>
+          </div>
+          <pre class="output">${escapeHtml(error?.message || String(error))}</pre>
+          <div class="row">
+            <button class="btn" type="button" data-page="log-analyzer">${escapeHtml(t('viewLogs'))}</button>
+            <button class="btn primary" type="button" data-page="dashboard">${escapeHtml(t('backDashboard'))}</button>
+          </div>
+        </section>
+      </main>
+    `;
+  }
+}
+
+function onInput(event) {
+  const target = event.target;
+  if (target?.dataset?.input === 'memory-search') {
+    state.memorySearch = target.value;
+    saveState();
+    render();
+  }
 }
 
 function onSubmit(event) {
@@ -916,7 +1247,9 @@ function onSubmit(event) {
   if (form.dataset.form === 'prompt') {
     const template = promptTemplates.find((item) => item.id === data.templateId) || promptTemplates[0];
     state.settings.memoryInjectionMode = data.memoryMode || state.settings.memoryInjectionMode;
-    const content = `${memoryContext()}\n\n${fillPrompt(template.template, data)}`;
+    const context = memoryContext();
+    const basePrompt = fillPrompt(template.template, data);
+    const content = redactText(context ? `${context}\n\n---\n\n${basePrompt}` : basePrompt);
     state.lastPrompt = content;
     state.prompts.unshift({
       id: uid('prompt'),
@@ -949,7 +1282,7 @@ function onSubmit(event) {
   }
 
   if (form.dataset.form === 'memory') {
-    state.memories.unshift({
+    state.memories.unshift(redactDeep({
       id: uid('memory'),
       type: data.type || 'knowledge',
       title: data.title || '未命名记忆',
@@ -964,7 +1297,7 @@ function onSubmit(event) {
       modelScope: data.modelScope || 'all',
       lastUsedAt: nowIso(),
       createdAt: nowIso(),
-    });
+    }));
     saveState();
     render();
     toast('记忆已新增');
@@ -982,7 +1315,8 @@ function onSubmit(event) {
       maxMemoryChars: Number(data.maxMemoryChars || 8000),
       defaultProjectPath: data.defaultProjectPath || '',
     };
-    setTheme(data.theme || state.theme);
+    setLanguage(data.language || state.language);
+    setTheme(data.preferenceTheme || data.theme || state.theme);
     saveState();
     render();
     toast('设置已保存');
@@ -1017,6 +1351,18 @@ function onClick(event) {
     return;
   }
 
+  if (target.dataset.archiveMemory) {
+    const memory = state.memories.find((item) => item.id === target.dataset.archiveMemory);
+    if (memory) {
+      memory.status = memory.status === 'archived' ? 'active' : 'archived';
+      memory.updatedAt = nowIso();
+      saveState();
+      render();
+      toast(memory.status === 'archived' ? '记忆已归档' : '记忆已恢复');
+    }
+    return;
+  }
+
   if (target.dataset.copyProjectPrompt !== undefined) copyText(projectPrompt(selectedProject()), '项目 Prompt');
   if (target.dataset.copyLastPrompt !== undefined) copyText(state.lastPrompt || '', '生成结果');
   if (target.dataset.copyFixPrompt !== undefined) copyText(state.lastLogAnalysis?.prompt || '', '修复提示词');
@@ -1026,13 +1372,22 @@ function onClick(event) {
     copyText(prompt?.content || '', 'Prompt');
   }
 
-  if (target.dataset.action === 'toggle-theme') {
-    setTheme(state.theme === 'dark' ? 'light' : 'dark');
+  if (target.dataset.action === 'toggle-language') {
+    setLanguage(state.language === 'zh' ? 'en' : 'zh');
     render();
+    return;
+  }
+
+  if (target.dataset.action === 'cycle-theme' || target.dataset.action === 'toggle-theme') {
+    const cycle = ['system', 'light', 'dark'];
+    const index = cycle.indexOf(state.theme);
+    setTheme(cycle[(index + 1) % cycle.length]);
+    render();
+    return;
   }
 
   if (target.dataset.action === 'export-data') {
-    copyText(JSON.stringify(state, null, 2), '导出数据');
+    copyText(JSON.stringify(redactDeep(state), null, 2), '导出数据');
   }
 
   if (target.dataset.action === 'clear-data') {
@@ -1055,5 +1410,10 @@ function onClick(event) {
 
 document.addEventListener('submit', onSubmit);
 document.addEventListener('click', onClick);
-setTheme(state.theme || 'light');
+document.addEventListener('input', onInput);
+window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change', () => {
+  if (state.theme === 'system') render();
+});
+setLanguage(state.language || 'zh');
+setTheme(state.theme || 'system');
 render();

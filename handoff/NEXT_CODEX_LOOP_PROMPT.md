@@ -11,7 +11,7 @@ Read first:
 - `handoff/CODEX_HANDOFF.md`
 - `.codex-parallel/PARALLEL_SUMMARY.md`
 
-Important: old `.codex-parallel` results were archived to `handoff\archived-agents\run-20260508-125051`. Do not use the archived reports as current PASS evidence.
+Important: archived reports under `handoff\archived-agents\run-20260508-125051` and `handoff\archived-agents\run-20260508-173352` are historical only. Do not use archived results as current PASS evidence.
 
 ## Current Verified Deliverable
 
@@ -36,9 +36,7 @@ The static app is in:
 D:\AgentFlowStudio\static-app
 ```
 
-It is Chinese-first and covers 仪表盘、项目管理、项目详情、提示词实验室、日志分析、安全检查、共享记忆中心、设置.
-
-The high-frequency React UI has also been localized in the main shell, TaskBoard, Charts, Dashboard, Projects, SharedMemoryHub, Settings, and Skills. Remaining English should be limited to allowed product/technical terms or future deep polish.
+It now covers bilingual language switching, light/dark/system theme preferences, Shared Memory Prompt injection, recursive redaction, route fallback errors, and expanded static QA.
 
 ## Verified In Latest Loop
 
@@ -47,18 +45,32 @@ Run evidence from 2026-05-08:
 ```bat
 npm.cmd run icon
 npm.cmd run smoke
+npm.cmd run typecheck
 npm.cmd run test:launch-static
 npm.cmd run shortcut
 ```
 
-`test:launch-static` and `shortcut` required running outside the sandbox because the sandbox can block child process spawn and Desktop writes. Real bat launch was also verified: `cmd /k start-agentflow-static.bat` stayed open after 15 seconds, wrote `logs\launcher-static.log` and `logs\static-server.log`, and `http://127.0.0.1:4173` returned HTTP 200 with the required Chinese keywords.
+Real bat launch was verified:
+
+```bat
+cmd /k start-agentflow-static.bat
+```
+
+After 15 seconds, logs existed and `http://127.0.0.1:4173` returned HTTP 200.
+
+## Known Environment Limits
+
+- `npm.cmd run test` fails at Vite/Vitest esbuild `spawn EPERM`.
+- `npm.cmd run build` fails at Vite esbuild `spawn EPERM`.
+- Playwright Chromium is not installed in this environment.
+
+Do not treat these as Static fallback blockers.
 
 ## Recommended Next Work
 
-1. Continue low-frequency React localization polish beyond the already-localized high-frequency UI.
-2. Retry `npm.cmd run test`, `npm.cmd run build`, and `npm.cmd run dev` in a normal unrestricted Windows shell.
-3. Keep the shortcut pointed at Static fallback until Electron/Vite are truly verified.
-4. Add route-level ErrorBoundary.
-5. Harden Shared Memory Hub redaction and context generation.
+1. Retry Electron/Vite/Vitest in a normal unrestricted Windows shell.
+2. Install Playwright browsers and add click-level E2E for language/theme/Shared Memory injection.
+3. Continue low-frequency React route copy polish.
+4. Keep shortcut pointed at Static fallback until Electron/Vite are truly verified.
 
 Do not rebuild from scratch. Do not remove Shared Memory Hub. Use `npm.cmd`, not `npm`, from PowerShell.

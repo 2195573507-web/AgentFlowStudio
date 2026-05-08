@@ -536,24 +536,24 @@ export default function SharedMemoryHub() {
   const handleGenerateContext = async () => {
     setGeneratingContext(true);
     try {
-      let context = '';
-      if (typeof generateSharedMemoryContext === 'function') {
-        context = await generateSharedMemoryContext(undefined, contextInjectionMode);
-      } else {
-        // Fallback: build context from active memories
-        const activeMemories = memories.filter((m) => m.status === 'active');
-        const sortedMemories = [...activeMemories].sort((a, b) => b.importance - a.importance);
-        const modeLimits: Partial<Record<MemoryInjectionMode, number>> = { minimal: 2, balanced: 5, full: 20 };
-        const limit = modeLimits[contextInjectionMode] || 5;
+      const activeMemories = memories.filter((m) => m.status === 'active');
+      const context = generateSharedMemoryContext(activeMemories, contextInjectionMode);
+      const projectName = projectFilter !== 'all'
+        ? projects.find((project) => project.id === projectFilter)?.name ?? projectFilter
+        : 'AgentFlow Studio';
+      const recoveryPrompt = `# AgentFlow Studio 跨模型恢复上下文 Prompt
 
-        const contextParts = sortedMemories.slice(0, limit).map((m) =>
-          `### [${MEMORY_TYPE_LABELS[m.type] ?? m.type}] ${m.title}\n${m.content}\n标签：${(m.tags || []).join(', ')}`
-        );
-        context = `# 共享记忆上下文 Prompt (${INJECTION_MODE_LABELS[contextInjectionMode]})\n\n${contextParts.join('\n\n')}`;
-      }
+项目名：${projectName}
+当前方案：Static fallback
+可用启动方式：D:\\AgentFlowStudio\\start-agentflow-static.bat
+已知限制：Electron / Vite / Vitest 在当前环境可能受 esbuild EPERM 限制。
+下一步：继续维护 Static fallback 稳定性，并逐步恢复 Electron 验证。
 
-      setGeneratedContext(context);
-    } catch {
+${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n- 已做决策：\\n  - 暂无记录\\n- 当前进度：\\n  - 暂无记录\\n- 已知问题：\\n  - 暂无记录\\n- 用户偏好：\\n  - 暂无记录\\n- API Provider 注意事项：\\n  - 暂无记录\\n[/Shared Memory Context]'}`;
+
+      setGeneratedContext(recoveryPrompt);
+    } catch (err) {
+      console.error('Generate memory context failed:', err);
       setGeneratedContext('# 生成上下文失败\n\n请稍后重试。');
     } finally {
       setGeneratingContext(false);

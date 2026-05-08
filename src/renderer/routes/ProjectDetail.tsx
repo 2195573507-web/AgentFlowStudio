@@ -393,21 +393,22 @@ export default function ProjectDetail() {
 
     if (injectionMode !== 'off') {
       try {
-        let context = '';
-        if (api && typeof generateSharedMemoryContext === 'function') {
-          context = await generateSharedMemoryContext(project?.id, injectionMode);
-        }
+        const scopedMemories = memories.filter(
+          (memory) => !project?.id || memory.projectId === project.id || !memory.projectId,
+        );
+        const context = generateSharedMemoryContext(scopedMemories, injectionMode);
         for (const key of Object.keys(prompts)) {
-          const injected = await injectMemoryIntoPrompt(prompts[key], context, injectionMode);
+          const injected = injectMemoryIntoPrompt(prompts[key], context, injectionMode);
           prompts[key] = injected;
         }
-      } catch {
+      } catch (err) {
+        console.error('Project prompt memory injection failed:', err);
         // If memory injection fails, use original prompts
       }
     }
 
     setGeneratedPrompt(prompts);
-  }, [plan, injectionMode, project?.id]);
+  }, [plan, injectionMode, project?.id, memories]);
 
   // ── Copy to clipboard ──────────────────────────────────────────────────
   const handleCopy = async (text: string, key: string) => {

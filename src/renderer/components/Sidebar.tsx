@@ -16,23 +16,26 @@ import {
   PanelLeftOpen,
 } from 'lucide-react';
 import { classNames } from '../lib/utils';
+import type { Language } from '../lib/i18n';
+import { t } from '../lib/i18n';
 
 export interface NavItem {
   to: string;
   icon: React.FC<{ className?: string }>;
   label: string;
+  labelKey: string;
 }
 
 const navItems: NavItem[] = [
-  { to: '/', icon: LayoutDashboard, label: '仪表盘' },
-  { to: '/projects', icon: FolderKanban, label: '项目管理' },
-  { to: '/prompts', icon: Wand2, label: '提示词实验室' },
-  { to: '/logs', icon: FileSearch, label: '日志分析' },
-  { to: '/git', icon: GitBranch, label: 'Git 时间线' },
-  { to: '/safety', icon: Shield, label: '安全检查' },
-  { to: '/memory', icon: Brain, label: '共享记忆中心' },
-  { to: '/skills', icon: Puzzle, label: '技能管理' },
-  { to: '/settings', icon: Settings, label: '设置' },
+  { to: '/', icon: LayoutDashboard, label: '仪表盘', labelKey: 'nav.dashboard' },
+  { to: '/projects', icon: FolderKanban, label: '项目管理', labelKey: 'nav.projects' },
+  { to: '/prompts', icon: Wand2, label: '提示词实验室', labelKey: 'nav.promptLab' },
+  { to: '/logs', icon: FileSearch, label: '日志分析', labelKey: 'nav.logAnalyzer' },
+  { to: '/git', icon: GitBranch, label: 'Git 时间线', labelKey: 'nav.gitTimeline' },
+  { to: '/safety', icon: Shield, label: '安全检查', labelKey: 'nav.safetyBox' },
+  { to: '/memory', icon: Brain, label: '共享记忆中心', labelKey: 'nav.sharedMemory' },
+  { to: '/skills', icon: Puzzle, label: '技能管理', labelKey: 'nav.skills' },
+  { to: '/settings', icon: Settings, label: '设置', labelKey: 'nav.settings' },
 ];
 
 export interface SidebarProps {
@@ -40,9 +43,10 @@ export interface SidebarProps {
   collapsed: boolean;
   /** Called to toggle collapsed state. */
   onToggleCollapse: () => void;
+  language?: Language;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse }) => {
+const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, language = 'zh' }) => {
   const location = useLocation();
 
   return (
@@ -84,6 +88,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse }) => {
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1">
         {navItems.map((item) => {
           const Icon = item.icon;
+          const label = t(item.labelKey, language);
           const isActive =
             item.to === '/'
               ? location.pathname === '/'
@@ -102,7 +107,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse }) => {
                   ? 'bg-accent-500/15 text-accent-600 dark:text-accent-400 shadow-sm'
                   : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-white/5 hover:text-slate-700 dark:hover:text-slate-200',
               )}
-              title={collapsed ? item.label : undefined}
+              title={collapsed ? label : undefined}
             >
               <Icon
                 className={classNames(
@@ -110,7 +115,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse }) => {
                   isActive && 'scale-110',
                 )}
               />
-              {!collapsed && <span className="truncate">{item.label}</span>}
+              {!collapsed && <span className="truncate">{label}</span>}
             </NavLink>
           );
         })}

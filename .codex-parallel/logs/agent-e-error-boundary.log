@@ -1,0 +1,22 @@
+# Agent E - Route-level ErrorBoundary Log
+
+Status: complete
+
+Subagent: Raman.
+
+Findings:
+
+- Static `render()` directly assigned `#app.innerHTML` without try/catch.
+- React routes were wrapped only in `Suspense`; lazy import/render failures could white-screen a route.
+- `src\renderer\components\ErrorBoundary.tsx` did not exist.
+
+Implemented:
+
+- Added React `ErrorBoundary` with `getDerivedStateFromError`, `componentDidCatch`, localized fallback, Retry, and Back to Dashboard.
+- Wrapped all major routes in `App.tsx` with route-level ErrorBoundary.
+- Static `render()` now catches render errors, logs `console.error('Static render error')`, and renders localized fallback with 查看日志/View logs and 返回仪表盘/Back to Dashboard.
+
+Verification:
+
+- `npm.cmd run smoke`: PASS and checks ErrorBoundary/fallback markers.
+- `npm.cmd run typecheck`: PASS.

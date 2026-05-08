@@ -2,6 +2,8 @@
 
 ## Latest State - 2026-05-08
 
+Baseline commit: `cec7dfb fix: stabilize localized static launcher`
+
 Current deliverable: **Static fallback / 静态可交付模式**.
 
 Use:
@@ -19,64 +21,55 @@ WorkingDirectory: D:\AgentFlowStudio
 IconLocation: D:\AgentFlowStudio\assets\icon.ico,0
 ```
 
-## What Changed In The Latest Loop
+## Current Agent Workspace
 
-- Old `.codex-parallel` was archived to `handoff\archived-agents\run-20260508-125051`.
-- Clean `.codex-parallel\logs` was recreated.
-- Seven fresh roles checked launcher crash, static server, shortcut, fallback app, Chinese localization, runtime smoke, and reporting. Agent G was completed by the main thread due subagent limit.
-- A real Static fallback app was created under `static-app`.
-- `start-agentflow-static.bat` was rewritten with an ASCII-safe batch skeleton so Windows cmd no longer mis-parses Chinese text or redirection; Chinese console prompts are printed through `scripts\launcher-message.ps1`.
-- `scripts\static-server.js` now serves `static-app` first, includes `static-app/dist` fallback, logs to `logs\static-server.log`, retries ports 4173-4177, catches fatal errors, supports SPA fallback, and opens the browser.
-- `scripts\launch-static-test.js` and `npm.cmd run test:launch-static` were added.
-- Desktop shortcut creation now targets `start-agentflow-static.bat` directly.
+- Previous parallel workspace archived to `handoff\archived-agents\run-20260508-173352`.
+- Older archive `handoff\archived-agents\run-20260508-125051` remains historical.
+- Current summary: `.codex-parallel\PARALLEL_SUMMARY.md`.
+- Current logs: `.codex-parallel\logs\agent-a-regression-guard.log` through `agent-g-reporter.log`.
 
 ## Verified
 
 - `npm.cmd run icon`: PASS.
-- `npm.cmd run smoke`: PASS, 64/64.
-- `npm.cmd run test:launch-static`: PASS outside sandbox.
-- `npm.cmd run shortcut`: PASS outside sandbox.
+- `npm.cmd run smoke`: PASS, 106/106.
+- `npm.cmd run typecheck`: PASS.
+- `npm.cmd run test:launch-static`: PASS.
+- `npm.cmd run shortcut`: PASS.
 - PowerShell COM shortcut verification: PASS.
-- Real bat launch: PASS; cmd stayed open after 15 seconds.
-- Real HTTP: `http://127.0.0.1:4173` returned 200 and included `AgentFlow Studio`, `仪表盘`, `项目管理`, `提示词实验室`, `日志分析`, `安全检查`, `共享记忆中心`, `设置`.
+- Real bat launch: PASS after 15 seconds.
+- Real HTTP: `http://127.0.0.1:4173` returned 200 and included `AgentFlow Studio`, `仪表盘`, `项目管理`, `提示词实验室`, `共享记忆中心`, `设置`, `Dashboard`, and `Interface Preferences`.
+
+## What Is Now Hardened
+
+- Default UI is Chinese-first.
+- Topbar language toggle switches Chinese / English and persists `agentflow.language`.
+- Topbar theme toggle cycles system / light / dark and persists `agentflow.theme`.
+- Settings has `界面偏好 / Interface Preferences`.
+- Prompt Lab can inject Shared Memory Context using `off`, `minimal`, `balanced`, or `full`.
+- Shared Memory recovery Prompt can be generated and copied.
+- API key/token/password/secret fields are recursively redacted with `[REDACTED]`.
+- Page render errors do not white-screen the entire app.
 
 ## Why Static Fallback Is Current
 
-Electron, Vite build, and Vitest are still not the active deliverable because previous runs hit esbuild `spawn EPERM` in this environment. The current user issue is launcher usability, so the stable path is pure Node + static files:
+Electron, Vite build, and Vitest are not the active deliverable because this environment hits esbuild `spawn EPERM`. The stable path is pure Node + static files:
 
 ```text
 start-agentflow-static.bat -> node scripts/static-server.js -> static-app
 ```
 
-## Static App Scope
-
-The Static fallback is Chinese-first and supports:
-
-- 仪表盘 / 项目总控台
-- 项目管理
-- 项目详情
-- 提示词实验室
-- 日志分析
-- 安全检查
-- 共享记忆中心
-- 设置
-- localStorage persistence
-- New project, new memory, Prompt generation, log analysis, risk check, and cross-model recovery Prompt generation
-
-Allowed English terms remain as names only: AgentFlow Studio, Codex, Claude Code, Cursor, API, Prompt, Git, Shared Memory Hub, localStorage, Static fallback.
-
 ## Important Constraints
 
 - Do not rebuild from scratch.
 - Do not remove Shared Memory Hub.
-- Do not switch the shortcut away from Static fallback until Electron/Vite are truly verified in a normal Windows shell.
+- Do not remove `static-app`, `start-agentflow-static.bat`, `scripts\static-server.js`, or `assets\icon.ico`.
+- Do not switch the shortcut away from Static fallback until Electron/Vite are truly verified.
 - Use `npm.cmd`, not `npm`, from PowerShell.
-- Treat old `.codex-parallel` reports as historical only.
+- Treat old archived agent reports as historical only.
 
 ## Next Best Work
 
-1. Finish full React route localization beyond the Static fallback.
-2. Retry `npm.cmd run test`, `npm.cmd run build`, and `npm.cmd run dev` in a normal unrestricted Windows terminal.
-3. If Electron passes, decide with the user whether to switch shortcut priority back to packaged Electron.
-4. Add route-level ErrorBoundary.
-5. Harden main-process Shared Memory redaction and context generation.
+1. Retry `npm.cmd run test`, `npm.cmd run build`, and `npm.cmd run dev` in a normal unrestricted Windows terminal.
+2. Install Playwright browsers and add real click E2E for language/theme/memory injection.
+3. Continue low-frequency React localization polish.
+4. If Electron passes, ask before switching shortcut priority away from Static fallback.

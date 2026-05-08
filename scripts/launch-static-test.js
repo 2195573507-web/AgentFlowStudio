@@ -10,15 +10,32 @@ const requiredFiles = [
   'start-agentflow-static.bat',
   'scripts/static-server.js',
   'static-app/index.html',
+  'static-app/app.js',
+  'static-app/styles.css',
 ]
 const requiredKeywords = [
   '仪表盘',
   '项目管理',
+  '项目详情',
   '提示词实验室',
   '日志分析',
   '安全检查',
   '共享记忆中心',
   '设置',
+]
+const requiredEnglishKeywords = [
+  'Dashboard',
+  'Projects',
+  'Project Detail',
+  'Prompt Lab',
+  'Log Analyzer',
+  'SafetyBox',
+  'Shared Memory Hub',
+  'Settings',
+  'Interface Preferences',
+  'Light',
+  'Dark',
+  'System',
 ]
 const serverLogPath = path.join(root, 'logs', 'static-server.log')
 
@@ -135,6 +152,36 @@ async function main() {
       process.exit(1)
     }
     pass(`HTML 包含中文关键词：${keyword}`)
+  }
+
+  for (const keyword of requiredEnglishKeywords) {
+    if (!response.body.includes(keyword)) {
+      fail(`HTML 未包含英文关键词：${keyword}`)
+      process.exit(1)
+    }
+    pass(`HTML 包含英文关键词：${keyword}`)
+  }
+
+  const appSource = fs.readFileSync(path.join(root, 'static-app', 'app.js'), 'utf8')
+  const cssSource = fs.readFileSync(path.join(root, 'static-app', 'styles.css'), 'utf8')
+  const staticSource = `${response.body}\n${appSource}\n${cssSource}`
+  for (const marker of [
+    'agentflow.language',
+    'agentflow.theme',
+    'const translations',
+    '[Shared Memory Context]',
+    '[/Shared Memory Context]',
+    'Inject Shared Memory',
+    '[REDACTED]',
+    'Static render error',
+    '[data-theme="dark"]',
+    'prefers-color-scheme',
+  ]) {
+    if (!staticSource.includes(marker)) {
+      fail(`静态源码未包含关键标记：${marker}`)
+      process.exit(1)
+    }
+    pass(`静态源码包含关键标记：${marker}`)
   }
 
   await wait(5000)

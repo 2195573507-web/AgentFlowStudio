@@ -1,38 +1,41 @@
-# AgentFlow Studio Localized Static Launcher Repair Plan
+# AgentFlow Studio Static Quality Pass Plan
 
 ## Goal
 
-Make `D:\AgentFlowStudio` double-click launch reliably through a localized Static fallback app, independent of Vite/Electron/esbuild, and verify it with real HTTP, launcher, shortcut, and documentation updates.
+Starting from baseline commit `cec7dfb`, preserve the working Static fallback while hardening language switching, theme preferences, Shared Memory prompt injection, recursive secret redaction, route error handling, tests, and handoff docs.
 
 ## Current Session Phases
 
 | Phase | Status | Notes |
 |---|---|---|
-| 1. Reset stale parallel agents | complete | Old `.codex-parallel` archived to `handoff\archived-agents\run-20260508-125051`; clean `.codex-parallel\logs` created. |
-| 2. Start new parallel checks | complete | Agents A-F completed; Agent G reporter work handled in main thread due subagent limit. |
-| 3. Repair static launcher/server | complete | Launcher now runs Node directly; server is pure Node HTTP with logging, fallback root selection, port retry, browser open, and exception capture. |
-| 4. Build Chinese static fallback app | complete | `static-app/index.html`, `app.js`, `styles.css`, and `assets/icon.svg` created with localStorage-backed workflows. |
-| 5. Fix desktop shortcut and icon flow | complete | Shortcut targets `start-agentflow-static.bat`; icon regenerated and verified. |
-| 6. Runtime verification | complete | `icon`, `smoke`, `test:launch-static`, `shortcut`, COM verification, real bat launch, and HTTP checks passed. |
-| 7. Handoff and commit | complete | Handoff docs and parallel summary updated; this repair is ready for git commit. |
+| 1. Prepare fresh agent workspace | complete | Archived old `.codex-parallel`, recreated A-G task/log files, and kept historical archived agent runs untouched. |
+| 2. Agent A regression gate | complete | Required commands, COM shortcut, and real launcher HTTP checks passed; sandbox-only failures were rerun with approval. |
+| 3. Parallel enhancement agents | complete | Six true subagents B-G completed read-only audits; Agent A was executed in the main thread. |
+| 4. Integrate implementation | complete | Static fallback and React paths were updated without rebuilding or replacing the project. |
+| 5. Final verification | complete | Required commands and real launcher HTTP checks passed; test/build remain blocked by esbuild EPERM. |
+| 6. Handoff and commit | in_progress | Handoff files and `.codex-parallel\PARALLEL_SUMMARY.md` updated; commit is next. |
 
 ## Acceptance Checklist
 
-- Clean `.codex-parallel` with new logs: complete.
-- `start-agentflow-static.bat` does not flash-close and logs to `logs\launcher-static.log`: complete.
-- `scripts\static-server.js` is pure Node HTTP, logs, falls back to `static-app`, switches ports, opens browser, and stays alive: complete.
-- `static-app` exists, is Chinese-first, and exposes core AgentFlow Studio workflows: complete.
-- Desktop shortcut exists and targets `D:\AgentFlowStudio\start-agentflow-static.bat`: complete.
-- `npm.cmd run test:launch-static` passes: complete outside sandbox.
-- Real HTTP response is 200 and includes AgentFlow Studio plus Chinese navigation keywords: complete.
-- Handoff docs and `.codex-parallel\PARALLEL_SUMMARY.md` reflect this session: complete.
-- Git commit exists for this repair: complete.
+- Static fallback files remain present: `start-agentflow-static.bat`, `scripts\static-server.js`, `static-app`, `assets\icon.ico`.
+- Desktop shortcut remains present and points to `D:\AgentFlowStudio\start-agentflow-static.bat`.
+- `npm.cmd run icon`, `smoke`, `typecheck`, `test:launch-static`, and `shortcut` pass.
+- Real `cmd /k start-agentflow-static.bat` launch returns HTTP 200 and includes required Chinese navigation keywords.
+- Default UI is Chinese, with topbar Chinese/English switch and topbar light/dark/system theme switch.
+- Settings contains Interface Preferences in both languages and persists `agentflow.language` and `agentflow.theme`.
+- Shared Memory Hub can create/search/archive memories and generate a recovery context prompt.
+- Prompt Lab can inject `[Shared Memory Context]` using off/minimal/balanced/full modes.
+- Recursive secret redaction covers strings, arrays, objects, nesting, circular references, memory save/export/injection, and API key display.
+- Page render errors show a route-level fallback rather than white-screening the app.
+- Smoke and launch-static tests cover this quality pass.
+- Handoff docs and A-G logs are updated.
+- Git contains at least one commit for this round.
 
 ## Errors Encountered
 
-| Error | Resolution |
-|---|---|
-| Previous static launcher opened browser before server and delegated to npm script. | Replaced with direct `node scripts\static-server.js` and pause-on-exit behavior. |
-| Old static server exited when `dist` was missing. | Made `static-app` first serving root and added auto fallback generation. |
-| UTF-8 Chinese batch control text broke in Windows cmd. | Rewrote `start-agentflow-static.bat` with an ASCII-safe command skeleton and kept Chinese UI/logging in Node/static app. |
-| Subagent thread limit blocked Agent G. | Main thread completed reporter role and wrote `.codex-parallel\logs\agent-g-reporter.md`. |
+| Error | Attempt | Resolution |
+|---|---|---|
+| `git switch -c codex-static-quality-pass` failed with `.git` ref lock permission denied under sandbox. | Branch creation | Re-ran with approved escalation and created the branch successfully. |
+| `npm.cmd run test` failed at Vite/Vitest config load with esbuild `spawn EPERM`. | Post-change optional verification | Recorded as environment limitation; Static fallback verification is not blocked. |
+| `npm.cmd run build` failed at Vite config load with esbuild `spawn EPERM`. | Post-change optional verification | Recorded as environment limitation; Static fallback verification is not blocked. |
+| Playwright Chromium executable was missing. | Browser click check | Recorded as environment limitation; HTTP, launch-static, and Node VM static checks were used instead. |

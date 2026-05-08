@@ -1,4 +1,13 @@
 :root {
+  color-scheme: light dark;
+  --radius: 8px;
+  font-family:
+    Inter, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", system-ui,
+    -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+:root,
+[data-theme="light"] {
   color-scheme: light;
   --bg: #f4f7fb;
   --bg-soft: #e9eef7;
@@ -15,9 +24,6 @@
   --ok: #047857;
   --shadow: 0 18px 55px rgba(34, 45, 71, 0.14);
   --radius: 8px;
-  font-family:
-    Inter, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", system-ui,
-    -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 [data-theme="dark"] {
@@ -36,6 +42,27 @@
   --warning: #f7bd5b;
   --ok: #49d49d;
   --shadow: 0 18px 55px rgba(0, 0, 0, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]),
+  :root[data-theme-preference="system"] {
+    color-scheme: dark;
+    --bg: #10141d;
+    --bg-soft: #171e2b;
+    --panel: rgba(25, 32, 46, 0.82);
+    --panel-strong: rgba(30, 39, 56, 0.94);
+    --line: rgba(255, 255, 255, 0.11);
+    --text: #eff4ff;
+    --muted: #a6b0c1;
+    --subtle: #778295;
+    --accent: #6aa2ff;
+    --accent-2: #38d8c3;
+    --danger: #ff7b7b;
+    --warning: #f7bd5b;
+    --ok: #49d49d;
+    --shadow: 0 18px 55px rgba(0, 0, 0, 0.3);
+  }
 }
 
 * {
@@ -268,6 +295,15 @@ button {
 
 .panel {
   padding: 18px;
+}
+
+.compact-panel {
+  box-shadow: none;
+  background: rgba(255, 255, 255, 0.34);
+}
+
+[data-theme="dark"] .compact-panel {
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .stat-card {
@@ -559,6 +595,13 @@ button {
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
   color: var(--text);
+}
+
+.route-error {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
 }
 
 .mobile-menu {

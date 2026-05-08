@@ -1,0 +1,21 @@
+# Agent F - Static QA Log
+
+Status: complete
+
+Subagent: Helmholtz.
+
+Findings:
+
+- Previous smoke had 64 checks and did not cover language/theme keys, English keywords, canonical memory markers, redaction, or error fallback.
+- Launch test verified HTTP and Chinese keywords only.
+
+Implemented:
+
+- Expanded `scripts\smoke-test.js` to 106 checks.
+- Added static assertions for `agentflow.language`, `agentflow.theme`, translations, zh/en, `t(key)`, `data-theme`, `[data-theme="light"]`, `[data-theme="dark"]`, `prefers-color-scheme`, Shared Memory injection, redaction rules, and error fallback.
+- Expanded `scripts\launch-static-test.js` to verify static files, Chinese and English keywords, memory markers, redaction marker, and theme markers.
+
+Verification:
+
+- `npm.cmd run smoke`: PASS, 106/106.
+- `npm.cmd run test:launch-static`: PASS.

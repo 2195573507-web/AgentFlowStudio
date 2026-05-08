@@ -1,24 +1,20 @@
-# AgentFlow Studio Localized Static Launcher Repair Progress
+# AgentFlow Studio Static Quality Pass Progress
 
 ## 2026-05-08
 
-- Read `AGENTS.md`, root planning files, `README.md`, `package.json`, launch scripts, static server, shortcut script, smoke script, and handoff report structure.
-- Archived stale `.codex-parallel` to `handoff\archived-agents\run-20260508-125051`.
-- Recreated clean `.codex-parallel` and `.codex-parallel\logs`.
-- Launched new subagents A-F for launcher, static server, shortcut, fallback app, localization, and runtime smoke checks.
-- Agent G could not spawn because the thread limit was reached; main thread completed reporter work and wrote `.codex-parallel\logs\agent-g-reporter.md`.
-- Confirmed the old `start-agentflow-static.bat` depended on npm and could exit or parse badly in double-click scenarios.
-- Rewrote `start-agentflow-static.bat` as an ASCII-safe batch launcher that writes `logs\launcher-static.log`, checks Node, runs `node scripts\static-server.js`, and pauses if the server exits.
-- Hardened `scripts\static-server.js` with `static-app` priority, fallback generation, 4173-4177 retry, browser open, SPA fallback, MIME types, logging, `uncaughtException`, and `unhandledRejection` handling.
-- Created `static-app/index.html`, `static-app/app.js`, `static-app/styles.css`, and `static-app/assets/icon.svg`.
-- Added `scripts\launch-static-test.js` and `test:launch-static`.
-- Updated `scripts\create-shortcut.ps1` to point the Desktop shortcut directly at `D:\AgentFlowStudio\start-agentflow-static.bat`.
-- Localized React shell navigation, Topbar loading/title, and PromptPreview high-frequency labels.
-- Ran `npm.cmd run icon`: PASS.
-- Ran `npm.cmd run smoke`: PASS, 64/64.
-- Ran `npm.cmd run test:launch-static`: PASS outside sandbox.
-- Ran `npm.cmd run shortcut`: PASS outside sandbox.
-- Verified Desktop shortcut with PowerShell COM: target, working directory, and icon are correct.
-- Verified real launcher: `cmd /k start-agentflow-static.bat` stayed open after 15 seconds, wrote logs, and started `node scripts\static-server.js`.
-- Verified HTTP: `http://127.0.0.1:4173` returned 200 and included AgentFlow Studio plus required Chinese keywords.
-- Updated handoff docs and `.codex-parallel\PARALLEL_SUMMARY.md`.
+- Read `AGENTS.md`, existing planning files, and `package.json`.
+- Confirmed baseline HEAD is `cec7dfb fix: stabilize localized static launcher`.
+- Confirmed initial worktree was clean on `codex-stability-loop`.
+- Created and switched to branch `codex-static-quality-pass` after sandboxed branch creation hit a git ref lock permission error.
+- Archived existing `.codex-parallel` to `handoff\archived-agents\run-20260508-173352`.
+- Recreated `.codex-parallel`, `.codex-parallel\logs`, and `.codex-parallel\tasks`.
+- Agent A regression gate passed for static launcher integrity: `icon`, `smoke`, `typecheck`, approved `test:launch-static`, approved `shortcut`, COM shortcut check, and real `cmd /k` launch HTTP 200 at `127.0.0.1:4173`.
+- Spawned six true subagents for B-G and integrated their audit results.
+- Implemented bilingual language/theme hardening in Static fallback and React helper paths.
+- Implemented Shared Memory injection fixes, recovery prompt updates, static memory search/archive, and canonical `[Shared Memory Context]` markers.
+- Implemented recursive key-aware secret redaction and wired it into memory storage/export/injection paths.
+- Added Static render fallback and React route-level ErrorBoundary.
+- Expanded `scripts\smoke-test.js` to 106 checks and expanded `scripts\launch-static-test.js` to cover bilingual/static markers.
+- Final required verification passed: `npm.cmd run icon`, `npm.cmd run smoke`, `npm.cmd run typecheck`, `npm.cmd run test:launch-static`, `npm.cmd run shortcut`, shortcut COM check, and real launcher HTTP 200.
+- Optional `npm.cmd run test` and `npm.cmd run build` remain blocked by esbuild `spawn EPERM`.
+- Handoff docs and `.codex-parallel\PARALLEL_SUMMARY.md` updated.

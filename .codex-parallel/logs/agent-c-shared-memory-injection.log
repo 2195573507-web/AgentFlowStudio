@@ -1,0 +1,27 @@
+# Agent C - Shared Memory Injection Log
+
+Status: complete
+
+Subagent: Ohm.
+
+Findings:
+
+- React Shared Memory Hub could create/search/archive, but generation passed `undefined` into `generateSharedMemoryContext`.
+- React Prompt Lab had a separate toggle and no real stored-memory array in automatic injection.
+- Static Prompt Lab lacked `off` mode and always prefixed memory context.
+- Static Shared Memory lacked search and archive/restore actions.
+
+Implemented:
+
+- Prompt Lab now uses one off/minimal/balanced/full option set with localized labels.
+- React Prompt Lab loads memories and injects a real memory array.
+- Project Detail injects project-scoped memory arrays instead of a project id string.
+- SharedMemoryHub recovery prompt now includes project name, current scheme, launch method, known limitation, next step, and canonical context.
+- Static Shared Memory adds search and archive/restore.
+- Static Prompt Lab supports `off`, `minimal`, `balanced`, and `full`.
+- Context marker is canonical `[Shared Memory Context] ... [/Shared Memory Context]`.
+
+Verification:
+
+- `npm.cmd run smoke`: PASS.
+- `npm.cmd run test:launch-static`: PASS.

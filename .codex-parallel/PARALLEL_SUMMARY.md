@@ -1,62 +1,53 @@
-# Parallel Summary - Localized Static Launcher Repair
+# AgentFlow Studio Static Quality Pass - Parallel Summary
 
-## Run
+Baseline commit: `cec7dfb fix: stabilize localized static launcher`
 
-- Date: 2026-05-08
-- Workspace: `D:\AgentFlowStudio`
-- Old agent data: archived to `handoff\archived-agents\run-20260508-125051`
-- Current logs: `.codex-parallel\logs`
+Branch: `codex-static-quality-pass`
+
+## Current Usable Scheme
+
+Static fallback remains the active usable solution:
+
+- Launcher: `D:\AgentFlowStudio\start-agentflow-static.bat`
+- Static server: `D:\AgentFlowStudio\scripts\static-server.js`
+- Static app: `D:\AgentFlowStudio\static-app`
+- Desktop shortcut: `C:\Users\至亲\Desktop\AgentFlow Studio.lnk`
+
+Shortcut COM verification still reports:
+
+- TargetPath: `D:\AgentFlowStudio\start-agentflow-static.bat`
+- WorkingDirectory: `D:\AgentFlowStudio`
+- IconLocation: `D:\AgentFlowStudio\assets\icon.ico,0`
 
 ## Agents
 
-| Agent | Status | Log |
-|---|---:|---|
-| Agent A - Launcher Crash Doctor | Complete | `.codex-parallel\logs\agent-a-launcher-crash-doctor.md` |
-| Agent B - Static Server Engineer | Complete | `.codex-parallel\logs\agent-b-static-server-engineer.md` |
-| Agent C - Shortcut Engineer | Complete | `.codex-parallel\logs\agent-c-shortcut-engineer.md` |
-| Agent D - Fallback App Builder | Complete | `.codex-parallel\logs\agent-d-fallback-app-builder.md` |
-| Agent E - Chinese Localization Engineer | Complete | `.codex-parallel\logs\agent-e-chinese-localization.md` |
-| Agent F - Runtime Smoke Tester | Complete | `.codex-parallel\logs\agent-f-runtime-smoke-tester.md` |
-| Agent G - Reporter | Complete in main thread | `.codex-parallel\logs\agent-g-reporter.md` |
-
-## Fresh Findings
-
-- The old static launcher depended on `npm.cmd run fallback:static` and could fail in double-click/PATH/cmd parsing scenarios.
-- A UTF-8 Chinese batch rewrite was unsafe in the user's cmd path and produced parsed command fragments such as `errorlevel`, `for /f`, and redirection text being treated as commands.
-- The final `start-agentflow-static.bat` uses an ASCII-safe batch control skeleton, prints Chinese prompts through `scripts\launcher-message.ps1`, writes `logs\launcher-static.log`, runs `node scripts\static-server.js` directly, and pauses if the server exits.
-- `static-app` was missing at the start of this loop and has now been created as a real Chinese localStorage-backed fallback app.
-- `scripts\static-server.js` now prioritizes `static-app`, includes `static-app/dist` fallback, retries 4173-4177, logs to `logs\static-server.log`, catches fatal process errors, opens the browser, and keeps the service alive.
-- `scripts\create-shortcut.ps1` now targets `D:\AgentFlowStudio\start-agentflow-static.bat` directly.
+- Agent A Regression Guard: PASS. Static launcher, shortcut, icon, smoke, typecheck, launch-static, and real HTTP were verified.
+- Agent B I18n Theme Hardening: PASS. Static and React language/theme helpers now persist `agentflow.language` and `agentflow.theme`.
+- Agent C Shared Memory Injection: PASS. Prompt Lab and recovery prompts now use canonical Shared Memory Context and real memory arrays.
+- Agent D Secret Redaction: PASS. Recursive key-aware redaction now covers memory save/export/injection and static export.
+- Agent E ErrorBoundary: PASS. Static render fallback and React route-level ErrorBoundary were added.
+- Agent F Static QA: PASS. Smoke and launch-static checks were expanded.
+- Agent G Reporter: PASS. Handoff files were updated.
 
 ## Verification
 
 - `npm.cmd run icon`: PASS.
-- `npm.cmd run smoke`: PASS, 64 checks.
-- `npm.cmd run test:launch-static`: PASS outside sandbox.
-- `npm.cmd run shortcut`: PASS outside sandbox.
-- COM shortcut verification: PASS.
-- Real bat launch: PASS; `cmd /k start-agentflow-static.bat` stayed open after 15 seconds.
-- Real HTTP: PASS; `http://127.0.0.1:4173` returned 200 and contained AgentFlow Studio plus `仪表盘`, `项目管理`, `提示词实验室`, `日志分析`, `安全检查`, `共享记忆中心`, `设置`.
+- `npm.cmd run smoke`: PASS, 106/106.
+- `npm.cmd run typecheck`: PASS.
+- `npm.cmd run test:launch-static`: PASS.
+- `npm.cmd run shortcut`: PASS.
+- Real `cmd /k start-agentflow-static.bat`: PASS after 15 seconds.
+- HTTP `http://127.0.0.1:4173`: PASS 200 with AgentFlow Studio, Chinese navigation, and English preference keywords.
+- PowerShell COM shortcut verification: PASS.
 
-## Current Deliverable
+## Environment Limitation
 
-Use:
+- `npm.cmd run test`: blocked by Vite/Vitest esbuild `spawn EPERM`.
+- `npm.cmd run build`: blocked by Vite esbuild `spawn EPERM`.
+- This remains an environment limitation and is not a blocker for Static fallback.
 
-```bat
-D:\AgentFlowStudio\start-agentflow-static.bat
-```
+## Next Recommendations
 
-Desktop shortcut:
-
-```text
-C:\Users\至亲\Desktop\AgentFlow Studio.lnk
-TargetPath: D:\AgentFlowStudio\start-agentflow-static.bat
-WorkingDirectory: D:\AgentFlowStudio
-IconLocation: D:\AgentFlowStudio\assets\icon.ico,0
-```
-
-## Notes
-
-- Treat archived `.codex-parallel` contents as historical only.
-- Electron/Vite/Vitest remain follow-up work because this environment can hit esbuild `spawn EPERM`.
-- Static fallback stores data in browser `localStorage`; native Electron capabilities are temporarily degraded but the user-facing app opens and is usable.
+- Continue using Static fallback for reliable local access.
+- Restore Electron/Vite/Vitest validation in a normal unrestricted Windows shell or after resolving esbuild spawn permissions.
+- Continue polishing low-frequency React route copy and adding browser-level E2E once Playwright browsers are installed.

@@ -74,6 +74,9 @@ const coreFiles = [
   'src/renderer/routes/SafetyBox.tsx',
   'src/renderer/routes/SharedMemoryHub.tsx',
   'src/renderer/routes/Settings.tsx',
+  'src/renderer/components/ErrorBoundary.tsx',
+  'src/renderer/lib/i18n.ts',
+  'src/renderer/lib/theme.ts',
   'src/renderer/lib/memoryInjection.ts',
   'src/renderer/lib/secretRedaction.ts',
 ]
@@ -97,9 +100,27 @@ check('static-app/assets/icon.svg', fileExists('static-app/assets/icon.svg'))
 const staticIndex = readText('static-app/index.html')
 const staticApp = readText('static-app/app.js')
 const staticText = `${staticIndex}\n${staticApp}`
-for (const keyword of ['仪表盘', '项目管理', '提示词实验室', '日志分析', '安全检查', '共享记忆中心', '设置']) {
+for (const keyword of ['仪表盘', '项目管理', '项目详情', '提示词实验室', '日志分析', '安全检查', '共享记忆中心', '技能管理', 'Git 时间线', '设置', '界面偏好', '浅色', '深色', '跟随系统']) {
   check(`static-app localized/${keyword}`, staticText.includes(keyword))
 }
+for (const keyword of ['Dashboard', 'Projects', 'Project Detail', 'Prompt Lab', 'Log Analyzer', 'SafetyBox', 'Shared Memory Hub', 'Skills', 'Git Timeline', 'Settings', 'Interface Preferences', 'Light', 'Dark', 'System']) {
+  check(`static-app english/${keyword}`, staticText.includes(keyword))
+}
+check('static translations object exists', staticApp.includes('const translations'))
+check('static translations zh exists', staticApp.includes('zh:'))
+check('static translations en exists', staticApp.includes('en:'))
+check('static t(key) exists', staticApp.includes('function t('))
+check('static agentflow.language key exists', staticApp.includes('agentflow.language'))
+check('static agentflow.theme key exists', staticApp.includes('agentflow.theme'))
+const staticCss = readText('static-app/styles.css')
+check('static data-theme exists', staticApp.includes('dataset.theme') || staticCss.includes('data-theme'))
+check('static [data-theme="dark"] exists', staticCss.includes('[data-theme="dark"]'))
+check('static [data-theme="light"] exists', staticCss.includes('[data-theme="light"]'))
+check('static prefers-color-scheme exists', staticCss.includes('prefers-color-scheme'))
+check('static shared memory injection marker exists', staticApp.includes('[Shared Memory Context]') && staticApp.includes('[/Shared Memory Context]'))
+check('static inject shared memory label exists', staticApp.includes('Inject Shared Memory') && staticApp.includes('注入共享记忆'))
+check('static secret redaction rules exist', ['sk-', 'Bearer', 'api[_-]?key', 'password', 'secret', 'access[_-]?token', 'refresh[_-]?token', 'authorization', 'token'].every((part) => staticApp.includes(part)))
+check('static route error fallback exists', staticApp.includes('Static render error') && staticApp.includes('当前页面加载失败') && staticApp.includes('This page failed to load'))
 
 console.log('\n[Handoff]')
 check('handoff/CODEX_HANDOFF.md', fileExists('handoff/CODEX_HANDOFF.md'))
@@ -117,9 +138,15 @@ check('no exec exposure in preload', !/child_process|exec\(|spawn\(/.test(preloa
 console.log('\n[Shared Memory Safety]')
 const secretRedaction = readText('src/renderer/lib/secretRedaction.ts')
 const memoryInjection = readText('src/renderer/lib/memoryInjection.ts')
+const sharedRedaction = readText('src/shared/secretRedaction.ts')
 check('secret redaction module exists', secretRedaction.includes('redactSecrets'))
 check('secret detection module exists', secretRedaction.includes('containsSecret'))
+check('recursive redaction module exists', sharedRedaction.includes('sanitizeValue') && sharedRedaction.includes('WeakMap'))
+check('secret redaction covers authorization/token', sharedRedaction.includes('authorization') && sharedRedaction.includes('token'))
 check('memory context marker exists', memoryInjection.includes('[Shared Memory Context]'))
+check('memory context canonical sections exist', ['项目背景', '已做决策', '当前进度', '已知问题', '用户偏好', 'API Provider 注意事项'].every((keyword) => memoryInjection.includes(keyword)))
+const appTsx = readText('src/renderer/App.tsx')
+check('route ErrorBoundary wrapper exists', appTsx.includes('ErrorBoundary') && appTsx.includes('routeElement'))
 
 console.log('\n' + '='.repeat(50))
 console.log(`\nResults: ${pass} passed, ${fail} failed, ${pass + fail} total\n`)

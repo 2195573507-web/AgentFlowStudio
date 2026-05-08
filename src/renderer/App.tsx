@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
+import ErrorBoundary from './components/ErrorBoundary'
 
 const Dashboard = lazy(() => import('./routes/Dashboard'))
 const Projects = lazy(() => import('./routes/Projects'))
@@ -24,26 +25,30 @@ function PageLoader() {
   )
 }
 
+function routeElement(name: string, element: React.ReactNode) {
+  return <ErrorBoundary routeName={name}>{element}</ErrorBoundary>
+}
+
 export default function App() {
   return (
     <Layout>
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/projects" element={<Projects />} />
-          <Route path="/projects/:id" element={<ProjectDetail />} />
-          <Route path="/prompts" element={<PromptLab />} />
-          <Route path="/prompt-lab" element={<PromptLab />} />
-          <Route path="/logs" element={<LogAnalyzer />} />
-          <Route path="/log-analyzer" element={<LogAnalyzer />} />
-          <Route path="/git" element={<GitTimeline />} />
-          <Route path="/git-timeline" element={<GitTimeline />} />
-          <Route path="/safety" element={<SafetyBox />} />
-          <Route path="/safety-box" element={<SafetyBox />} />
-          <Route path="/memory" element={<SharedMemoryHub />} />
-          <Route path="/shared-memory-hub" element={<SharedMemoryHub />} />
-          <Route path="/skills" element={<Skills />} />
-          <Route path="/settings" element={<Settings />} />
+          <Route path="/" element={routeElement('Dashboard', <Dashboard />)} />
+          <Route path="/projects" element={routeElement('Projects', <Projects />)} />
+          <Route path="/projects/:id" element={routeElement('Project Detail', <ProjectDetail />)} />
+          <Route path="/prompts" element={routeElement('Prompt Lab', <PromptLab />)} />
+          <Route path="/prompt-lab" element={routeElement('Prompt Lab', <PromptLab />)} />
+          <Route path="/logs" element={routeElement('Log Analyzer', <LogAnalyzer />)} />
+          <Route path="/log-analyzer" element={routeElement('Log Analyzer', <LogAnalyzer />)} />
+          <Route path="/git" element={routeElement('Git Timeline', <GitTimeline />)} />
+          <Route path="/git-timeline" element={routeElement('Git Timeline', <GitTimeline />)} />
+          <Route path="/safety" element={routeElement('SafetyBox', <SafetyBox />)} />
+          <Route path="/safety-box" element={routeElement('SafetyBox', <SafetyBox />)} />
+          <Route path="/memory" element={routeElement('Shared Memory Hub', <SharedMemoryHub />)} />
+          <Route path="/shared-memory-hub" element={routeElement('Shared Memory Hub', <SharedMemoryHub />)} />
+          <Route path="/skills" element={routeElement('Skills', <Skills />)} />
+          <Route path="/settings" element={routeElement('Settings', <Settings />)} />
         </Routes>
       </Suspense>
     </Layout>

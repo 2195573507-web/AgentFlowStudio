@@ -25,11 +25,11 @@ import {
   getTemplateByName,
   getTemplateVariableKey,
 } from '../lib/templates';
-import { injectMemoryIntoPrompt, generateSharedMemoryContext } from '../lib/memoryInjection';
+import { generateSharedMemoryContext, injectMemoryIntoPrompt } from '../lib/memoryInjection';
 import { exportMarkdown } from '../lib/exporters';
 import { GlassCard, EmptyState, Button, Input, Textarea, Badge, PromptPreview, Modal } from '../components/';
 import type {
-  SavedPrompt, MemoryInjectionMode, PromptTemplate,
+  Memory, SavedPrompt, MemoryInjectionMode, PromptTemplate,
 } from '../lib/types';
 import { generateId, formatRelativeDate, copyToClipboard, classNames, truncate } from '../lib/utils';
 
@@ -65,9 +65,9 @@ export default function PromptLab() {
   const [copied, setCopied] = useState(false);
 
   // Memory injection
-  const [memoryEnabled, setMemoryEnabled] = useState(false);
-  const [injectionMode, setInjectionMode] = useState<MemoryInjectionMode>('balanced');
+  const [injectionMode, setInjectionMode] = useState<MemoryInjectionMode>('off');
   const [memoryContext, setMemoryContext] = useState<string>('');
+  const [memories, setMemories] = useState<Memory[]>([]);
 
   // Saved prompts
   const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([]);
@@ -99,6 +99,10 @@ export default function PromptLab() {
         } else {
           setApiAvailable(false);
           setSavedPrompts(DEMO_SAVED_PROMPTS);
+        }
+        if (api && typeof api.memory?.list === 'function') {
+          const memoryData = await api.memory.list();
+          setMemories(Array.isArray(memoryData) ? memoryData : []);
         }
       } catch (err: any) {
         console.error('PromptLab init error:', err);
@@ -145,20 +149,19 @@ export default function PromptLab() {
     try {
       let basePrompt = fillTemplate(selectedTemplate, variableValues);
 
-      // Inject memory if enabled
-      if (memoryEnabled) {
+      if (injectionMode !== 'off') {
         try {
           let ctx = memoryContext;
-          if (!ctx && typeof generateSharedMemoryContext === 'function') {
-            ctx = await generateSharedMemoryContext(undefined, injectionMode);
+          if (!ctx) {
+            ctx = generateSharedMemoryContext(memories, injectionMode);
           }
-          if (ctx && typeof injectMemoryIntoPrompt === 'function') {
-            basePrompt = await injectMemoryIntoPrompt(basePrompt, ctx, injectionMode);
+          if (ctx) {
+            basePrompt = injectMemoryIntoPrompt(basePrompt, ctx, injectionMode);
           } else if (ctx) {
             basePrompt = `<!-- Shared Memory Context -->\n${ctx}\n\n<!-- Prompt -->\n${basePrompt}`;
           }
-        } catch {
-          // Memory injection failed silently — use base prompt
+        } catch (err) {
+          console.error('Memory injection failed:', err);
         }
       }
 
@@ -418,43 +421,31 @@ export default function PromptLab() {
                 {/* Memory injection toggle */}
                 <div className="border-t border-white/10 pt-4">
                   <div className="flex items-center justify-between mb-3">
-                    <label className="flex items-center gap-2 text-xs text-zinc-400 cursor-pointer select-none">
-                      <div
-                        onClick={() => setMemoryEnabled(!memoryEnabled)}
-                        className={classNames(
-                          'w-9 h-5 rounded-full transition-colors relative cursor-pointer',
-                          memoryEnabled ? 'bg-pink-500' : 'bg-zinc-700'
-                        )}
-                      >
-                        <div
-                          className={classNames(
-                            'absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform',
-                            memoryEnabled ? 'translate-x-4' : 'translate-x-0.5'
-                          )}
-                        />
-                      </div>
+                    <label className="flex items-center gap-2 text-xs text-zinc-400 select-none">
                       <Brain className="w-3.5 h-3.5 text-pink-400" />
-                      共享记忆注入
+                      注入共享记忆 / Inject Shared Memory
                     </label>
-
-                    {memoryEnabled && (
-                      <select
-                        value={injectionMode}
-                        onChange={(e) => setInjectionMode(e.target.value as MemoryInjectionMode)}
-                        className="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-zinc-300
-                                   focus:outline-none focus:ring-2 focus:ring-pink-500/50"
-                      >
-                        <option value="minimal">最少</option>
-                        <option value="balanced">均衡</option>
-                        <option value="full">完整</option>
-                      </select>
-                    )}
+                    <select
+                      value={injectionMode}
+                      onChange={(e) => setInjectionMode(e.target.value as MemoryInjectionMode)}
+                      className="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-zinc-300
+                                 focus:outline-none focus:ring-2 focus:ring-pink-500/50"
+                    >
+                      <option value="off">不注入 / Off</option>
+                      <option value="minimal">最小 / Minimal</option>
+                      <option value="balanced">平衡 / Balanced</option>
+                      <option value="full">完整 / Full</option>
+                    </select>
                   </div>
-                  {memoryEnabled && (
+                  {injectionMode !== 'off' && (
                     <Textarea
                       value={memoryContext}
                       onChange={(e) => setMemoryContext(e.target.value)}
-                      placeholder="可选：手动输入共享记忆上下文。留空将自动从记忆库获取。"
+                      placeholder={
+                        memories.length === 0
+                          ? '暂无共享记忆。可手动输入上下文，或先到共享记忆中心新增记忆。'
+                          : '可选：手动输入共享记忆上下文。留空将自动从记忆库获取。'
+                      }
                       rows={2}
                     />
                   )}

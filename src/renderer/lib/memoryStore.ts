@@ -1,4 +1,5 @@
 import type { Memory, MemoryType, MemoryStatus } from '../../shared/types';
+import { sanitizeObject } from './secretRedaction';
 
 /**
  * Client-side in-memory cache for Memory objects.
@@ -17,7 +18,7 @@ export class MemoryStore {
    * Replace all cached memories with a new set.
    */
   setMemories(mems: Memory[]): void {
-    this.memories = [...mems];
+    this.memories = sanitizeObject([...mems]);
   }
 
   /**
@@ -25,11 +26,12 @@ export class MemoryStore {
    * exists it is replaced; otherwise it is appended.
    */
   upsert(memory: Memory): void {
+    const safeMemory = sanitizeObject(memory);
     const idx = this.memories.findIndex((m) => m.id === memory.id);
     if (idx >= 0) {
-      this.memories[idx] = memory;
+      this.memories[idx] = safeMemory;
     } else {
-      this.memories.push(memory);
+      this.memories.push(safeMemory);
     }
   }
 

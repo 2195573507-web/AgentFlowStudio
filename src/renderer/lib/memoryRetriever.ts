@@ -29,12 +29,15 @@ const DEFAULT_MAX_CHARS = 3000;
 
 const SECRET_PATTERNS = [
   /sk-[a-zA-Z0-9_\-]{20,}/,
-  /Bearer\s+[a-zA-Z0-9_\-\.]+/,
+  /Bearer\s+[a-zA-Z0-9_\-\.]+/i,
+  /authorization\s*[=:]\s*['"]?[^'"\s]+['"]?/i,
   /api_key\s*[=:]\s*['"]?[a-zA-Z0-9_\-\.]+['"]?/,
+  /apiKey\s*[=:]\s*['"]?[a-zA-Z0-9_\-\.]+['"]?/,
   /password\s*[=:]\s*['"]?[^'"\s]+['"]?/i,
   /secret\s*[=:]\s*['"]?[^'"\s]+['"]?/i,
   /access_token\s*[=:]\s*['"]?[^'"\s]+['"]?/i,
   /refresh_token\s*[=:]\s*['"]?[^'"\s]+['"]?/i,
+  /(?:^|[\s,{])token\s*[=:]\s*['"]?[^'"\s]+['"]?/i,
   /AIza[0-9A-Za-z\-_]{35}/,
   /hf_[a-zA-Z0-9]{25,}/,
 ];
@@ -80,7 +83,11 @@ export function retrieveMemories(
 
   if (providerScope) {
     filtered = filtered.filter(
-      (m) => m.providerScope === providerScope || m.providerScope === '',
+      (m) =>
+        m.providerScope === providerScope ||
+        m.providerScope === '' ||
+        m.providerScope === 'all' ||
+        !m.providerScope,
     );
   }
 

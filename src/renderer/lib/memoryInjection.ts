@@ -1,11 +1,8 @@
 import type { Memory, MemoryInjectionMode, MemoryType } from '../../shared/types';
 import { retrieveMemories } from './memoryRetriever';
-
-// ── Defaults ──
+import { redactSecrets, sanitizeObject } from './secretRedaction';
 
 const DEFAULT_MAX_CHARS = 2000;
-
-// ── Type → label mapping ──
 
 const TYPE_LABELS: Partial<Record<MemoryType, string>> = {
   user_preference: '用户偏好',
@@ -15,46 +12,62 @@ const TYPE_LABELS: Partial<Record<MemoryType, string>> = {
   api_provider: 'API Provider 注意事项',
   prompt_pattern: '常用 Prompt 模式',
   environment: '环境信息',
+  pattern: '模式',
+  insight: '洞察',
+  knowledge: '知识',
+  code_snippet: '代码片段',
+  security: '安全',
+  git_summary: 'Git 摘要',
+  log_analysis: '日志分析',
+  safety_check: '安全检查',
 };
 
-const TYPE_ORDER: MemoryType[] = [
-  'project_context',
-  'decision',
-  'issue_fix',
-  'user_preference',
-  'api_provider',
-  'environment',
-  'prompt_pattern',
-];
+const CONTEXT_SECTIONS = {
+  zh: [
+    { label: '项目背景', empty: '暂无记录', types: ['project_context', 'knowledge', 'environment'] as MemoryType[] },
+    { label: '已做决策', empty: '暂无记录', types: ['decision', 'pattern'] as MemoryType[] },
+    { label: '当前进度', empty: '暂无记录', types: ['git_summary', 'log_analysis', 'prompt_pattern'] as MemoryType[] },
+    { label: '已知问题', empty: '暂无记录', types: ['issue_fix', 'security', 'safety_check'] as MemoryType[] },
+    { label: '用户偏好', empty: '暂无记录', types: ['user_preference', 'insight'] as MemoryType[] },
+    { label: 'API Provider 注意事项', empty: '暂无记录', types: ['api_provider'] as MemoryType[] },
+  ],
+  en: [
+    { label: 'Project background', empty: 'No records yet', types: ['project_context', 'knowledge', 'environment'] as MemoryType[] },
+    { label: 'Decisions', empty: 'No records yet', types: ['decision', 'pattern'] as MemoryType[] },
+    { label: 'Current progress', empty: 'No records yet', types: ['git_summary', 'log_analysis', 'prompt_pattern'] as MemoryType[] },
+    { label: 'Known issues', empty: 'No records yet', types: ['issue_fix', 'security', 'safety_check'] as MemoryType[] },
+    { label: 'User preferences', empty: 'No records yet', types: ['user_preference', 'insight'] as MemoryType[] },
+    { label: 'API Provider notes', empty: 'No records yet', types: ['api_provider'] as MemoryType[] },
+  ],
+} as const;
 
-// ── Public API ──
+function formatMemory(mem: Memory): string {
+  const tags = (mem.tags ?? []).length > 0 ? ` [${mem.tags.slice(0, 3).map(redactSecrets).join(', ')}]` : '';
+  return `${redactSecrets(mem.title)}${tags}: ${redactSecrets(mem.content)}`;
+}
 
-/**
- * Generate a formatted "Shared Memory Context" block suitable for inserting
- * into an AI prompt. The output respects the given injection mode and
- * total character limit.
- */
 export function generateSharedMemoryContext(
   memories: Memory[] | string | undefined,
   mode: MemoryInjectionMode,
   maxChars: number = DEFAULT_MAX_CHARS,
+  language: 'zh' | 'en' = 'zh',
 ): string {
-  const memoryList = Array.isArray(memories) ? memories : [];
+  const memoryList = Array.isArray(memories) ? sanitizeObject(memories) : [];
   if (mode === 'off' || memoryList.length === 0) {
     return '';
   }
 
-  // Retrieve memories using the retriever (filters by mode, caps items/chars)
-  const retrievable = retrieveMemories(memoryList, {
-    injectionMode: mode,
-    maxChars: maxChars * 2, // generous internal limit; we trim text later
-  });
+  const retrievable = sanitizeObject(
+    retrieveMemories(memoryList, {
+      injectionMode: mode,
+      maxChars: maxChars * 2,
+    }),
+  );
 
   if (retrievable.length === 0) {
     return '';
   }
 
-  // Group by type
   const grouped = new Map<MemoryType, Memory[]>();
   for (const mem of retrievable) {
     const list = grouped.get(mem.type) ?? [];
@@ -62,102 +75,91 @@ export function generateSharedMemoryContext(
     grouped.set(mem.type, list);
   }
 
-  // Build output in a consistent order
-  const lines: string[] = ['[Shared Memory Context]', ''];
+  const sections = CONTEXT_SECTIONS[language];
+  const colon = language === 'en' ? ':' : '：';
+  const used = new Set<string>();
+  const lines: string[] = ['[Shared Memory Context]'];
 
-  for (const type of TYPE_ORDER) {
-    const group = grouped.get(type);
-    if (!group || group.length === 0) continue;
-
-    const label = TYPE_LABELS[type] ?? type;
-    lines.push(`## ${label}`);
-    for (const mem of group) {
-      const tags =
-        mem.tags.length > 0 ? ` [${mem.tags.slice(0, 3).join(', ')}]` : '';
-      const importance = '★'.repeat(mem.importance);
-      lines.push(`- **${mem.title}** ${importance}${tags}`);
-      if (mem.content) {
-        // Indent multi-line content
-        const contentLines = mem.content.split('\n');
-        for (const cl of contentLines) {
-          lines.push(`  ${cl}`);
-        }
-      }
+  for (const section of sections) {
+    const items = section.types.flatMap((type) => grouped.get(type) ?? []);
+    lines.push(`- ${section.label}${colon}`);
+    if (items.length === 0) {
+      lines.push(`  - ${section.empty}`);
+      continue;
     }
-    lines.push('');
+    for (const mem of items) {
+      used.add(mem.id);
+      lines.push(`  - ${formatMemory(mem)}`);
+    }
+  }
+
+  const otherItems = retrievable.filter((mem) => !used.has(mem.id));
+  if (otherItems.length > 0) {
+    lines.push(`- ${language === 'zh' ? '其他上下文' : 'Other context'}${colon}`);
+    for (const mem of otherItems) {
+      lines.push(`  - [${TYPE_LABELS[mem.type] ?? mem.type}] ${formatMemory(mem)}`);
+    }
   }
 
   lines.push('[/Shared Memory Context]');
-
   let result = lines.join('\n').trim();
 
-  // Trim to maxChars
   if (result.length > maxChars) {
-    result = result.slice(0, maxChars - 3) + '...';
+    result = `${result.slice(0, maxChars - 3)}...`;
   }
 
   return result;
 }
 
-/**
- * Inject a shared memory context block at the beginning of a prompt string.
- * If the injection mode is 'off', the prompt is returned unchanged.
- */
 export function injectMemoryIntoPrompt(
   prompt: string,
   memories: Memory[] | string | undefined,
   mode: MemoryInjectionMode,
 ): string {
-  if (mode === 'off' || !prompt) return prompt;
+  const safePrompt = redactSecrets(prompt);
+  if (mode === 'off' || !safePrompt) return safePrompt;
 
   if (typeof memories === 'string') {
-    return memories ? `${memories}\n\n---\n\n${prompt}` : prompt;
+    return memories ? `${redactSecrets(memories)}\n\n---\n\n${safePrompt}` : safePrompt;
   }
 
   const context = generateSharedMemoryContext(memories, mode);
-  if (!context) return prompt;
+  if (!context) return safePrompt;
 
-  return `${context}\n\n---\n\n${prompt}`;
+  return `${context}\n\n---\n\n${safePrompt}`;
 }
 
-/**
- * Build a compact, single-line context summary for use in tight spaces
- * (e.g. status bar hover, tooltips).
- */
 export function generateCompactMemoryContext(
   memories: Memory[],
   mode: MemoryInjectionMode,
 ): string {
   if (mode === 'off' || memories.length === 0) return '';
 
-  const retrievable = retrieveMemories(memories, {
-    injectionMode: mode,
-    maxItems: 5,
-    maxChars: 500,
-  });
+  const retrievable = sanitizeObject(
+    retrieveMemories(memories, {
+      injectionMode: mode,
+      maxItems: 5,
+      maxChars: 500,
+    }),
+  );
 
   if (retrievable.length === 0) return '';
 
   return retrievable
-    .map((m) => `[${TYPE_LABELS[m.type] ?? m.type}] ${m.title}`)
+    .map((m) => `[${TYPE_LABELS[m.type] ?? m.type}] ${redactSecrets(m.title)}`)
     .join(' | ');
 }
 
-/**
- * Returns only the project_context items as a simple formatted block.
- * Useful for quick project context injection without the full memory set.
- */
 export function generateProjectContext(memories: Memory[]): string {
-  const ctx = memories.filter(
+  const ctx = sanitizeObject(memories).filter(
     (m) => m.type === 'project_context' && m.status === 'active',
   );
 
   if (ctx.length === 0) return '';
 
   const lines: string[] = ['## 当前项目进展'];
-
   for (const mem of ctx) {
-    lines.push(`- **${mem.title}**: ${mem.content}`);
+    lines.push(`- **${redactSecrets(mem.title)}**: ${redactSecrets(mem.content)}`);
   }
 
   return lines.join('\n');

@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import { IPC_CHANNELS } from '../shared/types.js';
 import type { MemoryType } from '../shared/types.js';
+import { sanitizeObject } from '../shared/secretRedaction.js';
 import storage from './storage.js';
 import { getGitLog, getGitStatus, getGitSummary } from './git.js';
 import { readSkillsFromDir, fileExists } from './filesystem.js';
@@ -25,7 +26,9 @@ async function generateMemoryContext(options: {
   projectId?: string;
   injectionMode?: string;
 }): Promise<string> {
-  const allMemories = await storage.getAll<{ id: string; [key: string]: unknown }>('memories');
+  const allMemories = sanitizeObject(
+    await storage.getAll<{ id: string; [key: string]: unknown }>('memories'),
+  );
   let filtered = allMemories;
 
   // Filter by project if requested
@@ -307,7 +310,7 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.MEMORY_CREATE, async (_event, data: unknown) => {
     try {
-      return await storage.create('memories', data as never);
+      return await storage.create('memories', sanitizeObject(data) as never);
     } catch (err) {
       return handleError(err);
     }
@@ -315,7 +318,7 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.MEMORY_UPDATE, async (_event, id: string, data: unknown) => {
     try {
-      return await storage.update('memories', id, data as never);
+      return await storage.update('memories', id, sanitizeObject(data) as never);
     } catch (err) {
       return handleError(err);
     }
@@ -331,7 +334,7 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.MEMORY_EXPORT, async () => {
     try {
-      const all = await storage.getAll('memories');
+      const all = sanitizeObject(await storage.getAll('memories'));
       return { memories: all, exportedAt: new Date().toISOString() };
     } catch (err) {
       return handleError(err);
@@ -340,7 +343,7 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.MEMORY_IMPORT, async (_event, data: unknown) => {
     try {
-      const payload = data as { memories?: Array<{ id: string; [key: string]: unknown }> };
+      const payload = sanitizeObject(data) as { memories?: Array<{ id: string; [key: string]: unknown }> };
       if (!payload || !Array.isArray(payload.memories)) {
         return { error: 'Invalid import data: expected { memories: [...] }' };
       }
@@ -349,9 +352,9 @@ export function registerIpcHandlers(): void {
       let imported = 0;
       for (const mem of payload.memories) {
         if (existingIds.has(String(mem.id))) {
-          await storage.update('memories', String(mem.id), mem as never);
+          await storage.update('memories', String(mem.id), sanitizeObject(mem) as never);
         } else {
-          await storage.create('memories', mem as never);
+          await storage.create('memories', sanitizeObject(mem) as never);
         }
         imported++;
       }
