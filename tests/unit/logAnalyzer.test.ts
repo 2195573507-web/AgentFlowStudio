@@ -27,6 +27,12 @@ describe('analyzeLog', () => {
     expect(result.suggestedCommands.length).toBeGreaterThan(0)
   })
 
+  it('detects tilde path alias resolution errors', () => {
+    const result = analyzeLog("module '~/lib/foo' path alias resolve error")
+    expect(result.errorType).toBe('tsconfig 路径别名错误')
+    expect(result.fixSteps.some((step) => step.includes('paths'))).toBe(true)
+  })
+
   it('detects node-gyp failures', () => {
     const result = analyzeLog('node-gyp failed with error: cannot find build tools')
     expect(result.errorType).toBeTruthy()

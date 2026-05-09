@@ -512,7 +512,7 @@ const PATTERNS: LogPattern[] = [
 
   // ── tsconfig path errors ──
   {
-    pattern: /(?:Cannot find|module).*(?:path|alias|@\/|\~\/).*(?:error|not found|resolve)/i,
+    pattern: /(?:Cannot find|module).*(?:path|alias|@\/|~\/).*(?:error|not found|resolve)/i,
     errorType: 'tsconfig 路径别名错误',
     possibleCauses: [
       'tsconfig.json 的 paths 配置与实际目录不匹配',
