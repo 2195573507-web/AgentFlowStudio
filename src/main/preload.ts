@@ -36,6 +36,9 @@ export interface AgentFlowAPI {
     status(repoPath: string): Promise<unknown>;
     summary(repoPath: string): Promise<unknown>;
   };
+  release: {
+    status(repoPath?: string): Promise<unknown>;
+  };
   memory: {
     list(filters?: Record<string, unknown>): Promise<unknown>;
     get(id: string): Promise<unknown>;
@@ -110,6 +113,10 @@ const api: AgentFlowAPI = {
     log: (repoPath: string) => ipcRenderer.invoke(IPC_CHANNELS.GIT_LOG, repoPath),
     status: (repoPath: string) => ipcRenderer.invoke(IPC_CHANNELS.GIT_STATUS, repoPath),
     summary: (repoPath: string) => ipcRenderer.invoke(IPC_CHANNELS.GIT_SUMMARY, repoPath),
+  },
+
+  release: {
+    status: (repoPath?: string) => ipcRenderer.invoke(IPC_CHANNELS.RELEASE_STATUS, repoPath),
   },
 
   memory: {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { classNames, debounce } from '../../src/renderer/lib/utils'
+import { classNames, copyToClipboard, debounce } from '../../src/renderer/lib/utils'
 
 describe('utils', () => {
   afterEach(() => {
@@ -39,5 +39,18 @@ describe('utils', () => {
     vi.advanceTimersByTime(25)
 
     expect(calls).toEqual([])
+  })
+
+  it('redacts likely secrets before writing to the clipboard', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(globalThis.navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    })
+
+    await expect(copyToClipboard('token=sk-test-secret password=secret123')).resolves.toBe(true)
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('[REDACTED]'))
+    expect(writeText.mock.calls[0][0]).not.toContain('sk-')
+    expect(writeText.mock.calls[0][0]).not.toContain('secret123')
   })
 })

@@ -17,10 +17,12 @@ import {
   FolderGit2,
   ChevronRight,
   Sparkles,
+  PackageCheck,
+  TestTube2,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { GlassCard, EmptyState, Button, Input, Badge } from '../components/';
-import type { GitCommitEntry } from '../lib/types';
+import type { GitCommitEntry, ReleaseStatus, ReleaseTestStatus } from '../lib/types';
 import { generateId, formatDate, formatRelativeDate, copyToClipboard, classNames, truncate } from '../lib/utils';
 
 // ── Demo data ──────────────────────────────────────────────────────────────
@@ -69,6 +71,13 @@ const DEMO_COMMITS: GitCommitEntry[] = [
 ];
 
 // ── Component ──────────────────────────────────────────────────────────────
+const TEST_STATUS_CLASS: Record<ReleaseTestStatus, string> = {
+  PASS: 'bg-emerald-500/15 text-emerald-600 border-emerald-500/25 dark:text-emerald-300',
+  FAIL: 'bg-red-500/15 text-red-600 border-red-500/25 dark:text-red-300',
+  BLOCKED: 'bg-amber-500/15 text-amber-600 border-amber-500/25 dark:text-amber-300',
+  UNKNOWN: 'bg-slate-500/15 text-slate-600 border-slate-500/25 dark:text-slate-300',
+};
+
 export default function GitTimeline() {
   const [repoPath, setRepoPath] = useState('');
   const [loading, setLoading] = useState(false);
@@ -79,6 +88,7 @@ export default function GitTimeline() {
     totalCommits: number;
     recentActivity: string;
   } | null>(null);
+  const [releaseStatus, setReleaseStatus] = useState<ReleaseStatus | null>(null);
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
   const [memoryGenerated, setMemoryGenerated] = useState(false);
   const [generatingMemory, setGeneratingMemory] = useState(false);
@@ -110,25 +120,42 @@ export default function GitTimeline() {
     setError(null);
     setCommits([]);
     setSummary(null);
+    setReleaseStatus(null);
     setMemoryGenerated(false);
 
     try {
       if (api && typeof api.git?.readLog === 'function') {
-        const result = await api.git.readLog(repoPath, { maxCount: 50 });
+        const [result, status] = await Promise.all([
+          api.git.readLog(repoPath, { maxCount: 50 }),
+          api.release.status(repoPath),
+        ]);
         if (result.error) {
           setError(result.error);
           return;
         }
         setCommits(result.commits || []);
+        setReleaseStatus(status);
         setSummary({
-          branch: result.branch || 'unknown',
-          totalCommits: result.totalCommits || 0,
-          recentActivity: result.recentActivity || '',
+          branch: status.branch || result.branch || 'unknown',
+          totalCommits: result.totalCommits || status.recentCommits.length || 0,
+          recentActivity: status.gitStatus || result.recentActivity || '',
         });
       } else {
         // Demo mode: simulate git log
         await new Promise((r) => setTimeout(r, 1000));
         setCommits(DEMO_COMMITS);
+        setReleaseStatus({
+          version: 'demo',
+          branch: 'main',
+          gitStatus: 'Clean working tree.',
+          recentCommits: DEMO_COMMITS.slice(0, 5),
+          updateSummary: ['工作流模板、新手路径、执行追踪和安全提示已进入本轮优化计划。'],
+          testResults: [
+            { command: 'npm.cmd run smoke', status: 'PASS', details: 'Demo status' },
+          ],
+          progressSummary: ['继续补齐真实仓库测试状态。'],
+          checkedAt: new Date().toISOString(),
+        });
         setSummary({
           branch: 'main',
           totalCommits: 128,
@@ -306,8 +333,70 @@ export default function GitTimeline() {
         </GlassCard>
       )}
 
+      {releaseStatus && hasData && (
+        <GlassCard className="p-5 space-y-4" data-testid="release-status-panel">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <PackageCheck className="h-4 w-4 text-emerald-400" />
+                <h2 className="text-sm font-semibold text-slate-800 dark:text-zinc-200">GitHub 版本记录</h2>
+                <Badge variant="info">v{releaseStatus.version}</Badge>
+              </div>
+              <p className="mt-1 text-xs text-slate-500 dark:text-zinc-500">
+                当前分支 {releaseStatus.branch} · HEAD {releaseStatus.recentCommits[0]?.hash.slice(0, 7) || 'unknown'} · {releaseStatus.gitStatus}
+              </p>
+              <p className="mt-1 text-[11px] text-amber-600 dark:text-amber-300">
+                测试状态来自 handoff/TEST_REPORT.md 报告快照，请以本轮实际命令退出码为准。
+              </p>
+            </div>
+            <Button
+              onClick={handleGenerateMemory}
+              loading={generatingMemory}
+              disabled={memoryGenerated}
+              icon={memoryGenerated ? <Check className="w-4 h-4" /> : <Brain className="w-4 h-4" />}
+            >
+              {memoryGenerated ? '记忆已生成' : '生成 Git 总结记忆'}
+            </Button>
+          </div>
+
+          <div className="grid gap-3 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="rounded-lg border border-[var(--glass-border)] bg-[var(--glass-surface)] p-3">
+              <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-zinc-400">
+                <Sparkles className="h-3.5 w-3.5 text-accent-500" />
+                本轮更新摘要
+              </div>
+              <ul className="space-y-1.5 text-sm text-slate-700 dark:text-zinc-300">
+                {releaseStatus.updateSummary.slice(0, 4).map((item, itemIndex) => (
+                  <li key={`${item}-${itemIndex}`} className="flex gap-2">
+                    <ChevronRight className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-accent-500" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-lg border border-[var(--glass-border)] bg-[var(--glass-surface)] p-3">
+              <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-zinc-400">
+                <TestTube2 className="h-3.5 w-3.5 text-blue-400" />
+                最新测试状态
+              </div>
+              <div className="space-y-1.5">
+                {(releaseStatus.testResults.length ? releaseStatus.testResults : [
+                  { command: '等待测试记录', status: 'UNKNOWN' as const, details: 'handoff/TEST_REPORT.md 暂无可解析记录' },
+                ]).slice(0, 4).map((test, testIndex) => (
+                  <div key={`${test.command}-${test.status}-${testIndex}`} className="flex items-center justify-between gap-2 text-xs">
+                    <span className="min-w-0 truncate text-slate-600 dark:text-zinc-300">{test.command}</span>
+                    <Badge className={TEST_STATUS_CLASS[test.status]}>{test.status}</Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </GlassCard>
+      )}
+
       {/* Generate memory button */}
-      {hasData && (
+      {hasData && !releaseStatus && (
         <div className="flex items-center gap-3">
           <Button
             onClick={handleGenerateMemory}
@@ -385,8 +474,8 @@ export default function GitTimeline() {
                       {/* Changed files */}
                       {commit.files.length > 0 && (
                         <div className="flex flex-wrap gap-1.5">
-                          {commit.files.map((file) => (
-                            <Badge key={file} className={`text-[10px] ${fileColor(file)}`}>
+                          {commit.files.map((file, fileIndex) => (
+                            <Badge key={`${commit.hash}-${file}-${fileIndex}`} className={`text-[10px] ${fileColor(file)}`}>
                               <FileCode className="w-3 h-3 mr-0.5" />
                               {file}
                             </Badge>

@@ -137,6 +137,7 @@ const DEMO_PROJECTS: Project[] = [
 const MEMORY_TYPES: MemoryType[] = ['decision', 'pattern', 'insight', 'knowledge', 'code_snippet', 'security', 'issue_fix', 'git_summary', 'log_analysis', 'safety_check'];
 const MEMORY_STATUSES: MemoryStatus[] = ['active', 'pending', 'archived'];
 const INJECTION_MODES: MemoryInjectionMode[] = ['off', 'minimal', 'balanced', 'full'];
+const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
 
 const MEMORY_TYPE_LABELS: Record<MemoryType, string> = {
   user_preference: '用户偏好',
@@ -187,6 +188,35 @@ const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
   archived: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/20',
 };
+
+function normalizeMemoryImportItem(item: Partial<Memory>): Memory {
+  const now = new Date().toISOString();
+  const rawTags = (item as { tags?: unknown }).tags;
+  const tags = Array.isArray(rawTags)
+    ? rawTags.map((tag) => String(tag).trim()).filter(Boolean).slice(0, 20)
+    : typeof rawTags === 'string'
+      ? rawTags.split(',').map((tag: string) => tag.trim()).filter(Boolean).slice(0, 20)
+      : [];
+  const type = MEMORY_TYPES.includes(item.type as MemoryType) ? item.type as MemoryType : 'knowledge';
+  const status = MEMORY_STATUSES.includes(item.status as MemoryStatus) ? item.status as MemoryStatus : 'active';
+
+  return {
+    id: item.id ? String(item.id) : generateId(),
+    type,
+    title: String(item.title ?? '导入的记忆').slice(0, 160),
+    content: typeof item.content === 'string' ? item.content : JSON.stringify(item.content ?? ''),
+    tags,
+    importance: Math.min(5, Math.max(1, Number(item.importance) || 3)),
+    status,
+    projectId: item.projectId ? String(item.projectId) : undefined,
+    providerScope: item.providerScope ? String(item.providerScope) : undefined,
+    modelScope: item.modelScope ? String(item.modelScope) : undefined,
+    metadata: item.metadata && typeof item.metadata === 'object' ? item.metadata : undefined,
+    lastUsedAt: item.lastUsedAt ? String(item.lastUsedAt) : now,
+    createdAt: item.createdAt ? String(item.createdAt) : now,
+    updatedAt: now,
+  };
+}
 
 // ── Component ──────────────────────────────────────────────────────────────
 export default function SharedMemoryHub() {
@@ -464,6 +494,15 @@ export default function SharedMemoryHub() {
     if (!file) return;
 
     try {
+      if (file.size > MAX_IMPORT_BYTES) {
+        setImportResult({
+          imported: 0,
+          skipped: 1,
+          errors: ['导入文件超过 2MB，请拆分后再导入。'],
+        });
+        e.target.value = '';
+        return;
+      }
       const text = await file.text();
       const data = JSON.parse(text);
       const items: Partial<Memory>[] = Array.isArray(data) ? data : [data];
@@ -489,21 +528,7 @@ export default function SharedMemoryHub() {
           continue;
         }
 
-        const memory: Memory = {
-          id: item.id || generateId(),
-          type: item.type || 'knowledge',
-          title: item.title || '导入的记忆',
-          content: item.content || '',
-          tags: item.tags || [],
-          importance: Math.min(5, Math.max(1, item.importance || 3)),
-          status: (item.status === 'active' || item.status === 'pending' || item.status === 'archived') ? item.status : 'active',
-          projectId: item.projectId,
-          providerScope: item.providerScope,
-          modelScope: item.modelScope,
-          lastUsedAt: item.lastUsedAt || new Date().toISOString(),
-          createdAt: item.createdAt || new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
+        const memory = normalizeMemoryImportItem(item);
 
         if (api && typeof api.memory?.create === 'function') {
           try {
@@ -524,6 +549,7 @@ export default function SharedMemoryHub() {
       }
 
       setImportResult({ imported, skipped, errors: importErrors });
+      e.target.value = '';
     } catch (err: any) {
       setImportResult({ imported: 0, skipped: 0, errors: [`解析失败：${err.message}`] });
     }
@@ -927,8 +953,8 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
                 {/* Tags */}
                 {memory.tags && memory.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-3">
-                    {memory.tags.slice(0, 4).map((tag) => (
-                      <Badge key={tag} className="text-[10px] bg-white/5 text-zinc-500 border-white/10">
+                    {memory.tags.slice(0, 4).map((tag, tagIndex) => (
+                      <Badge key={`${memory.id}-${tag}-${tagIndex}`} className="text-[10px] bg-white/5 text-zinc-500 border-white/10">
                         {tag}
                       </Badge>
                     ))}

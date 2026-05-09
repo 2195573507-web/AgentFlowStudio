@@ -1,4 +1,5 @@
 import * as path from 'path';
+import * as fs from 'fs';
 
 // ---------------------------------------------------------------------------
 // Path traversal prevention
@@ -23,11 +24,59 @@ export function sanitizeFilePath(input: string, root?: string): string {
   // Ensure it does not escape the root
   const normalisedRoot = path.resolve(base) + path.sep;
   if (!resolved.startsWith(normalisedRoot) && resolved !== path.resolve(base)) {
-    // Fall back to safe path: return root + basename only
-    return path.join(base, path.basename(clean));
+    throw new Error(`Path is outside the allowed root: ${input}`);
   }
 
   return resolved;
+}
+
+export function isPathInsideBase(basePath: string, targetPath: string): boolean {
+  const relative = path.relative(path.resolve(basePath), path.resolve(targetPath));
+  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+}
+
+export function sanitizeRealFilePath(input: string, root?: string): string {
+  const safePath = sanitizeFilePath(input, root);
+  const base = path.resolve(root ?? process.cwd());
+  const realBase = fs.realpathSync(base);
+  const realTarget = fs.realpathSync(safePath);
+  if (!isPathInsideBase(realBase, realTarget)) {
+    throw new Error(`Real path is outside the allowed root: ${input}`);
+  }
+  return realTarget;
+}
+
+export function validateUserChosenSavePath(input: string): string {
+  const clean = input.replace(/\0/g, '');
+  if (!path.isAbsolute(clean)) {
+    throw new Error('Save path must be absolute.');
+  }
+  return path.resolve(clean);
+}
+
+export function isHttpUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
+export function isTrustedDevServerUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' && ['127.0.0.1', 'localhost'].includes(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+export function normalizeDevServerUrl(url: string): string {
+  if (!isTrustedDevServerUrl(url)) {
+    throw new Error(`Untrusted dev server URL: ${url}`);
+  }
+  return url;
 }
 
 // ---------------------------------------------------------------------------

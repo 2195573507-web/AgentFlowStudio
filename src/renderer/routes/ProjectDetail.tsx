@@ -25,14 +25,24 @@ import {
   RefreshCw,
   ChevronRight,
   Lightbulb,
+  Timer,
+  Upload,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { generateProjectPlan } from '../lib/planner';
 import { injectMemoryIntoPrompt, generateSharedMemoryContext } from '../lib/memoryInjection';
 import { exportProjectPlanToMarkdown } from '../lib/exporters';
+import {
+  buildRunQualityChecklist,
+  formatRunDuration,
+  getFailedRunRetryAdvice,
+  parseRunNodeTrace,
+  serializeRun,
+} from '../lib/runLogs';
 import { GlassCard, Badge, Button, Input, Textarea, TaskBoard } from '../components/';
 import type {
   Project, ProjectPlan, Task, Run, Memory, MemoryInjectionMode, MemoryType,
+  RunNodeTrace,
 } from '../lib/types';
 import { formatDate, formatRelativeDate, copyToClipboard, classNames } from '../lib/utils';
 
@@ -436,6 +446,10 @@ export default function ProjectDetail() {
       return;
     }
 
+    const createdAt = new Date().toISOString();
+    const nodeTrace = parseRunNodeTrace(runLog.trim() || runSummary.trim(), runStatus);
+    const durationMs = nodeTrace.reduce((sum, node) => sum + (node.durationMs ?? 0), 0);
+    const retryCount = nodeTrace.reduce((sum, node) => sum + (node.retryCount ?? 0), 0);
     const payload: Omit<Run, 'id'> = {
       projectId: project.id,
       title,
@@ -443,7 +457,17 @@ export default function ProjectDetail() {
       status: runStatus,
       summary: runSummary.trim(),
       log: runLog.trim(),
-      createdAt: new Date().toISOString(),
+      startedAt: createdAt,
+      endedAt: runStatus === 'running' || runStatus === 'planned' ? undefined : createdAt,
+      durationMs,
+      retryCount,
+      error: runStatus === 'failed' || runStatus === 'blocked' ? runSummary.trim() || runLog.trim() : undefined,
+      nodeTrace,
+      metadata: {
+        source: 'manual-agent-run-panel',
+        guidance: 'local-only record; no command execution',
+      },
+      createdAt,
     };
 
     try {
@@ -501,6 +525,28 @@ export default function ProjectDetail() {
     await copyToClipboard(text);
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  const handleCopyRun = async (run: Run) => {
+    await copyToClipboard(serializeRun(run));
+    setCopiedKey(`run-${run.id}`);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  const handleExportRun = (run: Run) => {
+    const content = serializeRun(run);
+    const filename = `${run.title.replace(/[\\/:*?"<>|]+/g, '-').slice(0, 60) || 'agent-run'}.md`;
+    if (api && typeof api.export?.exportMarkdown === 'function') {
+      api.export.exportMarkdown(content, filename);
+      return;
+    }
+    const blob = new Blob([content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   // ── Loading state ──────────────────────────────────────────────────────
@@ -800,6 +846,9 @@ export default function ProjectDetail() {
               <div className="space-y-3 max-h-[430px] overflow-y-auto pr-1">
                 {runs.slice(0, 6).map((run) => {
                   const status = getRunStatusInfo(run.status);
+                  const nodeTrace = run.nodeTrace?.length
+                    ? run.nodeTrace
+                    : parseRunNodeTrace(run.log || run.summary || '', run.status);
                   return (
                     <article
                       key={run.id}
@@ -816,16 +865,92 @@ export default function ProjectDetail() {
                         </div>
                         <Badge variant={status.variant}>{status.label}</Badge>
                       </div>
+                      <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] text-slate-500 dark:text-zinc-500">
+                        <span className="inline-flex items-center gap-1 rounded-lg bg-white/35 px-2 py-1 dark:bg-zinc-900/40">
+                          <Timer className="h-3 w-3" /> {formatRunDuration(run.durationMs)}
+                        </span>
+                        <span className="rounded-lg bg-white/35 px-2 py-1 dark:bg-zinc-900/40">
+                          重试 {run.retryCount ?? 0}
+                        </span>
+                        <span className="rounded-lg bg-white/35 px-2 py-1 dark:bg-zinc-900/40">
+                          {nodeTrace.length} 节点
+                        </span>
+                      </div>
                       {run.summary && (
                         <p className="mt-2 text-sm text-slate-600 dark:text-zinc-300">
                           {run.summary}
                         </p>
                       )}
+                      <div className="mt-2 space-y-2">
+                        {nodeTrace.map((node) => (
+                          <div
+                            key={node.id}
+                            className="rounded-lg border border-white/10 bg-white/35 p-2 text-xs dark:bg-zinc-900/35"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-medium text-slate-700 dark:text-zinc-300">{node.name}</span>
+                              <span className="text-slate-500 dark:text-zinc-500">
+                                {node.status} · {formatRunDuration(node.durationMs)} · 重试 {node.retryCount ?? 0}
+                              </span>
+                            </div>
+                            {(node.inputSummary || node.outputSummary || node.failureReason) && (
+                              <div className="mt-1 space-y-0.5 text-slate-500 dark:text-zinc-500">
+                                {node.inputSummary && <p>输入：{node.inputSummary}</p>}
+                                {node.outputSummary && <p>输出：{node.outputSummary}</p>}
+                                {node.failureReason && <p className="text-red-500 dark:text-red-300">失败原因：{node.failureReason}</p>}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                       {run.log && (
                         <pre className="mt-2 max-h-28 overflow-y-auto whitespace-pre-wrap rounded-lg border border-white/10 bg-zinc-950/70 p-2 text-xs leading-relaxed text-zinc-200">
                           {run.log}
                         </pre>
                       )}
+                      <div className="mt-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-surface)] p-2">
+                        <div className="mb-1 text-[11px] font-semibold text-slate-600 dark:text-zinc-400">
+                          Run quality checklist
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {buildRunQualityChecklist({ ...run, nodeTrace }).map((item) => (
+                            <span key={item.id} title={item.detail}>
+                              <Badge
+                                className={
+                                  item.passed
+                                    ? 'bg-emerald-500/15 text-emerald-600 border-emerald-500/25 dark:text-emerald-300'
+                                    : 'bg-amber-500/15 text-amber-600 border-amber-500/25 dark:text-amber-300'
+                                }
+                              >
+                                {item.label}
+                              </Badge>
+                            </span>
+                          ))}
+                        </div>
+                        {getFailedRunRetryAdvice({ ...run, nodeTrace }).map((advice) => (
+                          <p key={advice} className="mt-1 text-[11px] text-slate-500 dark:text-zinc-500">
+                            重试建议：{advice}
+                          </p>
+                        ))}
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleCopyRun(run)}
+                          icon={copiedKey === `run-${run.id}` ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                        >
+                          {copiedKey === `run-${run.id}` ? '已复制' : '复制日志'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleExportRun(run)}
+                          icon={<Upload className="h-3.5 w-3.5" />}
+                        >
+                          导出日志
+                        </Button>
+                      </div>
                     </article>
                   );
                 })}

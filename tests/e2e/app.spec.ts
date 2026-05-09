@@ -32,7 +32,7 @@ test.describe('AgentFlow Studio React web entry', () => {
 
   test('loads dashboard with Liquid Glass shell', async ({ page }) => {
     await expect(page).toHaveTitle(/AgentFlow Studio/)
-    await expect(page.locator('main').getByRole('heading', { name: /仪表|Dashboard/ })).toBeVisible()
+    await expect(page.locator('main').getByRole('heading', { name: /仪表板|Dashboard/ })).toBeVisible()
     await expect(page.getByRole('navigation')).toBeVisible()
     await expect(page.getByText('下一步')).toBeVisible()
     for (const label of ['Idea', 'Plan', 'Tasks', 'Prompt', 'Safety', 'Logs', 'Memory', 'Handoff']) {
@@ -90,16 +90,38 @@ test.describe('AgentFlow Studio React web entry', () => {
       .poll(() => page.evaluate(() => localStorage.getItem('agentflow.theme')))
       .toBe('light')
 
+    await page.goto('/#/prompts', { waitUntil: 'networkidle' })
     await page.reload({ waitUntil: 'networkidle' })
+    await expect(page).toHaveURL(/#\/prompts/)
     await expect(page.getByRole('link', { name: /Dashboard/ })).toBeVisible()
     await expect.poll(() => page.evaluate(() => localStorage.getItem('agentflow.theme'))).toBe('light')
+    await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme)).toBe('light')
   })
 
   test('opens Prompt Lab and generates a redacted prompt', async ({ page }) => {
     await page.getByRole('link', { name: /提示词|Prompt Lab/ }).first().click()
     await expect(page).toHaveURL(/prompts|prompt-lab/)
     await page.getByRole('button', { name: /Generate|生成/ }).first().click()
-    await expect(page.getByText(/\[Shared Memory Context\]|Build|实现|分析/).first()).toBeVisible()
+    await expect(page.getByText(/\[Shared Memory Context\]|Build|实现|分析|下一步建议/).first()).toBeVisible()
+  })
+
+  test('shows workflow templates and prompt next actions for new users', async ({ page }) => {
+    await page.goto('/#/prompts', { waitUntil: 'networkidle' })
+    await expect(page.locator('main')).toContainText(/Prompt Lab/)
+    for (const step of ['创建工作流', '添加节点', '配置模型/API', '运行', '查看结果和日志']) {
+      await expect(page.getByText(step)).toBeVisible()
+    }
+
+    await page.getByRole('button', { name: '工作流模板' }).click()
+    await page.getByPlaceholder(/搜索模板|Search/).fill('git')
+    await expect(page.getByRole('heading', { name: 'Git 自动提交流程' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '人工复核' })).toBeVisible()
+
+    await page.getByRole('button', { name: 'Prompt 模板' }).click()
+    await page.getByRole('button', { name: /Generate|生成 Prompt|生成/ }).first().click()
+    await expect(page.getByText('下一步建议')).toBeVisible()
+    await expect(page.getByRole('button', { name: '复制给 Agent' })).toBeVisible()
+    await expect(page.getByRole('button', { name: '保存模板结果' })).toBeVisible()
   })
 
   test('opens new projects on detail with plan as the next step', async ({ page }) => {
@@ -122,12 +144,8 @@ test.describe('AgentFlow Studio React web entry', () => {
               return created
             },
           },
-          tasks: {
-            list: async () => [],
-          },
-          memory: {
-            list: async () => [],
-          },
+          tasks: { list: async () => [] },
+          memory: { list: async () => [] },
           runs: {
             list: async () => [],
             create: async (run: Record<string, string>) => ({ ...run, id: 'run-created-by-e2e' }),
@@ -178,7 +196,20 @@ test.describe('AgentFlow Studio React web entry', () => {
   })
 
   test('records a safe Agent run on project detail', async ({ page }) => {
-    await page.evaluate(() => {
+    await page.addInitScript(() => {
+      Object.assign(window, { __e2eClipboardText: '' })
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText(value: string) {
+            Object.assign(window, { __e2eClipboardText: value })
+            return Promise.resolve()
+          },
+          readText() {
+            return Promise.resolve((window as any).__e2eClipboardText)
+          },
+        },
+      })
       const project = {
         id: 'demo-1',
         name: 'AI 聊天助手',
@@ -191,30 +222,37 @@ test.describe('AgentFlow Studio React web entry', () => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }
-      const runs: Array<Record<string, string>> = []
+      const exports: Array<{ content: string; filename: string }> = []
+      Object.assign(window, { __agentflowExports: exports })
+      const readRuns = () => JSON.parse(localStorage.getItem('__agentflowE2ERuns') || '[]') as Array<Record<string, string>>
+      const writeRuns = (runs: Array<Record<string, string>>) => localStorage.setItem('__agentflowE2ERuns', JSON.stringify(runs))
       Object.defineProperty(window, 'agentflow', {
         configurable: true,
         value: {
-        projects: {
-          get: async () => project,
-        },
-        tasks: {
-          list: async () => [],
-        },
-        memory: {
-          list: async () => [],
-        },
-        runs: {
-          list: async () => runs,
-          create: async (run: Record<string, string>) => {
-            const created = { ...run, id: `run-${runs.length + 1}` }
-            runs.unshift(created)
-            return created
+          projects: { get: async () => project },
+          tasks: { list: async () => [] },
+          memory: { list: async () => [] },
+          runs: {
+            list: async () => readRuns(),
+            create: async (run: Record<string, string>) => {
+              const runs = readRuns()
+              const created = { ...run, id: `run-${runs.length + 1}` }
+              runs.unshift(created)
+              writeRuns(runs)
+              return created
+            },
           },
-        },
+          export: {
+            markdown: async (content: string, filename: string) => {
+              exports.push({ content, filename })
+              return 'mock-export.md'
+            },
+          },
         },
       })
     })
+    await page.goto('/', { waitUntil: 'networkidle' })
+    await page.evaluate(() => localStorage.removeItem('__agentflowE2ERuns'))
 
     await page.goto('/#/projects/demo-1', { waitUntil: 'networkidle' })
     await expect(page).toHaveURL(/#\/projects\/demo-1/)
@@ -226,13 +264,31 @@ test.describe('AgentFlow Studio React web entry', () => {
     await panel.getByLabel('工具').selectOption('Codex')
     await panel.getByLabel('状态').selectOption('success')
     await panel.getByLabel('结果摘要').fill('浏览器测试保存了一条本地执行记录。')
-    await panel.getByLabel('关键日志').fill('npm.cmd run test:e2e passed for run panel.')
+    await panel.getByLabel('关键日志').fill('node setup -> npm.cmd run test:e2e passed. token=sk-test-secret-1234567890')
     await panel.getByRole('button', { name: '保存执行记录' }).click()
 
     await expect(panel.getByText('执行记录已保存')).toBeVisible()
     const savedRun = panel.getByRole('article').filter({ hasText: 'E2E Agent 运行记录' })
     await expect(savedRun.getByRole('heading', { name: 'E2E Agent 运行记录' })).toBeVisible()
     await expect(savedRun.getByText('已完成')).toBeVisible()
+    await savedRun.getByRole('button', { name: /复制日志|已复制/ }).click()
+    const copiedLog = await expect
+      .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+      .not.toBe('')
+      .then(() => page.evaluate(() => navigator.clipboard.readText()))
+    expect(copiedLog).toContain('E2E Agent')
+    expect(copiedLog).toContain('npm.cmd run test:e2e passed')
+    expect(copiedLog).not.toContain('sk-test-secret-1234567890')
+
+    await savedRun.getByRole('button', { name: '导出日志' }).click()
+    const exported = await page.evaluate(() => (window as any).__agentflowExports[0])
+    expect(exported.filename).toMatch(/\.md$/)
+    expect(exported.content).toContain('E2E Agent')
+    expect(exported.content).toContain('npm.cmd run test:e2e passed')
+    expect(exported.content).not.toContain('sk-test-secret-1234567890')
+
+    await page.reload({ waitUntil: 'networkidle' })
+    await expect(page.getByRole('article').filter({ hasText: 'E2E Agent 运行记录' })).toBeVisible()
   })
 
   test('has no serious browser errors on first run', async ({ page }) => {

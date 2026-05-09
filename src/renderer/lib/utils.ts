@@ -163,24 +163,31 @@ export function debounce<Args extends unknown[]>(
  * Copy text to the system clipboard.
  * Returns true on success, false on failure.
  */
+async function writeClipboardText(text: string): Promise<boolean> {
+  if (navigator?.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return true;
+  }
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  textarea.style.left = '-9999px';
+  document.body.appendChild(textarea);
+  textarea.select();
+  const success = document.execCommand('copy');
+  document.body.removeChild(textarea);
+  return success;
+}
+
 export async function copyToClipboard(text?: string | null): Promise<boolean> {
   const safeText = text ?? '';
   try {
-    if (navigator?.clipboard?.writeText) {
-      await navigator.clipboard.writeText(safeText);
-      return true;
+    if (/sk-|bearer\s+|api[_-]?key|password|secret|token/i.test(safeText)) {
+      const { redactSecrets } = await import('./secretRedaction');
+      return await writeClipboardText(redactSecrets(safeText));
     }
-    // Fallback for older environments
-    const textarea = document.createElement('textarea');
-    textarea.value = safeText;
-    textarea.style.position = 'fixed';
-    textarea.style.opacity = '0';
-    textarea.style.left = '-9999px';
-    document.body.appendChild(textarea);
-    textarea.select();
-    const success = document.execCommand('copy');
-    document.body.removeChild(textarea);
-    return success;
+    return await writeClipboardText(safeText);
   } catch {
     return false;
   }

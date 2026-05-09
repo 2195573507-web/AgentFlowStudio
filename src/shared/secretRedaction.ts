@@ -6,6 +6,7 @@ interface SecretPattern {
 }
 
 const PATTERNS: SecretPattern[] = [
+  { name: 'Short sk-style Secret', pattern: /sk-[a-zA-Z0-9_-]*/g },
   { name: 'OpenAI/Claude API Key', pattern: /sk-[a-zA-Z0-9_-]{16,}/g },
   { name: 'Bearer Token', pattern: /Bearer\s+([a-zA-Z0-9_.=:+/-]{8,})/gi },
   { name: 'Authorization Header', pattern: /authorization\s*[=:]\s*['"]?([^'"\s]{4,})['"]?/gi },

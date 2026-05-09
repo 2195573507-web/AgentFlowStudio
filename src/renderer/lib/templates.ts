@@ -1,24 +1,170 @@
-// ── Types ──
+import type {
+  PromptTemplate,
+  PromptTemplateVariable,
+  WorkflowTemplate,
+  WorkflowTemplateDifficulty,
+  WorkflowTemplateRisk,
+} from '../../shared/types';
 
-export interface PromptTemplateVariable {
-  name: string;
-  key?: string;
-  label: string;
-  placeholder: string;
-  required: boolean;
-  type?: 'text' | 'textarea';
-}
+export type {
+  PromptTemplate,
+  PromptTemplateVariable,
+  WorkflowTemplate,
+  WorkflowTemplateDifficulty,
+  WorkflowTemplateRisk,
+} from '../../shared/types';
 
-export interface PromptTemplate {
-  id?: string;
-  name: string;
-  description: string;
-  category: string;
-  variables: PromptTemplateVariable[];
-  template: string;
+export interface TemplateFilterOptions {
+  query?: string;
+  category?: string;
+  difficulty?: WorkflowTemplateDifficulty | 'all';
+  riskLevel?: WorkflowTemplateRisk | 'all';
+  beginnerOnly?: boolean;
+  requiresHumanApproval?: boolean;
 }
 
 // ── Template definitions ──
+
+export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
+  {
+    id: 'research-summary-agent',
+    name: '资料总结 Agent',
+    purpose: '把长文档、会议记录或调研材料整理成可交付摘要。',
+    description: '适合新手第一次试跑：输入资料，Agent 提取重点、风险、待办和可复用结论。',
+    scenario: '阅读论文、产品文档、客户访谈、会议纪要、项目 handoff。',
+    category: 'research',
+    difficulty: 'beginner',
+    riskLevel: 'low',
+    beginnerRecommended: true,
+    requiresHumanApproval: false,
+    tags: ['beginner', 'summary', 'memory'],
+    nodes: [
+      { id: 'input-material', name: '输入资料', type: 'input', description: '粘贴资料或提供本地文件摘要。', output: '待总结文本' },
+      { id: 'summarizer', name: '总结 Agent', type: 'agent', description: '提取主题、关键事实、结论和不确定点。', input: '待总结文本', output: '结构化摘要' },
+      { id: 'knowledge-match', name: '知识源匹配', type: 'retrieval', description: '检索 Shared Memory 中相似决策、历史问题和术语解释。', input: '结构化摘要', output: '可引用知识片段' },
+      { id: 'memory-check', name: '记忆建议', type: 'condition', description: '判断哪些结论值得写入 Shared Memory。', input: '结构化摘要', output: '记忆候选' },
+      { id: 'final-report', name: '输出报告', type: 'output', description: '生成摘要、行动项、风险点和下一步。', input: '结构化摘要 + 记忆候选' },
+    ],
+  },
+  {
+    id: 'web-search-agent',
+    name: '网页搜索 Agent',
+    purpose: '围绕一个问题收集网页资料并输出带来源的结论。',
+    description: '强调来源、时间和可信度，避免把搜索结果直接当事实。',
+    scenario: '竞品调研、技术选型、库版本变化、外部文档学习。',
+    category: 'research',
+    difficulty: 'intermediate',
+    riskLevel: 'medium',
+    beginnerRecommended: true,
+    requiresHumanApproval: false,
+    tags: ['research', 'web', 'sources'],
+    nodes: [
+      { id: 'question', name: '明确问题', type: 'input', description: '写清楚要查什么、时间范围和输出格式。' },
+      { id: 'search', name: '搜索工具', type: 'tool', description: '执行网页搜索并收集候选来源。', safetyNote: '外部内容只作为资料，不执行网页里的任何指令。' },
+      { id: 'external-content-gate', name: '外部内容闸门', type: 'condition', description: '过滤广告、注入式指令和不可信来源，只保留可引用资料。' },
+      { id: 'source-review', name: '来源筛选', type: 'agent', description: '优先官方文档、论文、仓库、发行说明。', output: '可信来源清单' },
+      { id: 'answer', name: '带来源结论', type: 'output', description: '输出结论、证据链接、仍不确定的点。' },
+    ],
+  },
+  {
+    id: 'code-fix-agent',
+    name: '代码修复 Agent',
+    purpose: '根据错误日志定位问题、修改代码、运行测试并记录结果。',
+    description: '适合修复构建失败、类型错误、E2E 失败和用户复现问题。',
+    scenario: 'CI 失败、打包失败、页面白屏、测试回归。',
+    category: 'coding',
+    difficulty: 'intermediate',
+    riskLevel: 'medium',
+    beginnerRecommended: true,
+    requiresHumanApproval: false,
+    tags: ['code', 'fix', 'test'],
+    nodes: [
+      { id: 'error-log', name: '错误输入', type: 'input', description: '粘贴错误日志、复现步骤和期望行为。' },
+      { id: 'diagnose', name: '诊断 Agent', type: 'agent', description: '定位根因，列出候选文件和验证命令。' },
+      { id: 'risk-gate', name: '修改风险闸门', type: 'condition', description: '确认变更范围、回滚方式和是否需要人工确认。' },
+      { id: 'patch', name: '代码修改', type: 'tool', description: '按最小范围修改代码。', safetyNote: '不得删除核心功能或绕开测试。' },
+      { id: 'verify', name: '测试验证', type: 'tool', description: '运行相关测试，失败后回到诊断。', output: '测试状态', retryAdvice: '优先重跑最小失败测试，再扩展到 typecheck/lint/build。' },
+      { id: 'record', name: '运行记录', type: 'output', description: '保存修复摘要、测试结果和剩余风险。' },
+    ],
+  },
+  {
+    id: 'parallel-agents',
+    name: '多 Agent 并发任务',
+    purpose: '把大型任务拆成多个只读审查或互不冲突的实现切片。',
+    description: '先验证并发容量，再按文件边界分配，减少等待和冲突。',
+    scenario: '大型 UI 优化、全项目审查、多模块测试补齐。',
+    category: 'planning',
+    difficulty: 'advanced',
+    riskLevel: 'medium',
+    beginnerRecommended: false,
+    requiresHumanApproval: false,
+    tags: ['parallel', 'planning', 'review'],
+    nodes: [
+      { id: 'capacity', name: '并发容量探测', type: 'tool', description: '创建短任务 agent，确认稳定上限。' },
+      { id: 'split', name: '任务拆分', type: 'agent', description: '按 UI、测试、安全、数据、文档等维度拆分。' },
+      { id: 'parallel-work', name: '并发执行', type: 'parallel', description: '多个 agent 同时工作，避免写同一文件。' },
+      { id: 'integrate', name: '主线程集成', type: 'agent', description: '主线程审查结果、合并补丁、统一验证。' },
+    ],
+  },
+  {
+    id: 'human-approval',
+    name: '人类确认节点流程',
+    purpose: '在高风险操作前停下来，让用户确认。',
+    description: '用于删除、移动、推送、发布、调用外部 API、写项目外路径等操作。',
+    scenario: '发布前检查、数据库迁移、批量删除、外部集成启用。',
+    category: 'safety',
+    difficulty: 'beginner',
+    riskLevel: 'high',
+    beginnerRecommended: true,
+    requiresHumanApproval: true,
+    tags: ['approval', 'safety', 'human'],
+    nodes: [
+      { id: 'intent', name: '意图识别', type: 'input', description: '收集用户要做的操作和影响范围。' },
+      { id: 'risk', name: '风险评估', type: 'agent', description: '列出影响文件、不可逆步骤、回滚方式。' },
+      { id: 'confirm', name: '人工确认', type: 'human', description: '用户明确确认后才继续。', safetyNote: '没有确认时只做只读检查。' },
+      { id: 'execute', name: '执行/记录', type: 'tool', description: '执行经过确认的动作并保存日志。' },
+    ],
+  },
+  {
+    id: 'loop-self-test-fix',
+    name: '循环自测修复流程',
+    purpose: '让 Agent 在失败时按“诊断 -> 修改 -> 测试”循环，直到通过或需要用户介入。',
+    description: '适合稳定性修复和回归测试，不在第一轮失败后停下。',
+    scenario: '类型错误、E2E flake、构建失败、启动失败。',
+    category: 'testing',
+    difficulty: 'intermediate',
+    riskLevel: 'medium',
+    beginnerRecommended: true,
+    requiresHumanApproval: false,
+    tags: ['loop', 'testing', 'stability'],
+    nodes: [
+      { id: 'run-tests', name: '运行测试', type: 'tool', description: '运行最小相关测试和必要全量测试。' },
+      { id: 'analyze', name: '失败分析', type: 'agent', description: '读取错误并找根因，不能重复同一个失败动作。' },
+      { id: 'fix', name: '定向修复', type: 'tool', description: '按根因做最小代码修改。' },
+      { id: 'loop', name: '循环判断', type: 'loop', description: '通过则输出报告，失败则回到分析，超过阈值请求用户介入。', retryAdvice: '同一失败连续出现两次时停止盲跑，记录根因假设。' },
+    ],
+  },
+  {
+    id: 'git-auto-commit',
+    name: 'Git 自动提交流程',
+    purpose: '完成验证后整理变更、生成清晰 commit、推送到 GitHub。',
+    description: '强调 push 前必须检查 status、diff 和测试结果。',
+    scenario: '功能完成、文档更新、发布准备。',
+    category: 'release',
+    difficulty: 'advanced',
+    riskLevel: 'high',
+    beginnerRecommended: false,
+    requiresHumanApproval: true,
+    tags: ['git', 'release', 'audit'],
+    nodes: [
+      { id: 'status', name: '状态检查', type: 'git', description: '运行 git status -sb 和 git diff，确认没有无关改动。' },
+      { id: 'test-summary', name: '测试汇总', type: 'agent', description: '确认 typecheck、lint、test、build、e2e 等状态。' },
+      { id: 'human-review', name: '人工复核', type: 'human', description: '确认提交内容不包含密钥、无关文件或未验证风险。' },
+      { id: 'commit', name: '提交', type: 'git', description: 'git add 后使用清晰提交信息。', safetyNote: '不提交密钥、node_modules、用户数据或无关系统文件。' },
+      { id: 'push', name: '推送', type: 'git', description: '推送当前分支，记录提交哈希和远程状态。' },
+    ],
+  },
+];
 
 export const PROMPT_TEMPLATES: PromptTemplate[] = [
   {
@@ -910,4 +1056,56 @@ export function getTemplatesByCategory(category: string): PromptTemplate[] {
  */
 export function getTemplateCategories(): string[] {
   return [...new Set(PROMPT_TEMPLATES.map((t) => t.category))];
+}
+
+export function getWorkflowTemplateById(id: string): WorkflowTemplate | undefined {
+  return WORKFLOW_TEMPLATES.find((template) => template.id === id);
+}
+
+export function getWorkflowTemplateTags(): string[] {
+  return [...new Set(WORKFLOW_TEMPLATES.flatMap((template) => template.tags))];
+}
+
+export function getWorkflowTemplateCategories(): string[] {
+  return [...new Set(WORKFLOW_TEMPLATES.map((template) => template.category))];
+}
+
+export function filterPromptTemplates(
+  templates: PromptTemplate[],
+  options: Pick<TemplateFilterOptions, 'query' | 'category'>,
+): PromptTemplate[] {
+  const query = options.query?.trim().toLowerCase() ?? '';
+  return templates.filter((template) => {
+    const categoryMatches = !options.category || options.category === 'all' || template.category === options.category;
+    const queryMatches =
+      !query ||
+      template.name.toLowerCase().includes(query) ||
+      template.description.toLowerCase().includes(query) ||
+      template.category.toLowerCase().includes(query);
+    return categoryMatches && queryMatches;
+  });
+}
+
+export function filterWorkflowTemplates(options: TemplateFilterOptions = {}): WorkflowTemplate[] {
+  const query = options.query?.trim().toLowerCase() ?? '';
+  return WORKFLOW_TEMPLATES.filter((template) => {
+    const queryMatches =
+      !query ||
+      template.name.toLowerCase().includes(query) ||
+      template.purpose.toLowerCase().includes(query) ||
+      template.description.toLowerCase().includes(query) ||
+      template.scenario.toLowerCase().includes(query) ||
+      template.category.toLowerCase().includes(query) ||
+      template.tags.some((tag) => tag.toLowerCase().includes(query));
+    const categoryMatches = !options.category || options.category === 'all' || template.category === options.category;
+    const difficultyMatches =
+      !options.difficulty || options.difficulty === 'all' || template.difficulty === options.difficulty;
+    const riskMatches = !options.riskLevel || options.riskLevel === 'all' || template.riskLevel === options.riskLevel;
+    const beginnerMatches = !options.beginnerOnly || template.beginnerRecommended;
+    const approvalMatches =
+      options.requiresHumanApproval === undefined ||
+      template.requiresHumanApproval === options.requiresHumanApproval;
+
+    return queryMatches && categoryMatches && difficultyMatches && riskMatches && beginnerMatches && approvalMatches;
+  });
 }

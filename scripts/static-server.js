@@ -7,9 +7,27 @@ import { spawn } from 'node:child_process'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectDir = path.resolve(__dirname, '..')
 const logsDir = path.join(projectDir, 'logs')
-const logPath = process.env.AGENTFLOW_STATIC_LOG_PATH
-  ? path.resolve(process.env.AGENTFLOW_STATIC_LOG_PATH)
-  : path.join(logsDir, 'static-server.log')
+function isPathInsideBase(basePath, targetPath) {
+  const relative = path.relative(path.resolve(basePath), path.resolve(targetPath))
+  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative))
+}
+
+function resolveProjectOwnedPath(input, fallback) {
+  if (!input) {
+    return fallback
+  }
+  const resolved = path.resolve(projectDir, input)
+  if (!isPathInsideBase(projectDir, resolved)) {
+    console.warn(`[${new Date().toISOString()}] Ignoring path outside project: ${resolved}`)
+    return fallback
+  }
+  return resolved
+}
+
+const logPath = resolveProjectOwnedPath(
+  process.env.AGENTFLOW_STATIC_LOG_PATH,
+  path.join(logsDir, 'static-server.log'),
+)
 const host = process.env.HOST || '127.0.0.1'
 const preferredPort = Number(process.argv[3] || process.env.PORT || 4173)
 const portCandidates = [preferredPort, 4173, 4174, 4175, 4176, 4177]
@@ -43,6 +61,7 @@ const contentTypes = {
 
 let activeServer = null
 let activeRoot = null
+let activeRootReal = null
 let logFileAvailable = true
 
 function ensureDir(dir) {
@@ -144,7 +163,10 @@ function writeFallbackApp(reason) {
 function hasUsableIndex(dir) {
   try {
     return fs.statSync(dir).isDirectory() && fs.statSync(path.join(dir, 'index.html')).isFile()
-  } catch {
+  } catch (error) {
+    if (error && error.statusCode === 403) {
+      throw error
+    }
     return false
   }
 }
@@ -152,6 +174,19 @@ function hasUsableIndex(dir) {
 function selectStaticRoot() {
   for (const candidate of rootCandidates) {
     const resolved = path.resolve(projectDir, candidate)
+    if (!isPathInsideBase(projectDir, resolved)) {
+      log(`拒绝项目目录外的静态根：${resolved}`)
+      continue
+    }
+    try {
+      const realResolved = fs.realpathSync(resolved)
+      if (!isPathInsideBase(projectDir, realResolved)) {
+        log(`拒绝 realpath 越界的静态根：${resolved}`)
+        continue
+      }
+    } catch {
+      // Missing candidate roots are handled by hasUsableIndex below.
+    }
     if (hasUsableIndex(resolved)) {
       return resolved
     }
@@ -164,6 +199,12 @@ function selectStaticRoot() {
 
 function isInsideRoot(filePath) {
   const relative = path.relative(activeRoot, filePath)
+  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative))
+}
+
+async function isRealPathInsideRoot(filePath) {
+  const realFilePath = await fs.promises.realpath(filePath)
+  const relative = path.relative(activeRootReal, realFilePath)
   return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative))
 }
 
@@ -217,9 +258,17 @@ async function resolveRequestPath(req) {
   try {
     const finalStat = await fs.promises.stat(filePath)
     if (!finalStat.isFile()) {
-      throw new Error('不是文件')
+      throw new Error('not a file')
     }
-  } catch {
+    if (!(await isRealPathInsideRoot(filePath))) {
+      const err = new Error(`Refusing to serve real path outside static root: ${pathname}`)
+      err.statusCode = 403
+      throw err
+    }
+  } catch (error) {
+    if (error && error.statusCode === 403) {
+      throw error
+    }
     const err = new Error(`静态文件不可用：${pathname}`)
     err.statusCode = 404
     throw err
@@ -359,4 +408,5 @@ process.on('SIGTERM', () => shutdown('SIGTERM'))
 initializeLogFile()
 log(`项目路径：${projectDir}`)
 activeRoot = selectStaticRoot()
+activeRootReal = fs.realpathSync(activeRoot)
 startServer()

@@ -13,6 +13,7 @@ import type {
   SkillMeta,
   SafetyCheckResult,
   GitCommitEntry,
+  ReleaseStatus,
   MemoryInjectionMode,
 } from '../../shared/types';
 
@@ -56,6 +57,9 @@ interface AgentFlowPreloadAPI {
       commitCount: number;
       recentCommits: GitCommitEntry[];
     }>;
+  };
+  release?: {
+    status(repoPath?: string): Promise<ReleaseStatus>;
   };
   memory?: {
     list(filters?: Record<string, unknown>): Promise<Memory[]>;
@@ -151,6 +155,7 @@ interface AgentFlowPreloadAPI {
     commitCount: number;
     recentCommits: GitCommitEntry[];
   }>;
+  getReleaseStatus?(repoPath?: string): Promise<ReleaseStatus>;
 
   // Memory
   listMemories(projectId?: string): Promise<Memory[]>;
@@ -418,6 +423,36 @@ export const api = {
         commitCount: 0,
         recentCommits: [],
       }),
+  },
+
+  release: {
+    status: (repoPath?: string) =>
+      apiCall<ReleaseStatus>(
+        'getReleaseStatus',
+        (a) =>
+          a.release?.status(repoPath) ??
+          a.getReleaseStatus?.(repoPath) ??
+          Promise.resolve({
+            version: 'unknown',
+            branch: 'unknown',
+            gitStatus: 'Release status bridge is unavailable.',
+            recentCommits: [],
+            updateSummary: [],
+            testResults: [],
+            progressSummary: [],
+            checkedAt: new Date().toISOString(),
+          }),
+        {
+          version: 'unknown',
+          branch: 'unknown',
+          gitStatus: 'Unable to read release status.',
+          recentCommits: [],
+          updateSummary: [],
+          testResults: [],
+          progressSummary: [],
+          checkedAt: new Date().toISOString(),
+        },
+      ),
   },
 
   // ── Memory ──

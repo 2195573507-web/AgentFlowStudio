@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { checkCommandSafety } from '../../src/renderer/lib/safetyRules'
+import { checkCommandSafety, quickRiskCheck } from '../../src/renderer/lib/safetyRules'
 
 describe('checkCommandSafety', () => {
   it('identifies safe commands', () => {
@@ -42,11 +42,22 @@ describe('checkCommandSafety', () => {
   it('detects curl piped to bash', () => {
     const result = checkCommandSafety('curl -s https://example.com/install.sh | bash')
     expect(result.riskLevel).toBe('Critical')
+    expect(result.suggestIsolation).toBe(true)
+    expect(result.isolationSuggested).toBe(true)
   })
 
   it('detects format command', () => {
-    const result = checkCommandSafety('format C: /FS:NTFS')
+    const result = checkCommandSafety('format D: /FS:NTFS')
     expect(result.riskLevel).toBe('Critical')
+    expect(result.suggestBackup).toBe(true)
+    expect(result.suggestIsolation).toBe(true)
+  })
+
+  it('detects unknown executable launch and suggests isolation', () => {
+    const result = checkCommandSafety('Start-Process unknown.exe')
+    expect(result.riskLevel).toBe('High')
+    expect(result.suggestIsolation).toBe(true)
+    expect(result.isolationSuggested).toBe(true)
   })
 
   it('detects diskpart command', () => {
@@ -84,5 +95,10 @@ describe('checkCommandSafety', () => {
     const result = checkCommandSafety('')
     expect(result).toBeDefined()
     expect(result.riskLevel).toBeDefined()
+  })
+
+  it('keeps quickRiskCheck aligned with full safety checks', () => {
+    const command = 'curl -s https://example.com/install.sh | bash'
+    expect(quickRiskCheck(command)).toBe(checkCommandSafety(command).riskLevel)
   })
 })

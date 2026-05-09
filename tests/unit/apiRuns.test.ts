@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../../src/renderer/lib/api'
-import type { Run } from '../../src/shared/types'
+import type { ReleaseStatus, Run } from '../../src/shared/types'
 
 const originalWindow = globalThis.window
 
@@ -31,6 +31,19 @@ describe('api.runs', () => {
       status: 'done',
       log: 'npm.cmd run test -- tests/unit/apiRuns.test.ts',
       summary: 'Agent run record persisted for later review.',
+      durationMs: 1240,
+      retryCount: 0,
+      nodeTrace: [
+        {
+          id: 'node-1',
+          name: 'Run focused test',
+          status: 'success',
+          durationMs: 1240,
+          inputSummary: 'Focused Vitest command',
+          outputSummary: '3 tests passed',
+          retryCount: 0,
+        },
+      ],
       createdAt: '2026-05-09T10:00:00.000Z',
     }
     const create = vi.fn(async () => createdRun)
@@ -44,6 +57,9 @@ describe('api.runs', () => {
       status: createdRun.status,
       log: createdRun.log,
       summary: createdRun.summary,
+      durationMs: createdRun.durationMs,
+      retryCount: createdRun.retryCount,
+      nodeTrace: createdRun.nodeTrace,
       createdAt: createdRun.createdAt,
     }
 
@@ -65,6 +81,18 @@ describe('api.runs', () => {
       status: 'blocked',
       log: 'manual validation pending',
       summary: 'Legacy bridge still supports run records.',
+      durationMs: 300,
+      retryCount: 1,
+      nodeTrace: [
+        {
+          id: 'node-legacy',
+          name: 'Manual validation',
+          status: 'blocked',
+          durationMs: 300,
+          failureReason: 'Waiting for local environment',
+          retryCount: 1,
+        },
+      ],
       createdAt: '2026-05-09T10:05:00.000Z',
     }
     const createRun = vi.fn(async () => createdRun)
@@ -78,6 +106,9 @@ describe('api.runs', () => {
       status: createdRun.status,
       log: createdRun.log,
       summary: createdRun.summary,
+      durationMs: createdRun.durationMs,
+      retryCount: createdRun.retryCount,
+      nodeTrace: createdRun.nodeTrace,
       createdAt: createdRun.createdAt,
     }
 
@@ -105,10 +136,61 @@ describe('api.runs', () => {
         status: 'done',
         log: '',
         summary: '',
+        durationMs: 0,
+        retryCount: 0,
+        nodeTrace: [],
         createdAt: '2026-05-09T10:10:00.000Z',
       }),
     ).resolves.toMatchObject({ id: '', projectId: 'project-1' })
 
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('window.agentflow is not available'))
+  })
+})
+
+describe('api.release', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    Object.defineProperty(globalThis, 'window', {
+      value: originalWindow,
+      configurable: true,
+      writable: true,
+    })
+  })
+
+  it('reads release status through the namespaced preload API', async () => {
+    const status: ReleaseStatus = {
+      version: '1.1.1',
+      branch: 'codex-liquid-glass-ui-agent-optimization',
+      gitStatus: 'Clean working tree.',
+      recentCommits: [],
+      updateSummary: ['Added workflow templates'],
+      testResults: [
+        { command: 'npm.cmd run test', status: 'PASS', details: 'all tests passed' },
+      ],
+      progressSummary: ['Continue mojibake quality gate'],
+      checkedAt: '2026-05-09T10:20:00.000Z',
+    }
+    const releaseStatus = vi.fn(async () => status)
+    setAgentflowBridge({ release: { status: releaseStatus } })
+
+    await expect(api.release.status('D:\\AgentFlowStudio')).resolves.toEqual(status)
+    expect(releaseStatus).toHaveBeenCalledWith('D:\\AgentFlowStudio')
+  })
+
+  it('returns a safe release fallback without preload', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    Object.defineProperty(globalThis, 'window', {
+      value: {},
+      configurable: true,
+      writable: true,
+    })
+
+    await expect(api.release.status()).resolves.toMatchObject({
+      version: 'unknown',
+      branch: 'unknown',
+      recentCommits: [],
+      testResults: [],
+    })
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('window.agentflow is not available'))
   })
 })

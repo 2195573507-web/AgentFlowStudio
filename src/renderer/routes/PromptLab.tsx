@@ -17,10 +17,14 @@ import {
   FileText,
   ArrowRight,
   Plus,
+  GitBranch,
+  MousePointerClick,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import {
   PROMPT_TEMPLATES,
+  filterPromptTemplates,
+  filterWorkflowTemplates,
   fillTemplate,
   getTemplateByName,
   getTemplateVariableKey,
@@ -55,6 +59,10 @@ export default function PromptLab() {
   const [templates, setTemplates] = useState<PromptTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<PromptTemplate | null>(null);
   const [templateSearch, setTemplateSearch] = useState('');
+  const [templateMode, setTemplateMode] = useState<'prompt' | 'workflow'>('prompt');
+  const [workflowCategory, setWorkflowCategory] = useState('all');
+  const [workflowRisk, setWorkflowRisk] = useState<'all' | 'low' | 'medium' | 'high'>('all');
+  const [beginnerOnly, setBeginnerOnly] = useState(false);
 
   // Variables
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
@@ -133,14 +141,20 @@ export default function PromptLab() {
 
   // ── Filtered templates ────────────────────────────────────────────────
   const filteredTemplates = useMemo(() => {
-    if (!templateSearch) return templates;
-    const q = templateSearch.toLowerCase();
-    return templates.filter(
-      (t) =>
-        t.name.toLowerCase().includes(q) ||
-        t.description.toLowerCase().includes(q)
-    );
+    return filterPromptTemplates(templates, { query: templateSearch });
   }, [templates, templateSearch]);
+
+  const filteredWorkflowTemplates = useMemo(() => {
+    return filterWorkflowTemplates({
+      query: templateSearch,
+      category: workflowCategory,
+      riskLevel: workflowRisk,
+      beginnerOnly,
+    });
+  }, [beginnerOnly, templateSearch, workflowCategory, workflowRisk]);
+
+  const selectedWorkflowTemplate =
+    templateMode === 'workflow' ? filteredWorkflowTemplates[0] ?? null : null;
 
   // ── Generate prompt ───────────────────────────────────────────────────
   const handleGenerate = async () => {
@@ -298,12 +312,53 @@ export default function PromptLab() {
   return (
     <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-zinc-100 tracking-tight">Prompt Lab</h1>
-          <p className="text-zinc-400 text-sm mt-1">模板化 Prompt 生成与管理</p>
+          <p className="text-zinc-400 text-sm mt-1">
+            模板化 Prompt 生成、工作流模板库和新手下一步指引
+          </p>
+        </div>
+        <div className="inline-flex rounded-xl border border-[var(--glass-border)] bg-[var(--glass-surface)] p-1 shadow-[var(--glass-inner)]">
+          {[
+            { key: 'prompt' as const, label: 'Prompt 模板', icon: Wand2 },
+            { key: 'workflow' as const, label: '工作流模板', icon: GitBranch },
+          ].map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => setTemplateMode(item.key)}
+              className={classNames(
+                'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                templateMode === item.key
+                  ? 'bg-accent-500/15 text-accent-500 dark:text-accent-300'
+                  : 'text-zinc-500 hover:bg-white/5 hover:text-zinc-300',
+              )}
+            >
+              <item.icon className="h-3.5 w-3.5" />
+              {item.label}
+            </button>
+          ))}
         </div>
       </div>
+
+      <GlassCard className="p-4">
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <Badge variant="info">新手路径</Badge>
+          <span className="text-slate-700 dark:text-zinc-300">创建工作流</span>
+          <ArrowRight className="h-4 w-4 text-zinc-500" />
+          <span className="text-slate-700 dark:text-zinc-300">添加节点</span>
+          <ArrowRight className="h-4 w-4 text-zinc-500" />
+          <span className="text-slate-700 dark:text-zinc-300">配置模型/API</span>
+          <ArrowRight className="h-4 w-4 text-zinc-500" />
+          <span className="text-slate-700 dark:text-zinc-300">运行</span>
+          <ArrowRight className="h-4 w-4 text-zinc-500" />
+          <span className="text-slate-700 dark:text-zinc-300">查看结果和日志</span>
+        </div>
+        <p className="mt-2 text-xs text-slate-500 dark:text-zinc-500">
+          不懂 Agent 也可以从“工作流模板”开始：选一个场景，看节点结构，再把生成的 Prompt 复制给 Codex、Claude Code 或 Cursor。
+        </p>
+      </GlassCard>
 
       {/* Main two-panel layout */}
       <div className="flex gap-4 lg:h-[calc(100vh-16rem)] min-h-[600px]">
@@ -320,8 +375,99 @@ export default function PromptLab() {
             />
           </div>
 
+          {templateMode === 'workflow' && (
+            <div className="grid gap-2">
+              <select
+                value={workflowCategory}
+                onChange={(event) => setWorkflowCategory(event.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-zinc-300 focus:outline-none focus:ring-2 focus:ring-accent-400/50"
+                aria-label="模板分类"
+              >
+                <option value="all">全部分类</option>
+                <option value="research">调研/知识</option>
+                <option value="coding">代码修复</option>
+                <option value="planning">并发规划</option>
+                <option value="safety">人类确认</option>
+                <option value="testing">循环测试</option>
+                <option value="release">发布提交</option>
+              </select>
+              <select
+                value={workflowRisk}
+                onChange={(event) => setWorkflowRisk(event.target.value as typeof workflowRisk)}
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-zinc-300 focus:outline-none focus:ring-2 focus:ring-accent-400/50"
+                aria-label="风险等级"
+              >
+                <option value="all">全部风险</option>
+                <option value="low">低风险</option>
+                <option value="medium">中风险</option>
+                <option value="high">高风险</option>
+              </select>
+              <label className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-zinc-400">
+                <input
+                  type="checkbox"
+                  checked={beginnerOnly}
+                  onChange={(event) => setBeginnerOnly(event.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-white/20 bg-white/10 accent-[var(--accent)]"
+                />
+                只看新手推荐
+              </label>
+            </div>
+          )}
+
           <GlassCard className="flex-1 overflow-y-auto p-2 space-y-1">
-            {filteredTemplates.length > 0 ? (
+            {templateMode === 'workflow' ? (
+              filteredWorkflowTemplates.length > 0 ? (
+                filteredWorkflowTemplates.map((template) => (
+                  <button
+                    key={template.id}
+                    type="button"
+                    onClick={() => {
+                      setTemplateMode('workflow');
+                      setGeneratedContent(null);
+                    }}
+                    className={classNames(
+                      'w-full text-left p-3 rounded-xl transition-all text-sm',
+                      selectedWorkflowTemplate?.id === template.id
+                        ? 'bg-accent-500/10 border border-accent-500/20 text-zinc-200'
+                        : 'hover:bg-white/5 text-zinc-400 hover:text-zinc-300',
+                    )}
+                  >
+                    <div className="font-medium text-xs">{template.name}</div>
+                    <div className="text-[11px] text-zinc-500 mt-0.5 line-clamp-2">
+                      {template.purpose}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                      <Badge className="text-[10px] bg-white/5 text-zinc-500 border-white/10">
+                        {template.nodes.length} 节点
+                      </Badge>
+                      <Badge className="text-[10px] bg-blue-500/10 text-blue-400 border-blue-500/20">
+                        {template.difficulty}
+                      </Badge>
+                      <Badge className="text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/20">
+                        {template.riskLevel} risk
+                      </Badge>
+                      {template.tags.slice(0, 2).map((tag) => (
+                        <Badge key={tag} className="text-[10px] bg-purple-500/10 text-purple-400 border-purple-500/20">
+                          {tag}
+                        </Badge>
+                      ))}
+                      {template.beginnerRecommended && (
+                        <Badge className="text-[10px] bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
+                          新手推荐
+                        </Badge>
+                      )}
+                      {template.requiresHumanApproval && (
+                        <Badge className="text-[10px] bg-red-500/10 text-red-400 border-red-500/20">
+                          人工复核
+                        </Badge>
+                      )}
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className="p-4 text-center text-xs text-zinc-500">没有匹配的工作流模板</div>
+              )
+            ) : filteredTemplates.length > 0 ? (
               filteredTemplates.map((t) => (
                 <button
                   key={t.id}
@@ -358,7 +504,95 @@ export default function PromptLab() {
         {/* ── Right panel: Editor ──────────────────────────────────────── */}
         <div className="flex-1 flex flex-col gap-4 overflow-hidden">
           <GlassCard className="p-5 flex-1 overflow-y-auto">
-            {selectedTemplate ? (
+            {templateMode === 'workflow' && selectedWorkflowTemplate ? (
+              <div className="space-y-5">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-lg font-semibold text-zinc-200">
+                      {selectedWorkflowTemplate.name}
+                    </h3>
+                    <Badge variant="info">{selectedWorkflowTemplate.nodes.length} 个节点</Badge>
+                    <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20">
+                      {selectedWorkflowTemplate.category}
+                    </Badge>
+                    <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20">
+                      {selectedWorkflowTemplate.riskLevel} risk
+                    </Badge>
+                    {selectedWorkflowTemplate.requiresHumanApproval && (
+                      <Badge className="bg-red-500/10 text-red-400 border-red-500/20">
+                        需要人工确认
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="mt-1 text-sm text-zinc-400">{selectedWorkflowTemplate.description}</p>
+                  <p className="mt-2 text-xs text-zinc-500">
+                    适用场景：{selectedWorkflowTemplate.scenario}
+                  </p>
+                </div>
+
+                <div className="grid gap-3">
+                  {selectedWorkflowTemplate.nodes.map((node, index) => (
+                    <div
+                      key={node.id}
+                      className="rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-surface)] p-4 shadow-[var(--glass-inner)]"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-accent-400/30 bg-accent-400/15 text-xs font-semibold text-accent-400">
+                            {index + 1}
+                          </div>
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h4 className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
+                                {node.name}
+                              </h4>
+                              <Badge className="bg-white/5 text-zinc-500 border-white/10">{node.type}</Badge>
+                            </div>
+                            <p className="mt-1 text-sm text-slate-600 dark:text-zinc-400">
+                              {node.description}
+                            </p>
+                          </div>
+                        </div>
+                        <MousePointerClick className="h-4 w-4 text-zinc-500" />
+                      </div>
+                      {(node.input || node.output || node.safetyNote) && (
+                        <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
+                          {node.input && (
+                            <div className="rounded-xl bg-white/35 p-2 text-slate-600 dark:bg-zinc-950/25 dark:text-zinc-400">
+                              输入：{node.input}
+                            </div>
+                          )}
+                          {node.output && (
+                            <div className="rounded-xl bg-white/35 p-2 text-slate-600 dark:bg-zinc-950/25 dark:text-zinc-400">
+                              输出：{node.output}
+                            </div>
+                          )}
+                          {node.safetyNote && (
+                            <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-2 text-amber-600 dark:text-amber-300 sm:col-span-2">
+                              安全提示：{node.safetyNote}
+                            </div>
+                          )}
+                          {node.retryAdvice && (
+                            <div className="rounded-xl border border-blue-400/20 bg-blue-400/10 p-2 text-blue-600 dark:text-blue-300 sm:col-span-2">
+                              重试建议：{node.retryAdvice}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <GlassCard className="p-4">
+                  <h4 className="text-sm font-semibold text-zinc-200">怎么使用这个模板</h4>
+                  <ol className="mt-2 space-y-1 text-sm text-slate-600 dark:text-zinc-400">
+                    <li>1. 先把输入节点需要的信息准备好。</li>
+                    <li>2. 按节点顺序让 Agent 执行，每个节点完成后保存执行记录。</li>
+                    <li>3. 出错时查看 Project Detail 的节点追踪，复制日志给 Log Analyzer。</li>
+                  </ol>
+                </GlassCard>
+              </div>
+            ) : selectedTemplate ? (
               <div className="space-y-5">
                 {/* Template header */}
                 <div>
@@ -498,6 +732,41 @@ export default function PromptLab() {
                       </div>
                     </div>
                     <PromptPreview content={generatedContent} />
+                    <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-surface)] p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-slate-700 dark:text-zinc-200">下一步建议</p>
+                          <p className="text-xs text-slate-500 dark:text-zinc-500">
+                            复制给 Agent 执行，或保存后回到项目详情记录运行结果。
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              copyToClipboard(generatedContent);
+                              setCopied(true);
+                              setTimeout(() => setCopied(false), 2000);
+                            }}
+                            icon={copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                          >
+                            复制给 Agent
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setSaveName('');
+                              setShowSaveModal(true);
+                            }}
+                            icon={<Save className="h-3.5 w-3.5" />}
+                          >
+                            保存模板结果
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

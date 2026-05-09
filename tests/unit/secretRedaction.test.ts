@@ -53,6 +53,13 @@ describe('redactSecrets', () => {
     expect(result).toContain('[REDACTED]')
   })
 
+  it('redacts short sk-style leak markers in copied logs', () => {
+    const result = redactSecrets('clipboard contained sk-test-secret and a second sk- marker')
+    expect(result).not.toContain('sk-test-secret')
+    expect(result).not.toContain('sk-')
+    expect(result).toContain('[REDACTED]')
+  })
+
   it('redacts Bearer tokens', () => {
     const result = redactSecrets('Authorization: Bearer token123abc')
     expect(result).not.toContain('token123abc')

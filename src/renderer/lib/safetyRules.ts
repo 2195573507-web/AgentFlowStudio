@@ -241,11 +241,13 @@ export function checkCommandSafety(command: string): SafetyCheckResult {
       riskLevel: 'Safe',
       matchedRules: [],
       explanation: '无命令需要检查。',
-      saferAlternative: '',
-      suggestBackup: false,
-      suggestIsolation: false,
-    };
-  }
+    saferAlternative: '',
+    suggestBackup: false,
+    suggestIsolation: false,
+    backupSuggested: false,
+    isolationSuggested: false,
+  };
+}
 
   const matched: SafetyRule[] = [];
 
@@ -263,6 +265,8 @@ export function checkCommandSafety(command: string): SafetyCheckResult {
       saferAlternative: '',
       suggestBackup: false,
       suggestIsolation: false,
+      backupSuggested: false,
+      isolationSuggested: false,
     };
   }
 
@@ -302,6 +306,8 @@ export function checkCommandSafety(command: string): SafetyCheckResult {
     saferAlternative,
     suggestBackup,
     suggestIsolation,
+    backupSuggested: suggestBackup,
+    isolationSuggested: suggestIsolation,
   };
 }
 

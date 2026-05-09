@@ -1,5 +1,30 @@
 ﻿# Changelog
 
+## [Unreleased] - 2026-05-10
+
+### Added
+- Added workflow template metadata for category, difficulty, risk level, beginner recommendation, and human approval.
+- Added Prompt Lab workflow search/filter controls and a knowledge retrieval node type.
+- Added run log serialization utilities, redacted run copy/export, quality checklist, and retry advice.
+- Added GitTimeline release-status snapshot labeling so parsed report data is not confused with fresh test execution.
+
+### Fixed
+- Redacted copied/exported run fields including summary, error, raw log, node input/output summaries, and failure reasons.
+- Updated E2E onboarding assertion to current UI text: `查看结果和日志`.
+- Hardened short `sk-` leak marker redaction, clipboard redaction, legacy memory read redaction, Shared Memory import normalization, and large-log handling.
+- Hardened IPC sender origin validation, localhost-only dev server URLs, and skill realpath checks.
+- Fixed duplicate React key risks in GitTimeline and SharedMemoryHub repeated values.
+
+### Changed
+- Moved workflow template filtering into `src/renderer/lib/templates.ts`.
+- Moved run log parsing/serialization/checklist logic into `src/renderer/lib/runLogs.ts`.
+- Unified workflow template types through `src/shared/types.ts`.
+
+### Validation
+- `npm.cmd run test -- templates safety theme apiRuns runLogs utils secretRedaction`: PASS, 72/72.
+- `npm.cmd run typecheck`: PASS.
+- `npm.cmd run smoke`: PASS, 157/157.
+
 ## [1.1.1] - 2026-05-09 15:21 +08:00
 
 ### Branch and Version

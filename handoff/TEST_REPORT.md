@@ -1,5 +1,38 @@
 # AgentFlow Studio - Test Report
 
+## Workflow Structure And Safety Trace Pass - 2026-05-10
+
+### What Changed
+
+- Learned non-UI workflow capabilities from Flowise, Dify, Langflow, OpenAI AgentKit/Agent Builder, n8n, Botpress, Coze, FastGPT, and Open WebUI.
+- Fixed run log copy/export redaction for summary, error, raw log, node input/output summaries, and failure reasons.
+- Moved run log parsing, serialization, redaction, retry advice, and quality checklist logic into `src/renderer/lib/runLogs.ts`.
+- Moved workflow template filtering/search helpers into `src/renderer/lib/templates.ts` and unified workflow template types through `src/shared/types.ts`.
+- Added workflow template metadata: category, difficulty, risk level, beginner recommendation, human approval requirement, retry advice, and retrieval node support.
+- Added Prompt Lab workflow filters for category, risk, and beginner recommendations.
+- Added ProjectDetail run quality checklist and retry suggestions.
+- Hardened IPC origin checks, dev server URL validation, skill realpath guards, memory read redaction, clipboard redaction, large log limits, Shared Memory import limits/schema normalization, and duplicate React keys.
+- GitTimeline now labels parsed test state as a report snapshot, not proof of a fresh test run.
+
+### Focused Results
+
+| Check | Status | Details |
+|---|---:|---|
+| `npm.cmd run test -- templates safety theme apiRuns runLogs utils secretRedaction` | PASS | 7 files, 72 tests. Covers workflow template filters, run log redaction, clipboard redaction, safety, theme, and API run bridge behavior. |
+| `npm.cmd run typecheck` | PASS | TypeScript passed after Badge prop and import normalization fixes. |
+| `npm.cmd run smoke` | PASS | 157/157 smoke checks, including IPC origin guard, localhost-only dev URL, skill realpath guard, and memory read redaction checks. |
+| `npm.cmd run test -- templates safety theme apiRuns` | PASS | Required focused suite: 4 files, 44 tests. |
+| `npm.cmd run test` | PASS | Full Vitest suite: 13 files, 137 tests. |
+| `npm.cmd run test:e2e` | PASS | React Playwright suite: 10/10 tests, including Prompt Lab workflow filters and ProjectDetail redacted run copy/export. |
+| `npm.cmd run lint` | PASS | 0 errors, 27 warnings under the configured threshold. |
+| `npm.cmd run build` | PASS | Renderer and Electron build passed; existing Charts chunk-size warning only. |
+
+### Remaining Risks
+
+- Full MCP client/server, sandboxed code nodes, RBAC/resource ACL, and automated graders are intentionally deferred because they need explicit permission, audit, and isolation design.
+- Existing historical Chinese mojibake remains in some docs/source strings; this pass only appended clean new records and avoided broad text churn.
+- Dependency audit issues are still known from previous reports and were not force-fixed to avoid major dependency churn.
+
 ## Liquid Glass UI And Workflow Onboarding Pass - 2026-05-09
 
 Baseline tag: `codex-liquid-glass-ui-base-20260509-172941`

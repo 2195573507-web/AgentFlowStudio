@@ -73,6 +73,8 @@ const DEMO_HISTORY: LogAnalysisResult[] = [
   },
 ];
 
+const MAX_LOG_INPUT_CHARS = 200_000;
+
 // ── Component ──────────────────────────────────────────────────────────────
 export default function LogAnalyzer() {
   const [logInput, setLogInput] = useState('');
@@ -117,6 +119,10 @@ export default function LogAnalyzer() {
   // ── Analyze ────────────────────────────────────────────────────────────
   const handleAnalyze = useCallback(async () => {
     if (!logInput.trim()) return;
+    if (logInput.length > MAX_LOG_INPUT_CHARS) {
+      setError('日志超过 200KB，请先截取关键错误片段再分析，避免卡住界面。');
+      return;
+    }
     setAnalyzing(true);
     setError(null);
     setResult(null);

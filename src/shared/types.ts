@@ -74,12 +74,63 @@ export interface SavedPrompt {
 export interface Run {
   id: string
   projectId: string
+  workflowTemplateId?: string
+  promptId?: string
+  providerId?: string
+  versionId?: string
   title: string
   tool: string
   status: string
   log: string
   summary: string
+  startedAt?: string
+  endedAt?: string
+  durationMs?: number
+  retryCount?: number
+  error?: string
+  nodeTrace?: RunNodeTrace[]
+  metadata?: Record<string, unknown>
   createdAt: string
+}
+
+export interface RunNodeTrace {
+  id: string
+  name: string
+  status: 'planned' | 'running' | 'success' | 'failed' | 'blocked'
+  durationMs?: number
+  inputSummary?: string
+  outputSummary?: string
+  failureReason?: string
+  retryCount?: number
+}
+
+export interface WorkflowTemplateNode {
+  id: string
+  name: string
+  type: 'input' | 'agent' | 'tool' | 'human' | 'condition' | 'loop' | 'parallel' | 'git' | 'retrieval' | 'output'
+  description: string
+  input?: string
+  output?: string
+  safetyNote?: string
+  retryAdvice?: string
+}
+
+export type WorkflowTemplateDifficulty = 'beginner' | 'intermediate' | 'advanced'
+export type WorkflowTemplateRisk = 'low' | 'medium' | 'high'
+
+export interface WorkflowTemplate {
+  id: string
+  name: string
+  purpose: string
+  description: string
+  scenario: string
+  category: string
+  difficulty: WorkflowTemplateDifficulty
+  riskLevel: WorkflowTemplateRisk
+  beginnerRecommended: boolean
+  requiresHumanApproval: boolean
+  nodes: WorkflowTemplateNode[]
+  tags: string[]
 }
 
 export interface RiskCheck {
@@ -195,6 +246,25 @@ export interface GitCommitEntry {
   files: string[]
 }
 
+export type ReleaseTestStatus = 'PASS' | 'FAIL' | 'BLOCKED' | 'UNKNOWN'
+
+export interface ReleaseTestResult {
+  command: string
+  status: ReleaseTestStatus
+  details: string
+}
+
+export interface ReleaseStatus {
+  version: string
+  branch: string
+  gitStatus: string
+  recentCommits: GitCommitEntry[]
+  updateSummary: string[]
+  testResults: ReleaseTestResult[]
+  progressSummary: string[]
+  checkedAt: string
+}
+
 // ── Planning types ──
 
 export interface ProjectPlan {
@@ -267,6 +337,7 @@ export const IPC_CHANNELS = {
   GIT_LOG: 'git:log',
   GIT_STATUS: 'git:status',
   GIT_SUMMARY: 'git:summary',
+  RELEASE_STATUS: 'release:status',
 
   // Memory
   MEMORY_LIST: 'memory:list',

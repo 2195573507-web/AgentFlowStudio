@@ -42,6 +42,7 @@ console.log('\n[Test Surface]')
 const unitTests = [
   'planner',
   'templates',
+  'theme',
   'logAnalyzer',
   'safetyRules',
   'exporters',
@@ -114,7 +115,9 @@ check('static launcher uses per-run launcher log', staticLauncher.includes('laun
 check('static launcher uses per-run server log', staticLauncher.includes('static-server-%LAUNCH_ID%.log'))
 check('static launcher does not redirect server output to launcher log', !staticLauncher.includes('static-server.js" >> "%LAUNCHER_LOG%"'))
 check('static launcher passes explicit root and port', staticLauncher.includes('"scripts\\static-server.js" "static-app" 4173'))
-check('static server accepts custom log path', staticServer.includes('AGENTFLOW_STATIC_LOG_PATH'))
+check('static server accepts bounded custom log path', staticServer.includes('AGENTFLOW_STATIC_LOG_PATH') && staticServer.includes('resolveProjectOwnedPath'))
+check('static server rejects roots outside project', staticServer.includes('isPathInsideBase(projectDir, resolved)') && staticServer.includes('拒绝项目目录外的静态根'))
+check('static server validates real static root', staticServer.includes('fs.realpathSync(resolved)') && staticServer.includes('realpath 越界'))
 check('static server emits stable URL marker', staticServer.includes('AGENTFLOW_STATIC_URL='))
 check('static launch test uses isolated log path', staticLaunchTest.includes('static-server-test-') && staticLaunchTest.includes('AGENTFLOW_STATIC_LOG_PATH'))
 check('static launch test parses stable URL marker', staticLaunchTest.includes('AGENTFLOW_STATIC_URL='))
@@ -158,12 +161,18 @@ check('docs/excellent-project-learning.md', fileExists('docs/excellent-project-l
 console.log('\n[Electron Security]')
 const main = readText('src/main/index.ts')
 const preload = readText('src/main/preload.ts')
+const security = readText('src/main/security.ts')
+const mainIpc = readText('src/main/ipc.ts')
 check('contextIsolation enabled', main.includes('contextIsolation: true'))
 check('nodeIntegration disabled', main.includes('nodeIntegration: false'))
 check('preload uses contextBridge', preload.includes('contextBridge.exposeInMainWorld'))
 check('preload uses ipcRenderer.invoke', preload.includes('ipcRenderer.invoke'))
 check('no exec exposure in preload', !/child_process|exec\(|spawn\(/.test(preload))
 check('demo seed avoids dangerous permission bypass', !main.includes('--dangerously-skip-permissions'))
+check('external URLs are protocol checked', main.includes('isHttpUrl(url)') && main.includes('unsupported protocol'))
+check('release status IPC is exposed through preload', preload.includes('RELEASE_STATUS') && preload.includes('release:'))
+check('dev server URL is localhost-only', main.includes('normalizeDevServerUrl') && security.includes('isTrustedDevServerUrl'))
+check('IPC handlers validate sender origin', mainIpc.includes('assertTrustedIpcSender') && mainIpc.includes('Blocked IPC call from untrusted origin'))
 
 console.log('\n[Shared Memory Safety]')
 const secretRedaction = readText('src/renderer/lib/secretRedaction.ts')
@@ -173,10 +182,19 @@ check('secret redaction module exists', secretRedaction.includes('redactSecrets'
 check('secret detection module exists', secretRedaction.includes('containsSecret'))
 check('recursive redaction module exists', sharedRedaction.includes('sanitizeValue') && sharedRedaction.includes('WeakMap'))
 check('secret redaction covers authorization/token', sharedRedaction.includes('authorization') && sharedRedaction.includes('token'))
-const mainIpc = readText('src/main/ipc.ts')
 check('generic storage IPC uses collection allowlist', mainIpc.includes('ALLOWED_STORAGE_COLLECTIONS') && mainIpc.includes('assertAllowedCollection(collection)'))
+const allowedStorageBlock = mainIpc.slice(
+  mainIpc.indexOf('const ALLOWED_STORAGE_COLLECTIONS'),
+  mainIpc.indexOf('function assertAllowedCollection'),
+)
+check('generic storage IPC excludes providerSettings', !allowedStorageBlock.includes('providerSettings'))
 check('provider list masks api keys', mainIpc.includes('maskProviderForRenderer') && mainIpc.includes('Saved key ending in'))
 check('export IPC sanitizes data', mainIpc.includes('JSON.stringify(sanitizeObject(data), null, 2)') && mainIpc.includes('sanitizeObject(content)'))
+check('skill read is limited to SKILL.md under skills root', mainIpc.includes('resolveSkillReadPath') && mainIpc.includes('Only SKILL.md files can be read'))
+check('skill read uses realpath guard', mainIpc.includes('sanitizeRealFilePath') && security.includes('fs.realpathSync'))
+check('memory read paths sanitize legacy secrets', mainIpc.includes('sanitizeObject(await storage.getById') && mainIpc.includes('sanitizeObject(await storage.getAll<{ id: string; [key: string]: unknown }>(\'memories\'))'))
+check('export paths use user chosen save validator', mainIpc.includes('validateUserChosenSavePath(result.filePath)'))
+check('release status only reads project files', mainIpc.includes('readProjectText') && mainIpc.includes('CHANGELOG.md') && mainIpc.includes('handoff/TEST_REPORT.md'))
 check('memory context marker exists', memoryInjection.includes('[Shared Memory Context]'))
 check('memory context canonical sections exist', ['项目背景', '已做决策', '当前进度', '已知问题', '用户偏好', 'API Provider 注意事项'].every((keyword) => memoryInjection.includes(keyword)))
 const appTsx = readText('src/renderer/App.tsx')
@@ -192,6 +210,18 @@ check('renderer GlassCard uses shared liquid primitive', glassCard.includes('liq
 check('Tailwind accent palette supports used shades', ['400', '500', '600', '700'].every((shade) => tailwindConfig.includes(`${shade}:`)))
 check('Dashboard workflow lifecycle rail exists', ['Idea', 'Plan', 'Tasks', 'Prompt', 'Safety', 'Logs', 'Memory', 'Handoff'].every((keyword) => dashboard.includes(keyword)))
 check('Dashboard next-step copy exists', dashboard.includes('下一步') && dashboard.includes('继续到'))
+
+const promptLab = readText('src/renderer/routes/PromptLab.tsx')
+const templates = readText('src/renderer/lib/templates.ts')
+const gitTimeline = readText('src/renderer/routes/GitTimeline.tsx')
+const safetyBox = readText('src/renderer/routes/SafetyBox.tsx')
+const theme = readText('src/renderer/lib/theme.ts')
+check('PromptLab workflow template mode exists', promptLab.includes('templateMode') && promptLab.includes('filterWorkflowTemplates'))
+check('PromptLab beginner path exists', promptLab.includes('新手路径') || promptLab.includes('创建工作流'))
+check('workflow template helpers exist', templates.includes('getWorkflowTemplateById') && templates.includes('getWorkflowTemplateTags'))
+check('SafetyBox shows isolation warning', safetyBox.includes('isolationSuggested') && safetyBox.includes('建议在隔离环境中执行'))
+check('theme helper writes data-theme metadata', theme.includes('dataset.theme') && theme.includes('dataset.themePreference') && theme.includes('matchMedia'))
+check('GitTimeline release panel exists', gitTimeline.includes('release-status-panel') && gitTimeline.includes('GitHub 版本记录'))
 
 console.log('\n' + '='.repeat(50))
 console.log(`\nResults: ${pass} passed, ${fail} failed, ${pass + fail} total\n`)

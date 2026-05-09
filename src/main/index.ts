@@ -4,13 +4,14 @@ import { fileURLToPath } from 'url';
 import { registerIpcHandlers } from './ipc.js';
 import storage from './storage.js';
 import type { Project, Task, Memory } from '../shared/types.js';
+import { isHttpUrl, normalizeDevServerUrl } from './security.js';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
 const isDev = !app.isPackaged;
-const devServerUrl = process.env.VITE_DEV_SERVER_URL ?? 'http://localhost:5173';
+const devServerUrl = normalizeDevServerUrl(process.env.VITE_DEV_SERVER_URL ?? 'http://localhost:5173');
 const startupSmoke = process.env.AGENTFLOW_STARTUP_SMOKE === '1';
 const mainDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -326,6 +327,10 @@ function createWindow(): BrowserWindow {
 
   // Open external links in the system browser
   win.webContents.setWindowOpenHandler(({ url }) => {
+    if (!isHttpUrl(url)) {
+      console.warn(`Blocked external URL with unsupported protocol: ${url}`);
+      return { action: 'deny' };
+    }
     shell.openExternal(url);
     return { action: 'deny' };
   });
@@ -347,6 +352,14 @@ function createWindow(): BrowserWindow {
 // ---------------------------------------------------------------------------
 
 app.setName('AgentFlow Studio');
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled promise rejection in main process:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught exception in main process:', error);
+});
 
 app.whenReady().then(async () => {
   // Initialise storage (creates data directory)
@@ -370,6 +383,9 @@ app.whenReady().then(async () => {
       createWindow();
     }
   });
+}).catch((err) => {
+  console.error('Failed to start AgentFlow Studio:', err);
+  app.quit();
 });
 
 app.on('window-all-closed', () => {

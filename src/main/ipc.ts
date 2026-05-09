@@ -1,13 +1,13 @@
-import { ipcMain, dialog, app, BrowserWindow } from 'electron';
+import { ipcMain, dialog, app, BrowserWindow, type IpcMainInvokeEvent } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import { IPC_CHANNELS } from '../shared/types.js';
-import type { MemoryType } from '../shared/types.js';
+import type { MemoryType, ReleaseStatus, ReleaseTestResult, ReleaseTestStatus } from '../shared/types.js';
 import { sanitizeObject } from '../shared/secretRedaction.js';
 import storage from './storage.js';
 import { getGitLog, getGitStatus, getGitSummary } from './git.js';
 import { readSkillsFromDir, fileExists } from './filesystem.js';
-import { sanitizeFilePath } from './security.js';
+import { sanitizeFilePath, sanitizeRealFilePath, validateUserChosenSavePath } from './security.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -18,6 +18,28 @@ function handleError(err: unknown): { error: string } {
   return { error: String(err) };
 }
 
+function assertTrustedIpcSender(event: IpcMainInvokeEvent): void {
+  const frameUrl = event.senderFrame?.url ?? '';
+  if (frameUrl.startsWith('file://')) return;
+  try {
+    const parsed = new URL(frameUrl);
+    if (parsed.protocol === 'http:' && ['127.0.0.1', 'localhost'].includes(parsed.hostname)) return;
+  } catch {
+    // Fall through to the denial below.
+  }
+  throw new Error(`Blocked IPC call from untrusted origin: ${frameUrl || 'unknown'}`);
+}
+
+function installIpcOriginGuard(): void {
+  const originalHandle = ipcMain.handle.bind(ipcMain);
+  ipcMain.handle = ((channel: string, listener: (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown) => {
+    return originalHandle(channel, async (event, ...args) => {
+      assertTrustedIpcSender(event);
+      return listener(event, ...args);
+    });
+  }) as typeof ipcMain.handle;
+}
+
 const ALLOWED_STORAGE_COLLECTIONS = new Set([
   'projects',
   'tasks',
@@ -25,7 +47,6 @@ const ALLOWED_STORAGE_COLLECTIONS = new Set([
   'runs',
   'memories',
   'riskChecks',
-  'providerSettings',
   'settings',
 ]);
 
@@ -62,6 +83,112 @@ function sanitizeStorageWriteForCollection(collection: string, value: unknown): 
     return sanitizeObject(value);
   }
   return value;
+}
+
+function getSkillsRoot(): string {
+  return path.resolve(process.cwd(), '.agents', 'skills');
+}
+
+function resolveSkillReadPath(skillPath: string): string {
+  const skillsRoot = getSkillsRoot();
+  const safePath = sanitizeRealFilePath(skillPath, skillsRoot);
+  if (path.basename(safePath) !== 'SKILL.md') {
+    throw new Error('Only SKILL.md files can be read from the skills directory.');
+  }
+  return safePath;
+}
+
+async function readProjectText(relativePath: string): Promise<string> {
+  const safePath = sanitizeFilePath(relativePath, process.cwd());
+  return fs.readFile(safePath, 'utf-8');
+}
+
+function extractMarkdownBullets(markdown: string, sectionNames: string[], limit = 6): string[] {
+  const lines = markdown.split(/\r?\n/);
+  const sectionSet = new Set(sectionNames.map((name) => name.toLowerCase()));
+  const bullets: string[] = [];
+  let collecting = false;
+
+  for (const line of lines) {
+    const heading = line.match(/^#{2,4}\s+(.+?)\s*$/);
+    if (heading) {
+      const headingText = heading[1].replace(/`/g, '').toLowerCase();
+      collecting = sectionSet.has(headingText);
+      continue;
+    }
+
+    if (!collecting) continue;
+    const bullet = line.match(/^\s*[-*]\s+(.+?)\s*$/);
+    if (bullet) {
+      bullets.push(bullet[1].replace(/`/g, '').trim());
+      if (bullets.length >= limit) break;
+    }
+  }
+
+  return bullets;
+}
+
+function parseTestStatus(value: string): ReleaseTestStatus {
+  const normalized = value.toUpperCase();
+  if (normalized.includes('PASS')) return 'PASS';
+  if (normalized.includes('FAIL')) return 'FAIL';
+  if (normalized.includes('BLOCK') || normalized.includes('SKIP')) return 'BLOCKED';
+  return 'UNKNOWN';
+}
+
+function extractLatestTestResults(markdown: string, limit = 8): ReleaseTestResult[] {
+  const lines = markdown.split(/\r?\n/);
+  const latestIndex = lines.findIndex((line) => /latest results/i.test(line));
+  const start = latestIndex >= 0 ? latestIndex : 0;
+  const results: ReleaseTestResult[] = [];
+
+  for (let index = start; index < lines.length; index += 1) {
+    const line = lines[index].trim();
+    if (!line.startsWith('|') || line.includes('---')) continue;
+    const cells = line
+      .split('|')
+      .slice(1, -1)
+      .map((cell) => cell.trim());
+    if (cells.length < 3 || /^check$/i.test(cells[0])) continue;
+    results.push({
+      command: cells[0].replace(/`/g, ''),
+      status: parseTestStatus(cells[1]),
+      details: cells[2].replace(/`/g, ''),
+    });
+    if (results.length >= limit) break;
+  }
+
+  return results;
+}
+
+async function buildReleaseStatus(repoPath?: string): Promise<ReleaseStatus> {
+  const cwd = sanitizeFilePath(repoPath ?? process.cwd());
+  const [gitSummary, gitStatus, appInfo, changelog, testReport, progress] = await Promise.all([
+    getGitSummary(cwd),
+    getGitStatus(cwd),
+    Promise.resolve({ version: app.getVersion() }),
+    readProjectText('CHANGELOG.md').catch(() => ''),
+    readProjectText('handoff/TEST_REPORT.md').catch(() => ''),
+    readProjectText('PROJECT_PROGRESS.md').catch(() => ''),
+  ]);
+
+  const updateSummary = [
+    ...extractMarkdownBullets(changelog, ['Changed', 'Added', 'Fixed'], 4),
+    ...extractMarkdownBullets(progress, ['6. 本轮完成记录', '本轮完成记录'], 4),
+  ].slice(0, 6);
+
+  return {
+    version: appInfo.version,
+    branch: gitSummary.branch || 'unknown',
+    gitStatus,
+    recentCommits: gitSummary.recentCommits.slice(0, 5),
+    updateSummary: updateSummary.length
+      ? updateSummary
+      : ['本轮摘要将从 CHANGELOG.md 与 PROJECT_PROGRESS.md 自动读取。'],
+    testResults: extractLatestTestResults(testReport),
+    progressSummary: extractMarkdownBullets(progress, ['7. 下一轮建议', '下一轮建议'], 4),
+    checkedAt: new Date().toISOString(),
+  };
 }
 
 function maskApiKey(apiKey: unknown): string {
@@ -178,6 +305,7 @@ async function generateMemoryContext(options: {
 // ---------------------------------------------------------------------------
 
 export function registerIpcHandlers(): void {
+  installIpcOriginGuard();
   // ── Storage (generic) ────────────────────────────────────────────────
 
   ipcMain.handle(IPC_CHANNELS.STORAGE_GET, async (_event, collection: string, id: string) => {
@@ -380,11 +508,19 @@ export function registerIpcHandlers(): void {
     }
   });
 
+  ipcMain.handle(IPC_CHANNELS.RELEASE_STATUS, async (_event, repoPath?: string) => {
+    try {
+      return await buildReleaseStatus(repoPath);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
   // ── Memory ───────────────────────────────────────────────────────────
 
   ipcMain.handle(IPC_CHANNELS.MEMORY_LIST, async (_event, filters?: { id: string; [key: string]: unknown }) => {
     try {
-      const all = await storage.getAll<{ id: string; [key: string]: unknown }>('memories');
+      const all = sanitizeObject(await storage.getAll<{ id: string; [key: string]: unknown }>('memories'));
       if (!filters) return all;
       return all.filter((m) => {
         for (const [key, value] of Object.entries(filters)) {
@@ -399,7 +535,7 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.MEMORY_GET, async (_event, id: string) => {
     try {
-      return await storage.getById('memories', id);
+      return sanitizeObject(await storage.getById('memories', id));
     } catch (err) {
       return handleError(err);
     }
@@ -574,7 +710,7 @@ export function registerIpcHandlers(): void {
 
         if (result.canceled || !result.filePath) return { canceled: true };
 
-        const safePath = sanitizeFilePath(result.filePath);
+        const safePath = validateUserChosenSavePath(result.filePath);
         await fs.writeFile(safePath, sanitizeObject(content), 'utf-8');
         return { success: true, path: safePath };
       } catch (err) {
@@ -601,7 +737,7 @@ export function registerIpcHandlers(): void {
 
         if (result.canceled || !result.filePath) return { canceled: true };
 
-        const safePath = sanitizeFilePath(result.filePath);
+        const safePath = validateUserChosenSavePath(result.filePath);
         await fs.writeFile(safePath, JSON.stringify(sanitizeObject(data), null, 2), 'utf-8');
         return { success: true, path: safePath };
       } catch (err) {
@@ -614,7 +750,7 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.SKILLS_LIST, async () => {
     try {
-      const skillsDir = path.join(process.cwd(), '.agents', 'skills');
+      const skillsDir = getSkillsRoot();
       return await readSkillsFromDir(skillsDir);
     } catch (err) {
       return handleError(err);
@@ -623,7 +759,7 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.SKILL_READ, async (_event, skillPath: string) => {
     try {
-      const safePath = sanitizeFilePath(skillPath);
+      const safePath = resolveSkillReadPath(skillPath);
       const exists = await fileExists(safePath);
       if (!exists) return { error: `File not found: ${safePath}` };
       const content = await fs.readFile(safePath, 'utf-8');
