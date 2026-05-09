@@ -88,6 +88,10 @@ async function waitForUrl(timeoutMs = 10000) {
       throw new Error(`静态服务器提前退出，退出码：${child.exitCode}\n${processOutput}`)
     }
     const output = readLog()
+    const markerMatch = output.match(/AGENTFLOW_STATIC_URL=(http:\/\/127\.0\.0\.1:\d+)/)
+    if (markerMatch) {
+      return markerMatch[1]
+    }
     const match = output.match(/服务地址：(http:\/\/127\.0\.0\.1:\d+)/)
     if (match) {
       return match[1]

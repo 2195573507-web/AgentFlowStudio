@@ -322,6 +322,7 @@ function startServer(portIndex = 0) {
     activeServer = server
     const actualPort = server.address().port
     const url = `http://${host}:${actualPort}`
+    log(`AGENTFLOW_STATIC_URL=${url}`)
     log('静态服务器已启动。')
     log(`服务地址：${url}`)
     log(`静态目录：${activeRoot}`)

@@ -71,7 +71,10 @@ async function waitForUrl(timeoutMs = 12000) {
     if (child && child.exitCode !== null) {
       throw new Error(`Static server exited early: ${child.exitCode}\n${processOutput}`)
     }
-    const match = readLog().match(/http:\/\/127\.0\.0\.1:\d+/)
+    const output = readLog()
+    const markerMatch = output.match(/AGENTFLOW_STATIC_URL=(http:\/\/127\.0\.0\.1:\d+)/)
+    if (markerMatch) return markerMatch[1]
+    const match = output.match(/http:\/\/127\.0\.0\.1:\d+/)
     if (match) return match[0]
     await wait(250)
   }

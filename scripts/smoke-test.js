@@ -109,7 +109,9 @@ check('static launcher uses per-run server log', staticLauncher.includes('static
 check('static launcher does not redirect server output to launcher log', !staticLauncher.includes('static-server.js" >> "%LAUNCHER_LOG%"'))
 check('static launcher passes explicit root and port', staticLauncher.includes('"scripts\\static-server.js" "static-app" 4173'))
 check('static server accepts custom log path', staticServer.includes('AGENTFLOW_STATIC_LOG_PATH'))
+check('static server emits stable URL marker', staticServer.includes('AGENTFLOW_STATIC_URL='))
 check('static launch test uses isolated log path', staticLaunchTest.includes('static-server-test-') && staticLaunchTest.includes('AGENTFLOW_STATIC_LOG_PATH'))
+check('static launch test parses stable URL marker', staticLaunchTest.includes('AGENTFLOW_STATIC_URL='))
 for (const keyword of ['仪表盘', '项目管理', '项目详情', '提示词实验室', '日志分析', '安全检查', '共享记忆中心', '技能管理', 'Git 时间线', '设置', '界面偏好', '浅色', '深色', '跟随系统']) {
   check(`static-app localized/${keyword}`, staticText.includes(keyword))
 }

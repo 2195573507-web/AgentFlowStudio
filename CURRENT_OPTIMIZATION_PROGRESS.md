@@ -154,3 +154,136 @@
 - 继续原因：用户要求第一轮完成后立刻进入第二轮；第二轮必须完成真实代码改动。
 - 下一轮是否必须改代码：是
 
+## Round 2 - 2026-05-09 16:28:01 +08:00
+
+### 1. 本轮开始状态
+
+- 当前分支：`codex-static-quality-pass`
+- 当前 commit：`ef7ce93` (`docs: record continuous optimization round 1`)
+- git status：本轮开始干净，跟踪 `origin/codex-static-quality-pass`
+- 当前主入口：Electron 开发入口仍为 `npm.cmd run dev`；稳定交付入口仍为 `start-agentflow-static.bat`
+- 当前 fallback 状态：`start-agentflow-static.bat -> scripts/static-server.js static-app 4173` 可用，Round 1 已验证 `test:launch-static` 通过
+- 当前 UI 状态：React 与 static fallback 均保留，未在本轮修改 UI
+- 当前 Liquid Glass 状态：未改动；`test:static-browser` 继续验证 `.panel` backdrop blur 存在
+- 当前风险点：static 启动测试此前依赖中文“服务地址”日志，遇到编码或文案变化可能误报
+
+### 2. 本轮学习内容
+
+- 项目内部学习：
+  - 读取 Round 1 的“下一轮代码建议”，确认本轮按建议执行。
+  - 查看 `scripts/static-server.js` 启动成功逻辑，当前先构造 `url`，再写中文日志并打开浏览器。
+  - 查看 `scripts/launch-static-test.js` 和 `scripts/static-browser-smoke.js` 的 URL 等待逻辑，确认可在现有日志读取流程中插入优先 marker 匹配。
+  - 查看 `scripts/smoke-test.js` 的 launch assets 检查区，确认适合加入静态回归断言。
+- 相似项目/相似产品学习：
+  - 继续沿用 Round 1 的结论：本地开发工具要让失败可诊断，机器可读 marker 比 UI 文案更适合自动化守护。
+  - 类似 GitHub Actions / Copilot agent 日志实践，关键运行状态应有稳定、可解析的 ASCII 事件行，用户文案可以独立变化。
+- 可借鉴设计思路：
+  - 保留用户可读日志，同时增加自动化可读 marker。
+  - 测试优先解析稳定 marker，再保留旧中文日志作为兼容 fallback。
+- 不采用的方案及原因：
+  - 不重写中文日志：风险扩大，且当前浏览器/测试已证明核心中文 UI 正常。
+  - 不修改端口策略：端口随机兜底是中等风险任务，留给后续单独轮次。
+  - 不把 `verify` 改成启动 static server：会改变验证耗时和副作用，本轮只增强已有 smoke 与 launch-static。
+
+### 3. 本轮发现的问题
+
+- 问题 1：`launch-static-test` 只解析中文“服务地址”日志，抗文案变化能力弱。
+- 问题 2：`static-browser-smoke` 虽能解析任意 `http://127.0.0.1:<port>`，但没有优先区分真正启动 URL marker。
+- 问题 3：`smoke-test` 没有守护 URL marker，后续可能被误删。
+
+### 4. 本轮拆分的小任务
+
+| 小任务 | 目标 | 涉及文件 | 风险等级 | 验证方式 | 回滚方式 | 是否适合 subagent |
+|---|---|---|---|---|---|---|
+| 输出 static URL marker | 启动成功时写入 `AGENTFLOW_STATIC_URL=<url>` | `scripts/static-server.js` | 低 | `test:launch-static`, 查看日志 | `git revert` 本轮 commit | 是 |
+| launch-static 优先解析 marker | 自动测试不依赖中文日志 | `scripts/launch-static-test.js` | 低 | `test:launch-static` | `git revert` 本轮 commit | 是 |
+| static-browser 优先解析 marker | 浏览器 smoke 使用更稳定 URL 来源 | `scripts/static-browser-smoke.js` | 低 | `test:static-browser` | `git revert` 本轮 commit | 是 |
+| smoke 回归守护 | 防止 marker 与解析逻辑被移除 | `scripts/smoke-test.js` | 低 | `smoke`, `verify` | `git revert` 本轮 commit | 是 |
+
+### 5. 本轮实际执行
+
+- 执行了哪些小任务：
+  - 在 `scripts/static-server.js` 启动成功后新增 `AGENTFLOW_STATIC_URL=<url>` 日志行。
+  - 在 `scripts/launch-static-test.js` 中优先解析 `AGENTFLOW_STATIC_URL=`，保留原中文日志解析作为 fallback。
+  - 在 `scripts/static-browser-smoke.js` 中优先解析 `AGENTFLOW_STATIC_URL=`，保留通用 URL 匹配作为 fallback。
+  - 在 `scripts/smoke-test.js` 中新增两个回归检查：server 输出 marker、launch test 解析 marker。
+- 为什么先做这些：
+  - 完全按 Round 1 下一轮建议执行。
+  - 修改面小、验证直接、不会影响 UI、Electron 主入口或业务数据。
+- 本轮真实代码更改是什么：
+  - static fallback 启动日志新增机器可读 URL marker。
+  - static fallback 测试改为优先使用该 marker。
+- 修改了哪些代码文件：
+  - `scripts/static-server.js`
+  - `scripts/launch-static-test.js`
+  - `scripts/static-browser-smoke.js`
+  - `scripts/smoke-test.js`
+- 修改了哪些文档文件：
+  - `CURRENT_OPTIMIZATION_PROGRESS.md`
+- 是否完成至少一个代码更改：是
+- 如果没有代码更改，为什么没有进入下一轮：不适用
+
+### 6. 本轮测试记录
+
+- 测试命令：
+  - `node --check .\scripts\static-server.js; node --check .\scripts\launch-static-test.js; node --check .\scripts\static-browser-smoke.js; node --check .\scripts\smoke-test.js`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run smoke`
+  - `npm.cmd run test:launch-static`
+  - `npm.cmd run test:static-browser`
+  - `npm.cmd run verify`
+  - `npm.cmd run test`
+  - `npm.cmd run build`
+  - `npm.cmd run lint`
+- 测试结果：
+  - `node --check`：PASS
+  - `typecheck`：PASS
+  - `smoke`：PASS，119/119
+  - `test:launch-static`：PASS，HTTP 200，关键中英文与 static markers 验证通过
+  - `test:static-browser`：PASS；本次服务使用 `http://127.0.0.1:4174`，说明 4173 被占用时仍可切换端口
+  - `verify`：PASS，99/99 后 smoke 119/119
+  - `test`：PASS，9 files / 109 tests
+  - `build`：PASS；仍有既有 Charts chunk-size warning
+  - `lint`：PASS，0 errors / 36 existing warnings
+- 是否通过：是
+- 是否发现新问题：没有发现本轮改动导致的新问题；仍保留既有 lint warning 和 Charts chunk-size warning
+- 是否修复新问题：无需修复
+- 是否需要继续测试：第三轮 UI/路由改动后建议跑 `typecheck`、`lint`、`test:e2e`、`test:static-browser`、`build`
+
+### 7. Git 版本记录
+
+- 是否执行 git status：是
+- 是否执行 git add：待本记录追加后执行
+- 是否执行 git commit：待本记录追加后执行
+- commit hash：待提交
+- 是否执行 git push：待提交后执行
+- push 结果：待执行
+- 如果失败，失败原因和修复过程：暂无失败
+
+### 8. 下一轮代码建议
+
+- 下一轮必须落实的代码更改 1：规范 Dashboard 快捷入口路由，把 `quickActions` 和 `beginnerSteps` 中仍使用别名的路径统一到 Sidebar 主路径：`/prompts`、`/logs`、`/safety`、`/memory`。
+- 下一轮必须落实的代码更改 2：给 `quickActions` 的按钮增加更明确的 `aria-label` 或 title，方便键盘/辅助技术用户确认当前动作。
+- 下一轮必须落实的代码更改 3：补一个轻量 E2E 或 smoke 断言，至少确保 Dashboard 快捷入口仍能导航到 Prompt Lab、Log Analyzer、SafetyBox、Shared Memory Hub 的主路由之一。
+- 建议原因：Agent C 指出 Dashboard 的“日志分析”指向 `/log-analyzer`，但 Sidebar 主路由是 `/logs`；虽然 App 目前有别名路由，主入口与快捷入口长期分叉会增加维护成本。
+- 预计涉及代码文件：
+  - `src/renderer/routes/Dashboard.tsx`
+  - 视测试方案可能涉及 `tests/e2e/app.spec.ts` 或 `scripts/smoke-test.js`
+- 风险等级：低
+- 修改范围：只改 Dashboard 快捷入口路由和可访问性标签，不改页面实现、不改数据层。
+- 推荐验证方式：
+  - `npm.cmd run typecheck`
+  - `npm.cmd run lint`
+  - `npm.cmd run test:e2e`
+  - `npm.cmd run test:static-browser`
+  - `npm.cmd run build`
+- 回滚方式：`git revert <第三轮commit>`；如果未提交，恢复 `Dashboard.tsx` 和测试文件。
+- 是否适合 subagent 并行处理：适合；subagent 可只读审查 Dashboard 路由和 E2E 覆盖，主线程负责改动。
+- 为什么下一轮应该做这个：它是低风险 UI/导航一致性修复，可减少别名路由依赖，并继续改善新手第一次点击快捷入口的稳定性。
+- 预计 commit 信息：`fix: align dashboard quick action routes`
+
+### 9. 是否继续
+
+- 是否继续下一轮：是
+- 继续原因：用户要求每轮 push 后继续下一轮；Round 3 必须完成真实代码改动。
+- 下一轮是否必须改代码：是
