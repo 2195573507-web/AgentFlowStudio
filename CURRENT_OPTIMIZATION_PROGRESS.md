@@ -950,3 +950,136 @@
 - 是否继续下一轮：是
 - 继续原因：用户要求每轮 push 后继续下一轮；Round 8 必须按本轮建议完成真实代码更改。
 - 下一轮是否必须改代码：是
+
+## Round 8 - 2026-05-09 17:18:20 +08:00
+
+### 1. 本轮开始状态
+
+- 当前分支：`codex-static-quality-pass`
+- 当前 commit：`f0cbabc` (`test: cover utils debounce typing`)
+- git status：本轮开始干净，跟踪 `origin/codex-static-quality-pass`
+- 当前主入口：Electron 主入口仍为 `dist-electron/main/index.js`，开发入口为 `npm.cmd run dev`
+- 当前 fallback 状态：本轮不改 static fallback；通过 `test:static-browser` 验证 HTTP、导航、中文/英文、深浅色、Liquid Glass 和无 console/page/network error
+- 当前 UI 状态：本轮不改 UI；E2E 继续覆盖 React Web 入口和核心页面
+- 当前 Liquid Glass 状态：未改样式；static browser smoke 继续验证 blur 存在
+- 当前风险点：`tests/unit/planner.test.ts` 有两个测试 fixture `any`，lint warning 噪声仍然影响后续问题定位
+
+### 2. 本轮学习内容
+
+- 项目内部学习：
+  - 读取 Round 7 的“下一轮代码建议”，确认本轮只处理 `tests/unit/planner.test.ts` 的两个 `any`。
+  - 检查 `src/shared/types.ts`，确认 `Project`、`Memory`、`MemoryInjectionMode` 等共享类型结构。
+  - 检查 `src/renderer/lib/planner.ts` 的 `generateProjectPlan(project: Project, tasks: Task[], memories: Memory[])` 签名，确认测试 fixture 可直接使用共享类型。
+  - 运行修改前 planner targeted test，确认基线 8/8 通过。
+- 相似项目/相似产品学习：
+  - 单测 fixture 应尽量使用真实业务类型，减少测试与生产类型漂移。
+  - 类型清理应优先选择测试文件或小范围共享工具，避免一轮内改变 UI 行为。
+- 可借鉴设计思路：
+  - `project` 使用 `Project`，`memories` 使用 `Memory[]`，让 TypeScript 在测试层提前发现字段缺失。
+  - 移除未使用的 `MemoryInjectionMode` 导入，避免清理 `any` 后留下无用类型。
+- 不采用的方案及原因：
+  - 不修改 `generateProjectPlan` 生产逻辑：本轮目标是测试类型清理。
+  - 不重写 planner 测试结构：现有 8 条用例覆盖足够，重写会扩大风险。
+  - 不同时处理 Dashboard/LogAnalyzer 页面 warning：页面状态风险更高，留到下一轮。
+
+### 3. 本轮发现的问题
+
+- 问题 1：`tests/unit/planner.test.ts` 中 `const project: any` 可以替换为 `Project`。
+- 问题 2：`const memories: any[]` 可以替换为 `Memory[]`。
+- 问题 3：`MemoryInjectionMode` 导入未使用，类型清理后应同步移除。
+
+### 4. 本轮拆分的小任务
+
+| 小任务 | 目标 | 涉及文件 | 风险等级 | 验证方式 | 回滚方式 | 是否适合 subagent |
+|---|---|---|---|---|---|---|
+| 类型化 project fixture | 用 `Project` 替换 `any` | `tests/unit/planner.test.ts` | 低 | planner targeted test、typecheck | `git revert` 本轮 commit | 是 |
+| 类型化 memories fixture | 用 `Memory[]` 替换 `any[]` | `tests/unit/planner.test.ts` | 低 | planner targeted test、lint | `git revert` 本轮 commit | 是 |
+| 移除未用导入 | 删除 `MemoryInjectionMode` 测试导入 | `tests/unit/planner.test.ts` | 低 | lint、typecheck | `git revert` 本轮 commit | 否 |
+
+### 5. 本轮实际执行
+
+- 执行了哪些小任务：
+  - 将 `const project: any` 改为 `const project: Project`。
+  - 将 `const memories: any[]` 改为 `const memories: Memory[]`。
+  - 将类型导入改为 `import type { Memory, Project } from '../../src/shared/types'`。
+- 为什么先做这些：
+  - 完全按 Round 7 下一轮建议执行。
+  - 这是低风险测试代码类型清理，可直接降低 lint warning 并保持生产代码不变。
+- 本轮真实代码更改是什么：
+  - planner unit test fixture 类型收紧。
+- 修改了哪些代码文件：
+  - `tests/unit/planner.test.ts`
+- 修改了哪些文档文件：
+  - `CURRENT_OPTIMIZATION_PROGRESS.md`
+- 是否完成至少一个代码更改：是
+- 如果没有代码更改，为什么没有进入下一轮：不适用
+
+### 6. 本轮测试记录
+
+- 测试命令：
+  - `npm.cmd run test -- --run tests/unit/planner.test.ts`
+  - `npm.cmd run lint`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run smoke`
+  - `npm.cmd run verify`
+  - `npm.cmd run test`
+  - `npm.cmd run build`
+  - `npm.cmd run test:static-browser`
+  - `npm.cmd run test:e2e`
+  - `npm.cmd install`
+  - `git diff --check`
+  - `Get-ChildItem .\scripts -Recurse -Force | Select-Object FullName`
+- 测试结果：
+  - targeted planner test：PASS，1 file / 8 tests
+  - `lint`：PASS，0 errors / 25 warnings，warning 数从 27 降到 25
+  - `typecheck`：PASS
+  - `smoke`：PASS，121/121
+  - `verify`：PASS，100/100 后继续 smoke 121/121
+  - `test`：PASS，10 files / 113 tests
+  - `build`：PASS；仍有既有 Charts chunk-size warning
+  - `test:static-browser`：PASS，static fallback HTTP、导航、中文/英文、主题、Secret redaction、1024x680、无 console/page/network error
+  - `test:e2e`：PASS，6/6
+  - `npm.cmd install`：PASS，依赖 up to date；仍报告既有 17 个 audit vulnerabilities
+  - `git diff --check`：PASS；仅 Git LF/CRLF 提示
+- 是否通过：是
+- 是否发现新问题：未发现本轮代码导致的新问题
+- 是否修复新问题：无新问题需要修复
+- 是否需要继续测试：Round 9 若清理 Dashboard catch 类型，建议跑 lint、typecheck、E2E、static browser smoke、build
+
+### 7. Git 版本记录
+
+- 是否执行 git status：是
+- 是否执行 git add：待本记录追加后执行
+- 是否执行 git commit：待本记录追加后执行
+- commit hash：待提交
+- 是否执行 git push：待提交后执行
+- push 结果：待执行
+- 如果失败，失败原因和修复过程：暂无失败
+
+### 8. 下一轮代码建议
+
+- 下一轮必须落实的代码更改 1：清理 `src/renderer/routes/Dashboard.tsx` 中 `catch (err: any)`，改为 `catch (err: unknown)`。
+- 下一轮必须落实的代码更改 2：新增本地小 helper 或内联安全判断，用 `err instanceof Error ? err.message : String(err)` 记录错误，避免 `any`。
+- 下一轮必须落实的代码更改 3：运行 lint、typecheck、E2E、static browser smoke、build，确认 Dashboard fallback 行为和 UI 入口不受影响。
+- 建议原因：当前剩余 warning 中，Dashboard 只有一个 `any` 且在 catch 分支；这是最小生产代码类型清理，风险低于一次性处理 LogAnalyzer 或 Projects 多处状态。
+- 预计涉及代码文件：
+  - `src/renderer/routes/Dashboard.tsx`
+- 风险等级：低
+- 修改范围：只改 catch 错误类型和日志输出，不改数据加载、fallback demo 数据、布局或路由。
+- 推荐验证方式：
+  - `npm.cmd run lint`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run test:e2e`
+  - `npm.cmd run test:static-browser`
+  - `npm.cmd run smoke`
+  - `npm.cmd run build`
+- 回滚方式：`git revert <第九轮commit>`；如果未提交，恢复 `src/renderer/routes/Dashboard.tsx`。
+- 是否适合 subagent 并行处理：适合；subagent 可只读审查 Dashboard catch 分支和 E2E 覆盖，主线程负责改动和回归。
+- 为什么下一轮应该做这个：它开始小心进入生产 UI 代码，但只触碰错误处理类型，能继续降低 lint 噪声并保持 fallback 行为。
+- 预计 commit 信息：`fix: type dashboard fetch errors`
+
+### 9. 是否继续
+
+- 是否继续下一轮：是
+- 继续原因：用户要求每轮 push 后继续下一轮；Round 9 必须按本轮建议完成真实代码更改。
+- 下一轮是否必须改代码：是

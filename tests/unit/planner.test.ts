@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { generateProjectPlan } from '../../src/renderer/lib/planner'
-import type { Project, MemoryInjectionMode } from '../../src/shared/types'
+import type { Memory, Project } from '../../src/shared/types'
 
-const project: any = {
+const project: Project = {
   id: 'test-1',
   name: 'Test App',
   idea: 'Build a task management app with real-time collaboration',
@@ -75,7 +75,7 @@ describe('generateProjectPlan', () => {
   })
 
   it('injects shared memory context when mode is not off', () => {
-    const memories: any[] = [{
+    const memories: Memory[] = [{
       id: 'm1',
       type: 'project_context',
       title: 'Context',
