@@ -287,3 +287,133 @@
 - 是否继续下一轮：是
 - 继续原因：用户要求每轮 push 后继续下一轮；Round 3 必须完成真实代码改动。
 - 下一轮是否必须改代码：是
+
+## Round 3 - 2026-05-09 16:38:01 +08:00
+
+### 1. 本轮开始状态
+
+- 当前分支：`codex-static-quality-pass`
+- 当前 commit：`7d1a084` (`test: stabilize static launch url detection`)
+- git status：本轮开始干净，跟踪 `origin/codex-static-quality-pass`
+- 当前主入口：Electron 开发入口仍为 `npm.cmd run dev`；静态稳定入口仍为 `start-agentflow-static.bat`
+- 当前 fallback 状态：Round 2 已增强 `AGENTFLOW_STATIC_URL` marker，static fallback 验证通过
+- 当前 UI 状态：Dashboard 是 React 首屏，新手路径和快捷入口是本轮目标
+- 当前 Liquid Glass 状态：未改动；static browser smoke 继续验证 blur 存在
+- 当前风险点：Dashboard 快捷入口与 Sidebar 主路由存在别名分叉，长期可能导致 E2E、文档、用户操作路径不一致
+
+### 2. 本轮学习内容
+
+- 项目内部学习：
+  - 读取 Round 2 的“下一轮代码建议”，确认本轮按建议执行。
+  - 检查 `src/renderer/routes/Dashboard.tsx` 的 `quickActions` 与 `beginnerSteps`。
+  - 检查 `src/renderer/components/Sidebar.tsx` 的主导航路径，确认主路径为 `/prompts`、`/logs`、`/safety`、`/memory`。
+  - 检查 `tests/e2e/app.spec.ts`，确认可用 Playwright `getByRole` 直接验证 Dashboard 快捷入口。
+- 相似项目/相似产品学习：
+  - 继续沿用工具型产品的主路径一致性原则：Dashboard 快捷入口、Sidebar、测试和文档应指向同一条主路径，别名路由只作为兼容层。
+  - 命令式入口需要清晰可访问名称；按钮应有稳定的 role/name，方便键盘、辅助技术和自动化测试。
+- 可借鉴设计思路：
+  - 用 `aria-label` 同时服务无障碍和自动化测试。
+  - 让 E2E 锁住关键新手路径，避免将来无意中回到别名路由。
+- 不采用的方案及原因：
+  - 不删除 App 里的别名路由：别名兼容可能已有外部链接依赖，本轮只规范主入口。
+  - 不重写 Dashboard 布局：本轮目标是低风险路由一致性，不做视觉大改。
+  - 不改 static fallback 导航：本轮是 React Dashboard 快捷入口任务，static fallback 由现有 smoke 覆盖。
+
+### 3. 本轮发现的问题
+
+- 问题 1：Dashboard “日志分析”快捷入口使用 `/log-analyzer`，而 Sidebar 主路由是 `/logs`。
+- 问题 2：Dashboard 快捷入口按钮缺少明确 `type="button"`、`aria-label`、`title`。
+- 问题 3：React E2E 只覆盖 Sidebar 导航，没有覆盖 Dashboard 快捷入口。
+
+### 4. 本轮拆分的小任务
+
+| 小任务 | 目标 | 涉及文件 | 风险等级 | 验证方式 | 回滚方式 | 是否适合 subagent |
+|---|---|---|---|---|---|---|
+| 统一 Dashboard 快捷路由 | 将“日志分析”快捷入口改到 `/logs` 主路由 | `src/renderer/routes/Dashboard.tsx` | 低 | `test:e2e`, 手动点击 | `git revert` 本轮 commit | 是 |
+| 补按钮可访问性标签 | 给快捷按钮和新手步骤按钮补 `aria-label` / `title` | `src/renderer/routes/Dashboard.tsx` | 低 | `test:e2e`, DOM role 查询 | `git revert` 本轮 commit | 是 |
+| E2E 覆盖快捷入口 | 验证 Prompt Lab、Log Analyzer、SafetyBox、Shared Memory Hub 快捷入口进入主路由 | `tests/e2e/app.spec.ts` | 低 | `npm.cmd run test:e2e` | `git revert` 本轮 commit | 是 |
+
+### 5. 本轮实际执行
+
+- 执行了哪些小任务：
+  - 将 Dashboard “日志分析”快捷入口从 `/log-analyzer` 改为 `/logs`。
+  - 为 Dashboard 快捷入口按钮添加 `type="button"`、`aria-label="打开..."` 和 `title`。
+  - 为新手启动路径按钮添加 `aria-label` 和 `title`。
+  - 新增 E2E 用例 `dashboard quick actions use primary routes`，验证四个关键快捷入口进入主路由。
+- 为什么先做这些：
+  - 完全按 Round 2 下一轮建议执行。
+  - 这是新手首屏的低风险导航一致性改动，并且能用 E2E 精确验证。
+- 本轮真实代码更改是什么：
+  - Dashboard 路由常量和按钮属性更新。
+  - React E2E 新增快捷入口主路由测试。
+- 修改了哪些代码文件：
+  - `src/renderer/routes/Dashboard.tsx`
+  - `tests/e2e/app.spec.ts`
+- 修改了哪些文档文件：
+  - `CURRENT_OPTIMIZATION_PROGRESS.md`
+- 是否完成至少一个代码更改：是
+- 如果没有代码更改，为什么没有进入下一轮：不适用
+
+### 6. 本轮测试记录
+
+- 测试命令：
+  - `npm.cmd run typecheck`
+  - `npm.cmd run lint`
+  - `npm.cmd run test:e2e`
+  - `npm.cmd run test:static-browser`
+  - `npm.cmd run smoke`
+  - `npm.cmd run verify`
+  - `npm.cmd run test`
+  - `npm.cmd run build`
+- 测试结果：
+  - `typecheck`：PASS
+  - `lint`：PASS，0 errors / 36 existing warnings
+  - `test:e2e`：PASS，6/6；新增 Dashboard 快捷入口用例通过
+  - `test:static-browser`：PASS，static fallback HTTP、导航、记忆脱敏、布局、无 console/page/network error
+  - `smoke`：PASS，119/119
+  - `verify`：PASS，99/99 后 smoke 119/119
+  - `test`：PASS，9 files / 109 tests
+  - `build`：PASS；仍有既有 Charts chunk-size warning
+- 是否通过：是
+- 是否发现新问题：没有发现本轮改动导致的新问题
+- 是否修复新问题：不需要
+- 是否需要继续测试：Round 4 涉及主进程 seed 内容和 smoke 守护后，建议跑 `typecheck`、`smoke`、`verify`、`test`、`build`、`test:electron-startup`
+
+### 7. Git 版本记录
+
+- 是否执行 git status：是
+- 是否执行 git add：待本记录追加后执行
+- 是否执行 git commit：待本记录追加后执行
+- commit hash：待提交
+- 是否执行 git push：待提交后执行
+- push 结果：待执行
+- 如果失败，失败原因和修复过程：暂无失败
+
+### 8. 下一轮代码建议
+
+- 下一轮必须落实的代码更改 1：清理 `src/main/index.ts` demo seed 中会误导 AI 工具执行危险权限跳过的内容，移除 `--dangerously-skip-permissions` 示例。
+- 下一轮必须落实的代码更改 2：将该 demo memory 改成安全、可审计的本地优先偏好，例如“先做计划、执行最小命令、记录测试和风险”。
+- 下一轮必须落实的代码更改 3：在 `scripts/smoke-test.js` 增加主进程 seed 内容安全守护，禁止 `--dangerously-skip-permissions` 重新进入 demo seed。
+- 建议原因：Agent A 已指出 demo seed 可能污染 Shared Memory/Prompt 上下文；这是低风险安全质量改动，能避免新手或 AI 恢复上下文拿到不安全默认偏好。
+- 预计涉及代码文件：
+  - `src/main/index.ts`
+  - `scripts/smoke-test.js`
+- 风险等级：低
+- 修改范围：只改 demo seed 文案和 smoke 检查，不改存储结构、不改 IPC、不改用户已有数据。
+- 推荐验证方式：
+  - `npm.cmd run typecheck`
+  - `npm.cmd run smoke`
+  - `npm.cmd run verify`
+  - `npm.cmd run test`
+  - `npm.cmd run build`
+  - `npm.cmd run test:electron-startup`
+- 回滚方式：`git revert <第四轮commit>`；如果未提交，恢复 `src/main/index.ts` 和 `scripts/smoke-test.js`。
+- 是否适合 subagent 并行处理：适合；安全审查 subagent 可只读确认 seed 与 smoke guard。
+- 为什么下一轮应该做这个：它直接降低安全误导风险，符合 Electron/Shared Memory 安全规则，并且代码面小、测试明确。
+- 预计 commit 信息：`fix: remove unsafe demo memory seed`
+
+### 9. 是否继续
+
+- 是否继续下一轮：是
+- 继续原因：用户要求继续完成刚刚未做完的闭环，并且每轮 push 后继续下一轮。
+- 下一轮是否必须改代码：是

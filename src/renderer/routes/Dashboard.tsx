@@ -205,7 +205,7 @@ export default function Dashboard() {
   const quickActions = [
     { label: '新建项目', icon: Plus, route: '/projects', color: 'text-blue-400', bg: 'bg-blue-500/10 hover:bg-blue-500/20' },
     { label: '提示词实验室', icon: Wand2, route: '/prompts', color: 'text-purple-400', bg: 'bg-purple-500/10 hover:bg-purple-500/20' },
-    { label: '日志分析', icon: FileText, route: '/log-analyzer', color: 'text-amber-400', bg: 'bg-amber-500/10 hover:bg-amber-500/20' },
+    { label: '日志分析', icon: FileText, route: '/logs', color: 'text-amber-400', bg: 'bg-amber-500/10 hover:bg-amber-500/20' },
     { label: '安全检查', icon: Shield, route: '/safety', color: 'text-green-400', bg: 'bg-green-500/10 hover:bg-green-500/20' },
     { label: '共享记忆中心', icon: Brain, route: '/memory', color: 'text-pink-400', bg: 'bg-pink-500/10 hover:bg-pink-500/20' },
     { label: 'Codex 交接', icon: Package, route: '/skills', color: 'text-cyan-400', bg: 'bg-cyan-500/10 hover:bg-cyan-500/20' },
@@ -372,7 +372,10 @@ export default function Dashboard() {
         {quickActions.map((action) => (
           <button
             key={action.label}
+            type="button"
             onClick={() => navigate(action.route)}
+            aria-label={`打开${action.label}`}
+            title={`打开${action.label}`}
             className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 transition-all duration-200 ${action.bg} text-zinc-200 text-sm font-medium`}
           >
             <action.icon className={`w-4 h-4 ${action.color}`} />
@@ -396,6 +399,8 @@ export default function Dashboard() {
               key={step.title}
               type="button"
               onClick={() => navigate(step.route)}
+              aria-label={`${step.title}：${step.action}`}
+              title={step.action}
               className="text-left rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors p-4 min-h-[142px]"
             >
               <step.icon className="w-5 h-5 text-blue-300 mb-3" />

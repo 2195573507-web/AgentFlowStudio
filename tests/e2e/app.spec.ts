@@ -58,6 +58,22 @@ test.describe('AgentFlow Studio React web entry', () => {
     }
   })
 
+  test('dashboard quick actions use primary routes', async ({ page }) => {
+    const quickActions = [
+      { name: '提示词实验室', url: /\/prompts$/ },
+      { name: '日志分析', url: /\/logs$/ },
+      { name: '安全检查', url: /\/safety$/ },
+      { name: '共享记忆中心', url: /\/memory$/ },
+    ]
+
+    for (const action of quickActions) {
+      await page.goto('/', { waitUntil: 'networkidle' })
+      await page.getByRole('button', { name: `打开${action.name}` }).click()
+      await expect(page).toHaveURL(action.url)
+      await expect(page.locator('main')).not.toBeEmpty()
+    }
+  })
+
   test('persists language and theme preferences', async ({ page }) => {
     await page.getByRole('button', { name: /English|中文/ }).click()
     await expect.poll(() => page.evaluate(() => localStorage.getItem('agentflow.language'))).toBe('en')
