@@ -34,9 +34,15 @@ test.describe('AgentFlow Studio React web entry', () => {
     await expect(page).toHaveTitle(/AgentFlow Studio/)
     await expect(page.locator('main').getByRole('heading', { name: /仪表|Dashboard/ })).toBeVisible()
     await expect(page.getByRole('navigation')).toBeVisible()
+    await expect(page.getByText('下一步')).toBeVisible()
+    for (const label of ['Idea', 'Plan', 'Tasks', 'Prompt', 'Safety', 'Logs', 'Memory', 'Handoff']) {
+      await expect(page.getByText(label, { exact: true }).first()).toBeVisible()
+    }
 
     const sidebarBackdrop = await page.locator('aside').evaluate((el) => getComputedStyle(el).backdropFilter)
     expect(sidebarBackdrop).toContain('blur')
+    const glassShadow = await page.locator('.liquid-glass-card').first().evaluate((el) => getComputedStyle(el).boxShadow)
+    expect(glassShadow).not.toBe('none')
   })
 
   test('navigates through core pages', async ({ page }) => {

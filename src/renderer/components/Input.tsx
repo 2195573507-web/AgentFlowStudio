@@ -61,8 +61,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               // Base
               'w-full border outline-none transition-all duration-200',
               // Glass styling
-              'bg-white/10 dark:bg-white/5 backdrop-blur-md',
-              'border-white/20 dark:border-white/10',
+              'bg-[var(--glass-surface)] backdrop-blur-md',
+              'border-[var(--glass-border)] shadow-[var(--glass-inner)]',
               // Text
               'text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500',
               // Spacing
@@ -70,7 +70,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               icon && 'pl-10',
               rightIcon && 'pr-10',
               // Focus
-              'focus:ring-2 focus:ring-accent-400/50 focus:border-accent-400/60',
+              'focus:ring-2 focus:ring-accent-400/60 focus:border-accent-400/70',
               // Error
               error &&
                 'border-red-400 dark:border-red-500 focus:ring-red-400/40 focus:border-red-400',

@@ -60,9 +60,7 @@ const Layout: React.FC<LayoutProps> = ({
     <div
       className={classNames(
         'flex h-screen w-screen overflow-hidden',
-        // Global glass background
-        'bg-gradient-to-br from-slate-100 via-sky-50 to-indigo-50',
-        'dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950',
+        'bg-transparent',
       )}
     >
       {/* Sidebar */}

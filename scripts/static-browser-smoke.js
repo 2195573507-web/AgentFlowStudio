@@ -150,6 +150,14 @@ async function main() {
 
   const panelBg = await page.locator('.panel').first().evaluate((el) => getComputedStyle(el).backdropFilter)
   record('Liquid Glass backdrop exists', panelBg.includes('blur'), panelBg)
+  const panelShadow = await page.locator('.panel').first().evaluate((el) => getComputedStyle(el).boxShadow)
+  record('Liquid Glass layered shadow exists', panelShadow !== 'none' && panelShadow.length > 10, panelShadow)
+  await page.getByText('下一步').first().waitFor({ timeout: 3000 })
+  record('dashboard next-step CTA exists', true)
+  for (const label of ['Idea', 'Plan', 'Tasks', 'Prompt', 'Safety', 'Logs', 'Memory', 'Handoff']) {
+    await page.getByText(label, { exact: true }).first().waitFor({ timeout: 3000 })
+  }
+  record('dashboard lifecycle rail exists', true)
 
   await page.locator('[data-action="toggle-language"]').click()
   await page.getByRole('heading', { name: 'Dashboard' }).waitFor({ timeout: 3000 })
@@ -236,6 +244,28 @@ async function main() {
       .filter((item) => item.bad)
   })
   record('1024x680 layout has no obvious element overflow', overlaps.length === 0, JSON.stringify(overlaps.slice(0, 5)))
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  const mobilePages = [
+    { pageId: 'dashboard', text: 'Dashboard' },
+    { pageId: 'projects', text: 'Projects' },
+    { pageId: 'settings', text: 'Settings' },
+  ]
+  for (const entry of mobilePages) {
+    await page.locator(`nav button[data-page="${entry.pageId}"]`).click()
+    await page.waitForTimeout(150)
+    await page.locator('main').getByText(entry.text).first().waitFor({ timeout: 3000 })
+    const layout = await page.evaluate(() => ({
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      activePage: JSON.parse(localStorage.getItem('agentflow.static.v1') || '{}').activePage,
+    }))
+    record(
+      `390x844/${entry.pageId} no horizontal overflow`,
+      layout.scrollWidth <= layout.clientWidth + 2 && layout.activePage === entry.pageId,
+      JSON.stringify(layout),
+    )
+  }
 
   await browser.close()
 

@@ -522,7 +522,58 @@ function renderDashboard() {
   const totalTasks = state.projects.reduce((sum, project) => sum + (project.tasks?.length || 0), 0);
   const activeProject = selectedProject();
   const riskCount = state.riskChecks.length;
+  const hasProjects = state.projects.length > 0;
+  const hasTasks = totalTasks > 0;
+  const hasPrompts = state.prompts.length > 0;
+  const hasSafety = riskCount > 0;
+  const hasMemories = state.memories.length > 0;
+  const workflowSteps = [
+    { label: 'Idea', title: '记录想法', done: hasProjects, page: 'projects' },
+    { label: 'Plan', title: '生成规划', done: hasTasks, page: 'project-detail' },
+    { label: 'Tasks', title: '拆成任务', done: hasTasks, page: 'project-detail' },
+    { label: 'Prompt', title: '生成 Prompt', done: hasPrompts, page: 'prompt-lab' },
+    { label: 'Safety', title: '检查命令', done: hasSafety, page: 'safety-box' },
+    { label: 'Logs', title: '分析结果', done: false, page: 'log-analyzer' },
+    { label: 'Memory', title: '沉淀记忆', done: hasMemories, page: 'shared-memory' },
+    { label: 'Handoff', title: '交接恢复', done: hasMemories && hasPrompts, page: 'shared-memory' },
+  ];
+  const nextStep = workflowSteps.find((step) => !step.done) || workflowSteps[workflowSteps.length - 1];
+  const nextStepCopy = !hasProjects
+    ? '先创建一个项目，把目标、约束和技术栈写清楚。'
+    : !hasTasks
+      ? '进入项目详情，把想法拆成可交给 AI 的任务。'
+      : !hasPrompts
+        ? '打开 Prompt Lab，把任务变成可复制给 Codex / Claude Code / Cursor 的执行提示词。'
+        : !hasSafety
+          ? '运行前先把命令放进安全检查，避免误删文件或泄露密钥。'
+          : !hasMemories
+            ? '把关键决策和修复结果保存到共享记忆，方便下一轮恢复上下文。'
+            : '复制恢复上下文，准备进入下一轮验证和交接。';
   return shell(`
+    <section class="panel">
+      <div class="next-action">
+        <div>
+          <span class="tag">下一步</span>
+          <h2>${escapeHtml(nextStep.title)}</h2>
+          <p class="muted">${escapeHtml(nextStepCopy)}</p>
+        </div>
+        <button class="btn primary" type="button" data-page="${nextStep.page}">继续到 ${escapeHtml(nextStep.title)}</button>
+      </div>
+      <div class="workflow-rail" aria-label="AI 协作生命周期">
+        ${workflowSteps
+          .map(
+            (step) => `
+              <button class="workflow-step ${step.done ? 'done' : ''}" type="button" data-page="${step.page}" aria-label="${escapeHtml(step.title)}${step.done ? '，已完成' : '，待处理'}">
+                <span class="workflow-mark">${step.done ? '✓' : ''}</span>
+                <div class="workflow-label">${escapeHtml(step.label)}</div>
+                <div class="workflow-title">${escapeHtml(step.title)}</div>
+              </button>
+            `,
+          )
+          .join('')}
+      </div>
+    </section>
+
     <section class="grid stats-grid">
       <div class="stat-card"><div class="stat-label">项目总数</div><div class="stat-value">${state.projects.length}</div><div class="stat-note">当前项目管理池</div></div>
       <div class="stat-card"><div class="stat-label">任务总数</div><div class="stat-value">${totalTasks}</div><div class="stat-note">待办、进行中、受阻、已完成</div></div>
@@ -534,7 +585,7 @@ function renderDashboard() {
     <section class="grid two-col" style="margin-top:16px">
       <div class="panel">
         <div class="section-title">
-          <div><h2>项目总控台</h2><p>核心入口保持可用，先让桌面快捷方式能真实打开。</p></div>
+          <div><h2>项目总控台</h2><p>核心入口保持可用，先从一个项目进入可验证的 AI 协作闭环。</p></div>
         </div>
         <div class="row">
           <button class="btn primary" type="button" data-page="projects">新建项目</button>

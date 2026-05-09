@@ -109,11 +109,7 @@ const Modal: React.FC<ModalProps> = ({
         className={classNames(
           'relative w-full',
           sizeClasses[size],
-          // Glass panel
-          'bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl',
-          'border border-white/30 dark:border-white/10',
-          'shadow-2xl shadow-black/10 dark:shadow-black/40',
-          'rounded-2xl',
+          'liquid-glass-card',
           // Enter animation
           'animate-in zoom-in-95 fade-in slide-in-from-bottom-2 duration-300',
           className,
@@ -131,6 +127,7 @@ const Modal: React.FC<ModalProps> = ({
                 'p-1.5 rounded-lg transition-colors duration-150',
                 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300',
                 'hover:bg-slate-200/60 dark:hover:bg-white/10',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/70',
               )}
               aria-label="Close"
             >
@@ -147,6 +144,7 @@ const Modal: React.FC<ModalProps> = ({
               'absolute top-3 right-3 p-1.5 rounded-lg transition-colors duration-150 z-10',
               'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300',
               'hover:bg-slate-200/60 dark:hover:bg-white/10',
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/70',
             )}
             aria-label="Close"
           >

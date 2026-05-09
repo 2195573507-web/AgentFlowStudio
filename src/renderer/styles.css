@@ -4,15 +4,25 @@
 
 @layer base {
   :root {
-    --bg-primary: #f5f5f7;
+    --bg-primary: #f5f7fb;
     --bg-secondary: #ffffff;
     --text-primary: #1d1d1f;
     --text-secondary: #6e6e73;
     --text-tertiary: #aeaeb2;
     --border-color: rgba(0, 0, 0, 0.06);
-    --glass-bg: rgba(255, 255, 255, 0.72);
-    --glass-bg-strong: rgba(255, 255, 255, 0.88);
-    --glass-border: rgba(0, 0, 0, 0.06);
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-bg-strong: rgba(255, 255, 255, 0.9);
+    --glass-surface: rgba(255, 255, 255, 0.64);
+    --glass-surface-hover: rgba(255, 255, 255, 0.82);
+    --glass-surface-strong: rgba(255, 255, 255, 0.92);
+    --glass-border: rgba(255, 255, 255, 0.68);
+    --glass-border-subtle: rgba(22, 34, 55, 0.1);
+    --glass-highlight: rgba(255, 255, 255, 0.84);
+    --glass-inner: inset 0 1px 0 rgba(255, 255, 255, 0.72), inset 0 -1px 0 rgba(20, 35, 60, 0.04);
+    --glass-shadow: 0 18px 55px rgba(40, 55, 86, 0.14), 0 3px 12px rgba(15, 23, 42, 0.06);
+    --glass-shadow-hover: 0 24px 72px rgba(40, 55, 86, 0.18), 0 8px 18px rgba(15, 23, 42, 0.08);
+    --glass-glow: rgba(59, 130, 246, 0.14);
+    --focus-ring: rgba(59, 130, 246, 0.36);
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
     --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
     --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.08);
@@ -30,9 +40,19 @@
     --text-secondary: #a1a1a6;
     --text-tertiary: #636366;
     --border-color: rgba(255, 255, 255, 0.08);
-    --glass-bg: rgba(28, 28, 30, 0.72);
-    --glass-bg-strong: rgba(44, 44, 46, 0.88);
-    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-bg: rgba(24, 31, 44, 0.68);
+    --glass-bg-strong: rgba(30, 41, 59, 0.84);
+    --glass-surface: rgba(18, 25, 38, 0.62);
+    --glass-surface-hover: rgba(30, 41, 59, 0.78);
+    --glass-surface-strong: rgba(30, 41, 59, 0.88);
+    --glass-border: rgba(255, 255, 255, 0.13);
+    --glass-border-subtle: rgba(255, 255, 255, 0.08);
+    --glass-highlight: rgba(255, 255, 255, 0.18);
+    --glass-inner: inset 0 1px 0 rgba(255, 255, 255, 0.13), inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+    --glass-shadow: 0 18px 55px rgba(0, 0, 0, 0.34), 0 3px 14px rgba(0, 0, 0, 0.24);
+    --glass-shadow-hover: 0 26px 76px rgba(0, 0, 0, 0.42), 0 8px 18px rgba(0, 0, 0, 0.28);
+    --glass-glow: rgba(96, 165, 250, 0.2);
+    --focus-ring: rgba(96, 165, 250, 0.44);
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
     --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
     --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
@@ -43,7 +63,11 @@
   }
 
   body {
-    background-color: var(--bg-primary);
+    background:
+      radial-gradient(circle at 14% 8%, rgba(20, 184, 166, 0.18), transparent 34rem),
+      radial-gradient(circle at 86% 0%, rgba(59, 130, 246, 0.18), transparent 36rem),
+      radial-gradient(circle at 50% 92%, rgba(244, 114, 182, 0.1), transparent 30rem),
+      linear-gradient(145deg, var(--bg-primary), #eaf0fb 48%, #f8fbff);
     color: var(--text-primary);
     font-family: 'Inter', 'Segoe UI Variable', 'Segoe UI', 'Microsoft YaHei UI',
       'Microsoft YaHei', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
@@ -52,6 +76,22 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  .dark body {
+    background:
+      radial-gradient(circle at 14% 8%, rgba(20, 184, 166, 0.12), transparent 34rem),
+      radial-gradient(circle at 84% 0%, rgba(59, 130, 246, 0.16), transparent 36rem),
+      radial-gradient(circle at 56% 94%, rgba(168, 85, 247, 0.1), transparent 30rem),
+      linear-gradient(145deg, #080d16, #0e1728 48%, #111827);
+  }
+
+  button,
+  a,
+  input,
+  textarea,
+  select {
+    -webkit-tap-highlight-color: transparent;
   }
 
   button,
@@ -82,37 +122,99 @@
 
 @layer components {
   .glass {
-    background: var(--glass-bg);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    position: relative;
+    overflow: hidden;
+    background: var(--glass-surface);
+    backdrop-filter: blur(28px) saturate(150%);
+    -webkit-backdrop-filter: blur(28px) saturate(150%);
     border: 1px solid var(--glass-border);
-    border-radius: 12px;
-    box-shadow: var(--shadow-sm);
+    border-radius: 8px;
+    box-shadow: var(--glass-shadow), var(--glass-inner);
   }
 
   .glass-strong {
-    background: var(--glass-bg-strong);
-    backdrop-filter: blur(40px);
-    -webkit-backdrop-filter: blur(40px);
+    position: relative;
+    overflow: hidden;
+    background: var(--glass-surface-strong);
+    backdrop-filter: blur(40px) saturate(165%);
+    -webkit-backdrop-filter: blur(40px) saturate(165%);
     border: 1px solid var(--glass-border);
-    border-radius: 16px;
-    box-shadow: var(--shadow-md);
+    border-radius: 8px;
+    box-shadow: var(--glass-shadow), var(--glass-inner);
   }
 
-  .glass-card {
-    background: var(--glass-bg);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+  .glass-card,
+  .liquid-glass-card {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background:
+      linear-gradient(145deg, var(--glass-highlight), transparent 0 34%, transparent),
+      var(--glass-surface);
+    backdrop-filter: blur(30px) saturate(160%);
+    -webkit-backdrop-filter: blur(30px) saturate(160%);
     border: 1px solid var(--glass-border);
-    border-radius: 14px;
-    box-shadow: var(--shadow-sm);
-    transition: all 0.2s ease;
+    border-radius: 8px;
+    box-shadow: var(--glass-shadow), var(--glass-inner);
+    transition:
+      background-color 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.2s ease;
   }
 
-  .glass-card:hover {
-    background: var(--glass-bg-strong);
-    box-shadow: var(--shadow-md);
+  .glass-card::before,
+  .liquid-glass-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.46), transparent 30%),
+      radial-gradient(circle at 18% 0%, var(--glass-glow), transparent 34%);
+    opacity: 0.72;
+  }
+
+  .glass-card::after,
+  .liquid-glass-card::after {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    z-index: -1;
+    pointer-events: none;
+    border-radius: 7px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+  }
+
+  .glass-card:hover,
+  .liquid-glass-card:hover {
+    background: var(--glass-surface-hover);
+    box-shadow: var(--glass-shadow-hover), var(--glass-inner);
     transform: translateY(-1px);
+  }
+
+  .liquid-glass-card:focus-visible,
+  .glass-card:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  .liquid-glass-chrome {
+    background: color-mix(in srgb, var(--glass-surface) 86%, transparent);
+    backdrop-filter: blur(34px) saturate(160%);
+    -webkit-backdrop-filter: blur(34px) saturate(160%);
+    border-color: var(--glass-border);
+    box-shadow: var(--glass-inner);
+  }
+
+  .liquid-focus {
+    outline: none;
+  }
+
+  .liquid-focus:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
   }
 
   .btn-primary {

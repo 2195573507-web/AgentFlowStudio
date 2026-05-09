@@ -53,8 +53,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, language
     <aside
       className={classNames(
         'relative flex flex-col h-full',
-        'bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl',
-        'border-r border-white/20 dark:border-white/10',
+        'liquid-glass-chrome border-r',
         'transition-all duration-300 ease-out',
         collapsed ? 'w-[64px]' : 'w-[240px]',
         'shrink-0',
@@ -104,8 +103,9 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, language
                 collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2.5',
                 // Active state
                 isActive
-                  ? 'bg-accent-500/15 text-accent-600 dark:text-accent-400 shadow-sm'
-                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-white/5 hover:text-slate-700 dark:hover:text-slate-200',
+                  ? 'bg-accent-500/15 text-accent-600 dark:text-accent-400 shadow-sm ring-1 ring-accent-400/20'
+                  : 'text-slate-500 dark:text-slate-400 hover:bg-white/45 dark:hover:bg-white/10 hover:text-slate-700 dark:hover:text-slate-200',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/70',
               )}
               title={collapsed ? label : undefined}
             >
@@ -129,6 +129,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, language
             'w-full flex items-center gap-3 rounded-xl transition-all duration-200',
             'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300',
             'hover:bg-slate-200/50 dark:hover:bg-white/5',
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/70',
             collapsed ? 'justify-center py-2.5' : 'px-3 py-2.5',
           )}
           title={collapsed ? '展开侧边栏' : '收起侧边栏'}

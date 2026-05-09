@@ -66,8 +66,7 @@ const Topbar: React.FC<TopbarProps> = ({
     <header
       className={classNames(
         'flex items-center justify-between h-14 px-5',
-        'bg-white/20 dark:bg-slate-900/20 backdrop-blur-xl',
-        'border-b border-white/20 dark:border-white/10',
+        'liquid-glass-chrome border-b',
         className,
       )}
     >

@@ -87,7 +87,7 @@ const TaskCard: React.FC<{
         'shadow-sm shadow-black/5 dark:shadow-black/20',
         'rounded-xl p-3',
         'transition-all duration-200 ease-out',
-        'hover:shadow-md hover:shadow-black/8 dark:hover:shadow-black/30',
+        'hover:shadow-md hover:shadow-black/10 dark:hover:shadow-black/30',
         'hover:-translate-y-0.5',
       )}
     >

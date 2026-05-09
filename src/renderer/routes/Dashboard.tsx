@@ -18,6 +18,9 @@ import {
   ArrowRight,
   Settings,
   PlayCircle,
+  ClipboardCheck,
+  Circle,
+  CheckCircle2,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { GlassCard, StatCard, EmptyState, Charts } from '../components/';
@@ -236,6 +239,34 @@ export default function Dashboard() {
     },
   ];
 
+  const hasProjects = projects.length > 0;
+  const hasPrompts = prompts.length > 0;
+  const hasMemories = memories.length > 0;
+  const hasSafetyChecks = riskCount > 0;
+  const hasActiveTasks = tasks.some((task) => task.status === 'in_progress' || task.status === 'todo');
+  const workflowSteps = [
+    { label: 'Idea', title: '记录想法', done: hasProjects, route: '/projects' },
+    { label: 'Plan', title: '生成规划', done: hasProjects && tasks.length > 0, route: recentProjects[0] ? `/projects/${recentProjects[0].id}` : '/projects' },
+    { label: 'Tasks', title: '拆成任务', done: tasks.length > 0, route: recentProjects[0] ? `/projects/${recentProjects[0].id}` : '/projects' },
+    { label: 'Prompt', title: '生成 Prompt', done: hasPrompts, route: '/prompts' },
+    { label: 'Safety', title: '检查命令', done: hasSafetyChecks, route: '/safety' },
+    { label: 'Logs', title: '分析结果', done: false, route: '/logs' },
+    { label: 'Memory', title: '沉淀记忆', done: hasMemories, route: '/memory' },
+    { label: 'Handoff', title: '交接恢复', done: hasMemories && hasPrompts, route: '/memory' },
+  ];
+  const nextStep = workflowSteps.find((step) => !step.done) || workflowSteps[workflowSteps.length - 1];
+  const nextStepCopy = !hasProjects
+    ? '先创建一个项目，把目标、约束和技术栈写清楚。'
+    : !hasActiveTasks && tasks.length === 0
+      ? '进入项目详情，把想法拆成可交给 AI 的任务。'
+      : !hasPrompts
+        ? '打开 Prompt Lab，把任务变成可复制给 Codex / Claude Code / Cursor 的执行提示词。'
+        : !hasSafetyChecks
+          ? '运行前先把命令放进安全检查，避免误删文件或泄露密钥。'
+          : !hasMemories
+            ? '把关键决策和修复结果保存到共享记忆，方便下一轮恢复上下文。'
+            : '复制恢复上下文，准备进入下一轮验证和交接。';
+
   // ── Status badge helper ─────────────────────────────────────────────────
   const statusBadge = (status: string) => {
     const map: Record<string, { label: string; cls: string }> = {
@@ -315,19 +346,66 @@ export default function Dashboard() {
       {DemoBanner}
 
       {/* Page header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-zinc-100 tracking-tight">仪表板</h1>
-          <p className="text-zinc-400 mt-1 text-sm">AgentFlow Studio 项目总览</p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/45 px-3 py-1 text-xs font-semibold text-slate-600 shadow-[var(--glass-inner)] backdrop-blur-md dark:border-white/10 dark:bg-white/10 dark:text-slate-300">
+            <Sparkles className="h-3.5 w-3.5 text-accent-500" />
+            本地优先的 AI 项目编排工作台
+          </div>
+          <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 dark:text-zinc-100">仪表板</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-zinc-400">
+            从想法、规划、任务、Prompt、安全检查到日志和共享记忆，把一次 AI 协作变成可验证、可恢复的闭环。
+          </p>
         </div>
         <button
           onClick={fetchData}
-          className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-zinc-200 transition-colors"
+          className="liquid-focus rounded-xl border border-white/30 bg-white/45 p-2 text-slate-500 transition-colors hover:bg-white/70 hover:text-slate-800 dark:border-white/10 dark:bg-white/10 dark:text-zinc-400 dark:hover:bg-white/15 dark:hover:text-zinc-200"
           title="刷新数据"
+          aria-label="刷新数据"
         >
           <RefreshCw className="w-4 h-4" />
         </button>
       </div>
+
+      <GlassCard className="p-5 md:p-6" hoverable>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-accent-600 dark:text-accent-300">
+              <ClipboardCheck className="h-4 w-4" />
+              下一步
+            </div>
+            <h2 className="mt-2 text-xl font-semibold text-slate-900 dark:text-zinc-100">{nextStep.title}</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 dark:text-zinc-400">{nextStepCopy}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate(nextStep.route)}
+            className="liquid-focus inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-xl bg-accent-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-accent-500/25 transition-all hover:bg-accent-500 active:scale-[0.98]"
+          >
+            继续到 {nextStep.title}
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="mt-5 grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-8">
+          {workflowSteps.map((step) => (
+            <button
+              key={step.label}
+              type="button"
+              onClick={() => navigate(step.route)}
+              className="liquid-focus rounded-lg border border-white/25 bg-white/35 p-3 text-left transition-colors hover:bg-white/60 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+              aria-label={`${step.title}${step.done ? '，已完成' : '，待处理'}`}
+            >
+              {step.done ? (
+                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              ) : (
+                <Circle className="h-4 w-4 text-slate-400 dark:text-slate-500" />
+              )}
+              <div className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{step.label}</div>
+              <div className="mt-1 text-xs font-medium text-slate-800 dark:text-zinc-200">{step.title}</div>
+            </button>
+          ))}
+        </div>
+      </GlassCard>
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -377,7 +455,7 @@ export default function Dashboard() {
             onClick={() => navigate(action.route)}
             aria-label={`打开${action.label}`}
             title={`打开${action.label}`}
-            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 transition-all duration-200 ${action.bg} text-zinc-200 text-sm font-medium`}
+            className={`liquid-focus inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-medium text-slate-700 shadow-[var(--glass-inner)] transition-all duration-200 dark:text-zinc-200 ${action.bg}`}
           >
             <action.icon className={`w-4 h-4 ${action.color}`} />
             {action.label}
@@ -389,10 +467,10 @@ export default function Dashboard() {
       <GlassCard className="p-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-base font-semibold text-zinc-100">新手启动路径</h2>
-            <p className="text-sm text-zinc-400 mt-1">第一次打开时，按这三步就能从想法进入可验证的 AI 开发流程。</p>
+            <h2 className="text-base font-semibold text-slate-900 dark:text-zinc-100">新手启动路径</h2>
+            <p className="text-sm text-slate-600 dark:text-zinc-400 mt-1">第一次打开时，按这三步就能从想法进入可验证的 AI 开发流程。</p>
           </div>
-          <span className="text-xs text-zinc-500">本地优先 · 可恢复 · 可验证</span>
+          <span className="text-xs text-slate-500 dark:text-zinc-500">本地优先 · 可恢复 · 可验证</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
           {beginnerSteps.map((step) => (
@@ -402,11 +480,11 @@ export default function Dashboard() {
               onClick={() => navigate(step.route)}
               aria-label={`${step.title}：${step.action}`}
               title={step.action}
-              className="text-left rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors p-4 min-h-[142px]"
+              className="liquid-focus text-left rounded-lg border border-white/20 bg-white/35 p-4 min-h-[142px] transition-colors hover:bg-white/60 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
             >
               <step.icon className="w-5 h-5 text-blue-300 mb-3" />
-              <h3 className="text-sm font-semibold text-zinc-100">{step.title}</h3>
-              <p className="text-xs text-zinc-400 leading-5 mt-2">{step.description}</p>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-zinc-100">{step.title}</h3>
+              <p className="text-xs text-slate-600 dark:text-zinc-400 leading-5 mt-2">{step.description}</p>
               <span className="inline-flex items-center gap-1 text-xs text-blue-300 mt-3">
                 {step.action}
                 <ChevronRight className="w-3 h-3" />

@@ -24,10 +24,9 @@ const variantClasses: Record<ButtonVariant, string> = {
     'bg-accent-600 text-white hover:bg-accent-500 active:bg-accent-700 ' +
     'shadow-lg shadow-accent-500/25 dark:shadow-accent-400/20',
   secondary:
-    'bg-white/10 dark:bg-white/5 text-slate-700 dark:text-slate-200 ' +
-    'border border-white/20 dark:border-white/10 ' +
-    'hover:bg-white/20 dark:hover:bg-white/10 ' +
-    'active:bg-white/30 dark:active:bg-white/15 ' +
+    'bg-[var(--glass-surface)] text-slate-700 dark:text-slate-200 ' +
+    'border border-[var(--glass-border)] shadow-[var(--glass-inner)] ' +
+    'hover:bg-[var(--glass-surface-hover)] active:bg-white/30 dark:active:bg-white/15 ' +
     'backdrop-blur-md',
   ghost:
     'text-slate-600 dark:text-slate-300 ' +
@@ -73,9 +72,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={isDisabled}
         className={classNames(
           // Base styles
-          'inline-flex items-center justify-center font-medium',
+          'inline-flex items-center justify-center font-medium cursor-pointer',
           'transition-all duration-200 ease-out',
-          'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-1 focus-visible:ring-offset-transparent',
+          'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/70 focus-visible:ring-offset-1 focus-visible:ring-offset-transparent',
           'select-none',
           // Variant
           variantClasses[variant],

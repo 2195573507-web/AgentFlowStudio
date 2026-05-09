@@ -36,18 +36,11 @@ const GlassCard: React.FC<GlassCardProps> = ({
         type="button"
         onClick={onClick as React.MouseEventHandler<HTMLButtonElement>}
         className={classNames(
-          // Glass base
-          'bg-white/40 dark:bg-white/5 backdrop-blur-xl',
-          'border border-white/30 dark:border-white/10',
-          'shadow-lg shadow-black/5 dark:shadow-black/30',
-          'rounded-2xl',
-          // Transition
-          'transition-all duration-200 ease-out',
+          'liquid-glass-card liquid-focus',
           // Padding
           paddingClasses[padding],
           // Hoverable
-          hoverable &&
-            'hover:bg-white/50 dark:hover:bg-white/10 hover:shadow-xl hover:shadow-black/8 dark:hover:shadow-black/40 hover:-translate-y-0.5',
+          hoverable && 'hover:-translate-y-0.5',
           // Clickable
           'cursor-pointer active:scale-[0.98]',
           // Layout
@@ -63,19 +56,11 @@ const GlassCard: React.FC<GlassCardProps> = ({
   return (
     <div
       className={classNames(
-        // Glass base
-        'bg-white/40 dark:bg-white/5 backdrop-blur-xl',
-        'border border-white/30 dark:border-white/10',
-        'shadow-lg shadow-black/5 dark:shadow-black/30',
-        'rounded-2xl',
-        // Transition
-        'transition-all duration-200 ease-out',
+        'liquid-glass-card',
         // Padding
         paddingClasses[padding],
         // Hoverable
-        hoverable &&
-          'hover:bg-white/50 dark:hover:bg-white/10 hover:shadow-xl hover:shadow-black/8 dark:hover:shadow-black/40 hover:-translate-y-0.5',
-        // Clickable
+        hoverable && 'hover:-translate-y-0.5',
         // Layout
         'block w-full text-left',
         className,
