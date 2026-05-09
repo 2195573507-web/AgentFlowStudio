@@ -49,6 +49,7 @@ const unitTests = [
   'memoryRetriever',
   'memoryInjection',
   'secretRedaction',
+  'utils',
 ]
 for (const testName of unitTests) {
   check(`unit/${testName}`, fileExists(`tests/unit/${testName}.test.ts`))

@@ -131,13 +131,13 @@ export function classNames(
  * Returns a debounced version of `fn` that delays invocation until `ms`
  * milliseconds have elapsed since the last call.
  */
-export function debounce<T extends (...args: any[]) => any>(
-  fn: T,
+export function debounce<Args extends unknown[]>(
+  fn: (...args: Args) => unknown,
   ms: number,
-): (...args: Parameters<T>) => void {
+): ((...args: Args) => void) & { cancel: () => void } {
   let timer: ReturnType<typeof setTimeout> | null = null;
 
-  const debounced = (...args: Parameters<T>): void => {
+  const debounced = (...args: Args): void => {
     if (timer !== null) {
       clearTimeout(timer);
     }
@@ -154,7 +154,7 @@ export function debounce<T extends (...args: any[]) => any>(
     }
   };
 
-  return debounced as typeof debounced & { cancel: () => void };
+  return debounced;
 }
 
 // ── Clipboard ──

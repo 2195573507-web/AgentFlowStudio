@@ -116,7 +116,7 @@ console.log('\n[Tests]')
 const tests = [
   'planner.test', 'templates.test', 'logAnalyzer.test', 'safetyRules.test',
   'exporters.test', 'memoryStore.test', 'memoryRetriever.test',
-  'memoryInjection.test', 'secretRedaction.test'
+  'memoryInjection.test', 'secretRedaction.test', 'utils.test'
 ]
 for (const test of tests) {
   check(`test/${test}`, `tests/unit/${test}.ts`)

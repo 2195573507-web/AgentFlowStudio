@@ -812,3 +812,141 @@
 - 是否继续下一轮：是
 - 继续原因：用户要求每轮 push 后继续下一轮；Round 7 必须按本轮建议完成真实代码更改。
 - 下一轮是否必须改代码：是
+
+## Round 7 - 2026-05-09 17:10:45 +08:00
+
+### 1. 本轮开始状态
+
+- 当前分支：`codex-static-quality-pass`
+- 当前 commit：`f748fec` (`chore: reduce log analyzer regex lint noise`)
+- git status：本轮开始干净，跟踪 `origin/codex-static-quality-pass`
+- 当前主入口：Electron 主入口仍为 `dist-electron/main/index.js`，开发入口为 `npm.cmd run dev`
+- 当前 fallback 状态：本轮不改 static fallback；后续通过 `test:static-browser` 验证 HTTP、导航、中文/英文、深浅色、Liquid Glass、无 console/page/network error
+- 当前 UI 状态：本轮不改 UI；E2E 继续覆盖 Dashboard、核心页面、快捷入口和 Prompt Lab
+- 当前 Liquid Glass 状态：未改样式；static browser smoke 继续验证 blur 存在
+- 当前风险点：`src/renderer/lib/utils.ts` 的 `debounce` 使用两个 `any`，lint warning 噪声仍高；新增 utils 单测后必须纳入 smoke/verify 清单
+
+### 2. 本轮学习内容
+
+- 项目内部学习：
+  - 读取 Round 6 的“下一轮代码建议”，确认本轮按建议收紧 `debounce` 类型并补 utils 单测。
+  - 检查 `src/renderer/lib/utils.ts`，确认 `debounce<T extends (...args: any[]) => any>` 是当前 lint 中最小的共享 utility 类型问题。
+  - 搜索现有代码，未发现业务代码调用 `debounced.cancel()`；但返回类型仍应显式保留 `cancel`。
+  - 检查 `scripts/smoke-test.js` 和 `scripts/verify-build.js`，确认新增 `tests/unit/utils.test.ts` 后需要加入自检清单。
+- 相似项目/相似产品学习：
+  - 通用工具函数应避免 `any` 泛型约束，使用参数元组泛型能同时保留调用参数推断和 lint 清洁度。
+  - 新增正式单测文件时，项目自检脚本也应知道它存在，避免测试面漂移。
+- 可借鉴设计思路：
+  - 用 `Args extends unknown[]` 表达“任意参数列表”，用 `unknown` 表达“返回值被忽略”。
+  - 对 debounce 这类时间相关逻辑，使用 fake timers 做稳定单测。
+- 不采用的方案及原因：
+  - 不引入第三方 `DebouncedFunc` 类型或新依赖：范围过大。
+  - 不改 debounce 运行行为：本轮目标是类型收紧和测试覆盖。
+  - 不一次性处理 React 页面里的 `any` warning：那涉及 UI 状态和错误处理，留到后续轮次。
+
+### 3. 本轮发现的问题
+
+- 问题 1：`src/renderer/lib/utils.ts` 第 134 行的 `any[]` 和 `any` 触发两个 lint warnings。
+- 问题 2：utils 没有单独的 unit test 文件，`classNames` 和 `debounce` 缺少小型行为守护。
+- 问题 3：新增测试文件需要同步 `scripts/smoke-test.js` 与 `scripts/verify-build.js`，否则自检清单不完整。
+
+### 4. 本轮拆分的小任务
+
+| 小任务 | 目标 | 涉及文件 | 风险等级 | 验证方式 | 回滚方式 | 是否适合 subagent |
+|---|---|---|---|---|---|---|
+| 收紧 debounce 类型 | 用 `Args extends unknown[]` 去掉两个 `any` warning，并保留 `cancel()` 返回类型 | `src/renderer/lib/utils.ts` | 低 | `typecheck`、`lint`、utils unit tests | `git revert` 本轮 commit | 是 |
+| 新增 utils 单测 | 覆盖 `classNames`、debounce 延迟调用和 cancel | `tests/unit/utils.test.ts` | 低 | targeted unit test、full test | `git revert` 本轮 commit | 是 |
+| 更新自检清单 | 让 smoke/verify 确认新增 utils 单测存在 | `scripts/smoke-test.js`、`scripts/verify-build.js` | 低 | `smoke`、`verify` | `git revert` 本轮 commit | 是 |
+
+### 5. 本轮实际执行
+
+- 执行了哪些小任务：
+  - 将 `debounce` 签名改为 `debounce<Args extends unknown[]>(fn: (...args: Args) => unknown, ms: number): ((...args: Args) => void) & { cancel: () => void }`。
+  - 新增 `tests/unit/utils.test.ts`，覆盖 `classNames` 过滤 falsy 值、debounce 使用最新参数、`cancel()` 取消待执行调用。
+  - 在 `scripts/smoke-test.js` 的 `unitTests` 清单加入 `utils`。
+  - 在 `scripts/verify-build.js` 的 tests 清单加入 `utils.test`。
+- 为什么先做这些：
+  - 完全按 Round 6 下一轮建议执行。
+  - 它是当前 lint warning 中最小、最集中的真实代码质量优化，同时能补足单测。
+- 本轮真实代码更改是什么：
+  - renderer utility 类型签名收紧。
+  - 新增 utils 单测。
+  - smoke/verify 自检清单更新。
+- 修改了哪些代码文件：
+  - `src/renderer/lib/utils.ts`
+  - `tests/unit/utils.test.ts`
+  - `scripts/smoke-test.js`
+  - `scripts/verify-build.js`
+- 修改了哪些文档文件：
+  - `CURRENT_OPTIMIZATION_PROGRESS.md`
+- 是否完成至少一个代码更改：是
+- 如果没有代码更改，为什么没有进入下一轮：不适用
+
+### 6. 本轮测试记录
+
+- 测试命令：
+  - `npm.cmd run test -- --run tests/unit/utils.test.ts`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run lint`
+  - `npm.cmd run smoke`
+  - `npm.cmd run verify`
+  - `npm.cmd run test`
+  - `npm.cmd run build`
+  - `npm.cmd run test:static-browser`
+  - `npm.cmd run test:e2e`
+  - `npm.cmd install`
+  - `git diff --check`
+  - `Get-ChildItem .\scripts -Recurse -Force | Select-Object FullName`
+- 测试结果：
+  - targeted utils test：PASS，1 file / 3 tests
+  - `typecheck`：PASS
+  - `lint`：PASS，0 errors / 27 warnings，warning 数从 29 降到 27
+  - `smoke`：PASS，121/121，新增 `unit/utils` 检查通过
+  - `verify`：PASS，100/100 后继续 smoke 121/121，新增 `test/utils.test` 检查通过
+  - `test`：PASS，10 files / 113 tests
+  - `build`：PASS；仍有既有 Charts chunk-size warning
+  - `test:static-browser`：PASS，static fallback HTTP、导航、中文/英文、主题、Secret redaction、1024x680、无 console/page/network error
+  - `test:e2e`：PASS，6/6
+  - `npm.cmd install`：PASS，依赖 up to date；仍报告既有 17 个 audit vulnerabilities
+  - `git diff --check`：PASS；仅 Git LF/CRLF 提示
+- 是否通过：是
+- 是否发现新问题：未发现本轮代码导致的新问题
+- 是否修复新问题：无新问题需要修复
+- 是否需要继续测试：Round 8 若清理 planner 单测类型，建议跑 planner targeted test、lint、typecheck、smoke、build
+
+### 7. Git 版本记录
+
+- 是否执行 git status：是
+- 是否执行 git add：待本记录追加后执行
+- 是否执行 git commit：待本记录追加后执行
+- commit hash：待提交
+- 是否执行 git push：待提交后执行
+- push 结果：待执行
+- 如果失败，失败原因和修复过程：暂无失败
+
+### 8. 下一轮代码建议
+
+- 下一轮必须落实的代码更改 1：清理 `tests/unit/planner.test.ts` 中的两个 `any`，将 `project` 标注为 `Project`，将 `memories` 标注为 `Memory[]`。
+- 下一轮必须落实的代码更改 2：确认 `generateProjectPlan()` 的测试仍覆盖 memory injection，并避免修改 planner 业务逻辑。
+- 下一轮必须落实的代码更改 3：运行 planner targeted test、lint、typecheck、smoke、build，确认 lint warning 从 27 继续下降。
+- 建议原因：当前剩余 warning 中，测试文件 `planner.test.ts` 的两个 `any` 是低风险、可独立验证的类型清理；比直接动 Dashboard 或 LogAnalyzer React 页面状态更稳。
+- 预计涉及代码文件：
+  - `tests/unit/planner.test.ts`
+- 风险等级：低
+- 修改范围：只改单测类型注解，不改 planner 生产逻辑、不改 UI、不改启动或 storage。
+- 推荐验证方式：
+  - `npm.cmd run lint`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run test -- --run tests/unit/planner.test.ts`
+  - `npm.cmd run smoke`
+  - `npm.cmd run build`
+- 回滚方式：`git revert <第八轮commit>`；如果未提交，恢复 `tests/unit/planner.test.ts`。
+- 是否适合 subagent 并行处理：适合；subagent 可只读检查 shared types 与 planner test 是否匹配，主线程负责代码改动和回归。
+- 为什么下一轮应该做这个：它继续降低 lint 噪声，同时只触碰测试代码，风险比页面组件类型清理更低。
+- 预计 commit 信息：`test: type planner unit fixtures`
+
+### 9. 是否继续
+
+- 是否继续下一轮：是
+- 继续原因：用户要求每轮 push 后继续下一轮；Round 8 必须按本轮建议完成真实代码更改。
+- 下一轮是否必须改代码：是
