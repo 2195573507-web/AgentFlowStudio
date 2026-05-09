@@ -548,3 +548,130 @@
 - 是否继续下一轮：是
 - 继续原因：用户要求持续闭环优化；Round 5 必须完成真实代码改动。
 - 下一轮是否必须改代码：是
+
+## Round 5 - 2026-05-09 16:58:40 +08:00
+
+### 1. 本轮开始状态
+
+- 当前分支：`codex-static-quality-pass`
+- 当前 commit：`8863e07` (`fix: remove unsafe demo memory seed`)
+- git status：本轮开始时有 2 个未提交代码文件：`src/shared/secretRedaction.ts`、`src/renderer/lib/memoryRetriever.ts`
+- 当前主入口：Electron 主入口仍为 `dist-electron/main/index.js`，开发入口为 `npm.cmd run dev`
+- 当前 fallback 状态：static fallback 未改动；Round 4 后 `npm.cmd run smoke` 继续验证 static launcher、static server、中文/英文文案、深浅色和 shared memory marker
+- 当前 UI 状态：本轮不改 UI；Dashboard quick action E2E 仍由上一轮覆盖
+- 当前 Liquid Glass 状态：本轮不改样式；static fallback smoke 仍覆盖 blur/theme 基线
+- 当前风险点：lint 通过但 warning 噪声较高，正则无意义转义会掩盖后续真实 lint 变化
+
+### 2. 本轮学习内容
+
+- 项目内部学习：
+  - 读取 Round 4 的“下一轮代码建议”，确认本轮按建议清理 secret redaction 与 memory retriever 的正则无意义转义。
+  - 检查 `src/shared/secretRedaction.ts` 中 secret redaction 正则，确认冗余转义只位于字符类内部。
+  - 检查 `src/renderer/lib/memoryRetriever.ts` 中 renderer 侧 first-pass secret filter，确认与 shared secret redaction 语义一致。
+  - 复核 `tests/unit/secretRedaction.test.ts` 和 `tests/unit/memoryRetriever.test.ts`，确认已有测试覆盖 API key、Bearer token、authorization、token、Google key 等核心检测。
+- 相似项目/相似产品学习：
+  - 安全扫描和 secret redaction 代码应保持高可读性；lint warning 会削弱后续安全回归的信噪比。
+  - 纯正则字符类清理适合做成小提交，便于单独回滚，也不会影响 UI 或启动路径。
+- 可借鉴设计思路：
+  - 先处理无行为变化的 lint warning，把后续真正有行为风险的 any/hook warning 留到单独轮次。
+  - 对安全相关正则，必须用现有单测验证，而不是只看 lint。
+- 不采用的方案及原因：
+  - 不重写 secret 检测规则：会扩大安全行为变更面。
+  - 不一次性清理全部 lint warnings：范围过大，容易混入 UI、类型和 hook 行为风险。
+  - 不修改测试期望：本轮目标是保持行为不变，测试应继续通过。
+
+### 3. 本轮发现的问题
+
+- 问题 1：`src/shared/secretRedaction.ts` 中 `[a-zA-Z0-9_\-]`、`[a-zA-Z0-9_\-\.=:+/]`、`[0-9A-Za-z\-_]` 触发 no-useless-escape。
+- 问题 2：`src/renderer/lib/memoryRetriever.ts` 中同类 first-pass secret filter 也存在无意义转义。
+- 问题 3：lint warning 从安全相关模块开始清理后仍剩 30 个 warning，需要下一轮继续小范围消减。
+
+### 4. 本轮拆分的小任务
+
+| 小任务 | 目标 | 涉及文件 | 风险等级 | 验证方式 | 回滚方式 | 是否适合 subagent |
+|---|---|---|---|---|---|---|
+| 清理 shared secret 正则转义 | 移除字符类内冗余 `\-`、`\.` 转义并保持匹配语义不变 | `src/shared/secretRedaction.ts` | 低 | `lint`、secretRedaction unit tests | `git revert` 本轮 commit | 是 |
+| 清理 renderer memory retriever 正则转义 | 同步清理 renderer first-pass secret filter | `src/renderer/lib/memoryRetriever.ts` | 低 | `lint`、memoryRetriever unit tests | `git revert` 本轮 commit | 是 |
+| 验证 lint warning 下降 | 确认 no-useless-escape 数量减少且无 error | `package.json` 脚本执行面 | 低 | `npm.cmd run lint` | 无需回滚 | 是 |
+
+### 5. 本轮实际执行
+
+- 执行了哪些小任务：
+  - 将 `sk-[a-zA-Z0-9_\-]` 调整为 `sk-[a-zA-Z0-9_-]`。
+  - 将 Bearer/API key 字符类中的 `\.` 和 `\-` 改为字符类内无需转义的写法。
+  - 将 Google API key 字符类 `[0-9A-Za-z\-_]` 调整为 `[0-9A-Za-z_-]`。
+- 为什么先做这些：
+  - 完全按 Round 4 下一轮建议执行。
+  - 这是低风险、可测试、可单独回滚的代码质量优化，能降低安全相关代码的 lint 噪声。
+- 本轮真实代码更改是什么：
+  - secret 检测正则字符类清理，行为语义保持不变。
+- 修改了哪些代码文件：
+  - `src/shared/secretRedaction.ts`
+  - `src/renderer/lib/memoryRetriever.ts`
+- 修改了哪些文档文件：
+  - `CURRENT_OPTIMIZATION_PROGRESS.md`
+- 是否完成至少一个代码更改：是
+- 如果没有代码更改，为什么没有进入下一轮：不适用
+
+### 6. 本轮测试记录
+
+- 测试命令：
+  - `npm.cmd run lint`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run test -- --run tests/unit/secretRedaction.test.ts tests/unit/memoryRetriever.test.ts`
+  - `npm.cmd run smoke`
+  - `npm.cmd run verify`
+  - `npm.cmd run test`
+  - `npm.cmd run build`
+  - `git diff --check`
+- 测试结果：
+  - `lint`：PASS，0 errors / 30 warnings，warning 数从 Round 4 的 36 个下降到 30 个
+  - `typecheck`：PASS
+  - targeted unit tests：PASS，2 files / 30 tests
+  - `smoke`：PASS，120/120
+  - `verify`：PASS，99/99 后继续 smoke 120/120
+  - `test`：PASS，9 files / 109 tests
+  - `build`：PASS；仍有既有 Charts chunk-size warning
+  - `git diff --check`：PASS；仅出现 Git 的 LF/CRLF 提示，不是 whitespace error
+- 是否通过：是
+- 是否发现新问题：没有发现本轮改动导致的新问题；lint 仍剩 30 个既有 warning，build 仍有 Charts chunk-size warning
+- 是否修复新问题：无新问题需要修复
+- 是否需要继续测试：Round 6 若清理 `logAnalyzer.ts` 正则 warning，建议跑 `lint`、`typecheck`、logAnalyzer unit tests、`smoke`、`build`
+
+### 7. Git 版本记录
+
+- 是否执行 git status：是
+- 是否执行 git add：待本记录追加后执行
+- 是否执行 git commit：待本记录追加后执行
+- commit hash：待提交
+- 是否执行 git push：待提交后执行
+- push 结果：待执行
+- 如果失败，失败原因和修复过程：暂无失败
+
+### 8. 下一轮代码建议
+
+- 下一轮必须落实的代码更改 1：清理 `src/renderer/lib/logAnalyzer.ts` 中 ESLint 报告的 no-useless-escape warning，重点是约第 515 行字符类里的 `\~`。
+- 下一轮必须落实的代码更改 2：确认 log analyzer 的 shell/command 风险识别语义不变，必要时补一个小型单测覆盖带 `~` 的路径或命令模式。
+- 下一轮必须落实的代码更改 3：运行 `tests/unit/logAnalyzer.test.ts`，并继续跑 lint/typecheck/smoke/build。
+- 建议原因：Round 5 后 lint 仍有 30 个 warnings，其中唯一剩余的 no-useless-escape 已定位在 `logAnalyzer.ts`；继续清理同类 warning 能保持每轮小范围、低风险、可验证。
+- 预计涉及代码文件：
+  - `src/renderer/lib/logAnalyzer.ts`
+  - 可能涉及 `tests/unit/logAnalyzer.test.ts`
+- 风险等级：低
+- 修改范围：只调整字符类中的冗余转义；若补测试，只补一个聚焦 log analyzer 的 case。
+- 推荐验证方式：
+  - `npm.cmd run lint`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run test -- --run tests/unit/logAnalyzer.test.ts`
+  - `npm.cmd run smoke`
+  - `npm.cmd run build`
+- 回滚方式：`git revert <第六轮commit>`；如果未提交，恢复 `src/renderer/lib/logAnalyzer.ts` 和可能的测试文件。
+- 是否适合 subagent 并行处理：适合；subagent 可只读审查 logAnalyzer warning 和测试覆盖，主线程负责代码改动和回归。
+- 为什么下一轮应该做这个：它是当前 lint 列表里最小的剩余正则清理任务，能继续降低噪声且不触碰 UI、存储、IPC 或启动链路。
+- 预计 commit 信息：`chore: reduce log analyzer regex lint noise`
+
+### 9. 是否继续
+
+- 是否继续下一轮：是
+- 继续原因：用户要求每轮 push 后继续下一轮；Round 6 必须按本轮建议完成真实代码更改。
+- 下一轮是否必须改代码：是

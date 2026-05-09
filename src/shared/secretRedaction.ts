@@ -6,8 +6,8 @@ interface SecretPattern {
 }
 
 const PATTERNS: SecretPattern[] = [
-  { name: 'OpenAI/Claude API Key', pattern: /sk-[a-zA-Z0-9_\-]{16,}/g },
-  { name: 'Bearer Token', pattern: /Bearer\s+([a-zA-Z0-9_\-\.=:+/]{8,})/gi },
+  { name: 'OpenAI/Claude API Key', pattern: /sk-[a-zA-Z0-9_-]{16,}/g },
+  { name: 'Bearer Token', pattern: /Bearer\s+([a-zA-Z0-9_.=:+/-]{8,})/gi },
   { name: 'Authorization Header', pattern: /authorization\s*[=:]\s*['"]?([^'"\s]{4,})['"]?/gi },
   { name: 'API Key Assignment', pattern: /api[_-]?key\s*[=:]\s*['"]?([^'"\s]{4,})['"]?/gi },
   { name: 'Password Assignment', pattern: /password\s*[=:]\s*['"]?([^'"\s]{3,})['"]?/gi },
@@ -16,7 +16,7 @@ const PATTERNS: SecretPattern[] = [
   { name: 'Refresh Token', pattern: /refresh[_-]?token\s*[=:]\s*['"]?([^'"\s]{3,})['"]?/gi },
   { name: 'Generic Token Assignment', pattern: /(?:^|[\s,{])token\s*[=:]\s*['"]?([^'"\s]{4,})['"]?/gi },
   { name: 'Generic Key/Token', pattern: /(?:private_key|client_secret|secret_key|auth_token)\s*[=:]\s*['"]?([^'"\s]{4,})['"]?/gi },
-  { name: 'Google API Key', pattern: /AIza[0-9A-Za-z\-_]{35}/g },
+  { name: 'Google API Key', pattern: /AIza[0-9A-Za-z_-]{35}/g },
   { name: 'HuggingFace Token', pattern: /hf_[a-zA-Z0-9]{25,}/g },
   { name: 'Database Connection String', pattern: /(?:mongodb|mysql|postgres|postgresql|sqlite|redis):\/\/[^:\s]+:([^@\s]+)@/gi },
 ];
