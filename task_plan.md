@@ -15,6 +15,8 @@ Starting from baseline commit `cec7dfb`, preserve the working Static fallback wh
 | 5. Final verification | complete | Required commands and real launcher HTTP checks passed; test/build remain blocked by esbuild EPERM. |
 | 6. Handoff and commit | in_progress | Handoff files and `.codex-parallel\PARALLEL_SUMMARY.md` updated; commit is next. |
 | 7. Fix launcher log file locking | complete | Static launcher now uses per-run logs and no longer redirects the long-running server output into `launcher-static.log`; locked legacy log regression passed. |
+| 8. Liquid Glass UI and workflow onboarding | complete | React/static glass tokens unified, Dashboard next-step CTA and lifecycle rail added, reports updated, and full validation passed. |
+| 9. Commit and push Liquid Glass round | in_progress | Stage, commit, and push `codex-liquid-glass-ui-agent-optimization`. |
 
 ## Acceptance Checklist
 
@@ -41,3 +43,4 @@ Starting from baseline commit `cec7dfb`, preserve the working Static fallback wh
 | `npm.cmd run build` failed at Vite config load with esbuild `spawn EPERM`. | Post-change optional verification | Recorded as environment limitation; Static fallback verification is not blocked. |
 | Playwright Chromium executable was missing. | Browser click check | Recorded as environment limitation; HTTP, launch-static, and Node VM static checks were used instead. |
 | `The process cannot access the file because it is being used by another process.` during static launch. | User-reported launcher run | Fixed by separating per-run launcher/server logs and avoiding shared launcher log redirection. Regression locked `logs\launcher-static.log` while launching and passed. |
+| `test:e2e` connection refused on `127.0.0.1:5173` | Ran concurrently with other local-service tests | Single rerun passed 6/6; record as local service concurrency issue, not app regression. |

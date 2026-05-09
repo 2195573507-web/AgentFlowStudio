@@ -1,5 +1,47 @@
 # AgentFlowStudio Continuous Optimization Progress
 
+## Liquid Glass UI Round - 2026-05-09 17:52 +08:00
+
+### 本轮状态
+
+- 当前分支：`codex-liquid-glass-ui-agent-optimization`
+- 基线标签：`codex-liquid-glass-ui-base-20260509-172941`
+- 当前稳定入口：继续保护 `D:\AgentFlowStudio\start-agentflow-static.bat`
+- 本轮真实 subagent 容量：成功创建 6 个，只读审计后关闭空闲 agent
+
+### 本轮改动
+
+- 补齐 Tailwind `accent` 色阶，修复现有组件使用 `accent-400/500/600/700` 时样式可能不生成的问题。
+- 重建 React Liquid Glass token：surface、hover surface、strong surface、border、highlight、inner stroke、layered shadow、focus ring。
+- 更新核心 React 组件：`GlassCard`、`Button`、`Input`、`Textarea`、`Modal`、`Sidebar`、`Topbar`、`Layout`、`TaskBoard`。
+- Dashboard 增加“下一步”主 CTA 和 Idea -> Plan -> Tasks -> Prompt -> Safety -> Logs -> Memory -> Handoff 生命周期轨。
+- Static fallback 同步增加下一步 CTA、生命周期轨和更强 Liquid Glass token。
+- 新增学习/拆解/状态/验证/真人模拟报告：`docs/excellent-project-learning.md`、`handoff/TASK_BREAKDOWN.md`、`handoff/CURRENT_STATUS.md`、`reports/validation-report.md`、`reports/human-agent-simulation.md`。
+- 扩展测试：`smoke` 检查 Liquid Glass token 和生命周期轨，`static-browser` 检查玻璃阴影、下一步、生命周期轨、1024x680 和 390x844，React E2E 检查首页轨道。
+
+### 验证结果
+
+- `npm.cmd install`: PASS，依赖已是最新；audit 仍有既有漏洞。
+- `npm.cmd run typecheck`: PASS。
+- `npm.cmd run lint`: PASS，0 errors，24 existing warnings。
+- `npm.cmd run smoke`: PASS，132/132。
+- `node --check static-app\app.js`: PASS。
+- `npm.cmd run test`: PASS，10 files / 113 tests。
+- `npm.cmd run build`: PASS，仅既有 Charts chunk-size warning。
+- `npm.cmd run test:launch-static`: PASS。
+- `npm.cmd run test:static-browser`: PASS，含 390x844 无横向溢出检查。
+- `npm.cmd run test:electron-startup`: PASS。
+- `npm.cmd run test:e2e`: 并发运行时一次端口拒绝；单独重跑 PASS，6/6。
+- `npm.cmd run verify`: PASS，100/100 + smoke 132/132。
+
+### 下一轮建议
+
+1. ProjectDetail 增加安全的“记录 Agent 执行”面板，使用 `api.runs`，不执行任意命令。
+2. Projects 创建成功后跳到详情页，并突出“生成规划”。
+3. Settings 增加本地运行状态、Provider 校验和测试反馈。
+4. Prompt Lab 增加生成后的下一步：复制到工具、保存模板、记录运行。
+5. 增加 i18n mojibake 单元测试门。
+
 ## Round 1 - 2026-05-09 16:14:19 +08:00
 
 ### 1. 本轮开始状态

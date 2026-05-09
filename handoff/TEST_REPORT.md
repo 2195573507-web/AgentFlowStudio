@@ -1,5 +1,44 @@
 # AgentFlow Studio - Test Report
 
+## Liquid Glass UI And Workflow Onboarding Pass - 2026-05-09
+
+Baseline tag: `codex-liquid-glass-ui-base-20260509-172941`
+
+Branch: `codex-liquid-glass-ui-agent-optimization`
+
+### Latest Results
+
+| Check | Status | Details |
+|---|---:|---|
+| `npm.cmd install` | PASS | Dependencies up to date; existing audit issues unchanged. |
+| `npm.cmd run typecheck` | PASS | TypeScript passed. |
+| `npm.cmd run lint` | PASS | 0 errors, 24 existing warnings under threshold. |
+| `npm.cmd run smoke` | PASS | 132/132 checks passed, including Liquid Glass tokens and workflow lifecycle rail markers. |
+| `node --check static-app\app.js` | PASS | Static fallback JS syntax valid. |
+| `npm.cmd run test` | PASS | Vitest: 10 files, 113 tests passed. |
+| `npm.cmd run build` | PASS | Renderer and Electron build passed; existing Charts chunk-size warning only. |
+| `npm.cmd run test:launch-static` | PASS | Static fallback launch, HTTP 200, localized keywords, and static markers verified. |
+| `npm.cmd run test:static-browser` | PASS | Liquid Glass blur/shadow, next-step CTA, lifecycle rail, 1024x680, 390x844, persistence, redaction, and console/network/page errors verified. |
+| `npm.cmd run test:electron-startup` | PASS | Electron ready marker captured with project-local userData. |
+| `npm.cmd run test:e2e` | PASS after rerun | First concurrent local-service run hit `127.0.0.1:5173` connection refused; single rerun passed 6/6. |
+| `npm.cmd run verify` | PASS | 100/100 build completeness checks, then smoke 132/132. |
+
+### Fixes Verified
+
+- Tailwind accent palette now includes the shades already used by components.
+- React and static fallback both use stronger Liquid Glass tokens: surface, hover surface, border, highlight, inner stroke, layered shadow, and focus ring.
+- Dashboard now tells users the next action and shows the AI collaboration lifecycle: Idea, Plan, Tasks, Prompt, Safety, Logs, Memory, Handoff.
+- Static fallback preserves the stable launcher while gaining the same onboarding rail.
+- Static browser smoke now covers mobile-width `390x844` no-horizontal-overflow checks.
+
+### Remaining Work
+
+- Add ProjectDetail run-record panel using `api.runs` without arbitrary command execution.
+- Navigate newly created projects directly to detail and highlight plan generation.
+- Add Settings runtime status and provider test feedback.
+- Add Prompt Lab post-generation next actions.
+- Add i18n mojibake quality gate.
+
 ## Continuation Stability Release 1.1.1 - 2026-05-09
 
 Baseline commit: `97e37f7473f67a6ac41d25f2ac1f5f3e4200f691`

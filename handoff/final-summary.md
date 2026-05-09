@@ -3,6 +3,7 @@
 ## Release
 - Version: `1.1.1`
 - Branch: `codex-static-quality-pass`
+- Current UI branch: `codex-liquid-glass-ui-agent-optimization`
 - Starting commit: `97e37f7473f67a6ac41d25f2ac1f5f3e4200f691`
 - Final commit: `v1.1.1 tag target / release HEAD`
 - Tag: `v1.1.1` pushed
@@ -21,6 +22,10 @@
 - Added recoverable progress, validation, long-run, and final summary records.
 - Bumped `package.json`, `package-lock.json`, and `VERSION` to `1.1.0`.
 - Bumped `package.json`, `package-lock.json`, and `VERSION` to `1.1.1` for the continuation stability record.
+- Rebuilt Liquid Glass tokens across React and static fallback.
+- Added Dashboard next-step CTA and AI lifecycle rail.
+- Expanded static/browser/E2E checks for Liquid Glass, onboarding, and 390x844 mobile width.
+- Added current-round docs and reports under `docs/`, `handoff/`, and `reports/`.
 
 ## Verified
 - `npm.cmd run typecheck`: PASS
@@ -37,6 +42,7 @@
 - `npm.cmd run test:long-run`: PASS, 30.04 minutes continuation for `v1.1.1`
 - `npm.cmd run test:static-browser`: PASS at `v1.1.1`, Liquid Glass blur and core static workflows verified
 - `npm.cmd run test:e2e`: PASS, 5/5 at `v1.1.1`
+- Liquid Glass UI round: `typecheck`, `lint`, `smoke` 132/132, `test` 113/113, `build`, `test:launch-static`, `test:static-browser`, `test:electron-startup`, `test:e2e` 6/6 rerun, and `verify` 100/100 all PASS.
 
 ## Long-Run
 - Command: `npm.cmd run test:long-run`

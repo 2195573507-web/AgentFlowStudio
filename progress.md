@@ -24,3 +24,18 @@
 - Updated `scripts\launch-static-test.js` and `scripts\smoke-test.js` so automated checks use isolated logs and guard against reintroducing server-output redirection into the launcher log.
 - Verification passed: `npm.cmd run smoke` (111/111), `npm.cmd run typecheck`, approved `npm.cmd run test:launch-static`, and a locked-legacy-log regression.
 - `npm.cmd run test` and `npm.cmd run build` still fail at Vite/esbuild `spawn EPERM`, matching the known environment limitation.
+
+## 2026-05-09
+
+- Created and switched to `codex-liquid-glass-ui-agent-optimization`.
+- Created baseline tag `codex-liquid-glass-ui-base-20260509-172941`.
+- Spawned six real subagents for startup guard, Liquid Glass audit, onboarding audit, test audit, excellent-project learning, and Git/docs audit.
+- Added `docs/excellent-project-learning.md`, `handoff/TASK_BREAKDOWN.md`, `handoff/CURRENT_STATUS.md`, `reports/human-agent-simulation.md`, and `reports/validation-report.md`.
+- Implemented Liquid Glass token rebuild across React and static fallback, including surface/hover/border/highlight/inner-shadow/focus-ring semantics.
+- Fixed Tailwind `accent` shade mismatch used by existing components.
+- Updated core React components to use shared glass primitives: `GlassCard`, `Button`, `Input`, `Textarea`, `Modal`, `Sidebar`, `Topbar`, and `Layout`.
+- Added Dashboard next-step CTA and lifecycle rail: Idea, Plan, Tasks, Prompt, Safety, Logs, Memory, Handoff.
+- Mirrored the lifecycle rail and next-step CTA in `static-app`.
+- Expanded smoke and browser checks for Liquid Glass tokens, lifecycle rail, layered shadow, 1024x680, and 390x844.
+- Validation passed: `npm.cmd install`, `typecheck`, `lint`, `smoke`, `node --check static-app\app.js`, `test`, `build`, `test:launch-static`, `test:static-browser`, `test:electron-startup`, `test:e2e` rerun, and `verify`.
+- One concurrent `test:e2e` run hit `127.0.0.1:5173` connection refused while other local service tests were running; single rerun passed 6/6.

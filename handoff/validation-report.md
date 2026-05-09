@@ -2,9 +2,27 @@
 
 ## Session
 - Date: 2026-05-09
-- Branch: `codex-static-quality-pass`
-- Starting commit: `fb442d686b21c993887c0d60c5c3a3a107d21d5d`
+- Branch: `codex-liquid-glass-ui-agent-optimization`
+- Starting commit: `a0af7ad fix: type dashboard fetch errors`
 - Version under validation: `1.1.1`
+
+## Liquid Glass UI Validation - 2026-05-09
+
+| Area | Method | Status | Notes / Fix |
+|---|---|---:|---|
+| Git baseline | branch, tag, remote, status | PASS | Created branch `codex-liquid-glass-ui-agent-optimization` and tag `codex-liquid-glass-ui-base-20260509-172941`. |
+| Dependency install | `npm.cmd install` | PASS | Dependencies already up to date; existing audit issues unchanged. |
+| TypeScript | `npm.cmd run typecheck` | PASS | TypeScript checks passed after component, Dashboard, static, and test changes. |
+| Lint | `npm.cmd run lint` | PASS | 0 errors, 24 existing warnings under configured threshold. |
+| Static smoke | `npm.cmd run smoke` | PASS | 132/132 checks, including Liquid Glass token and lifecycle rail gates. |
+| Static JS syntax | `node --check static-app\app.js` | PASS | Static fallback JavaScript syntax valid. |
+| Unit tests | `npm.cmd run test` | PASS | Vitest: 10 files, 113 tests passed. |
+| Build | `npm.cmd run build` | PASS | Renderer and Electron build pass; existing Charts chunk-size warning only. |
+| Static launch | `npm.cmd run test:launch-static` | PASS | HTTP 200, localized keywords, static markers, and server liveness passed. |
+| Static browser workflow | `npm.cmd run test:static-browser` | PASS | Liquid Glass blur/shadow, next-step CTA, workflow rail, persistence, redaction, 1024x680, and 390x844 checks passed. |
+| Electron startup | `npm.cmd run test:electron-startup` | PASS | Electron ready marker captured with project-local userData. |
+| React web E2E | `npm.cmd run test:e2e` | PASS after rerun | First concurrent run hit `127.0.0.1:5173` connection refused; single rerun passed 6/6. |
+| Verify | `npm.cmd run verify` | PASS | 100/100 build completeness checks, then smoke 132/132. |
 
 ## Continuation Validation - 2026-05-09
 
