@@ -10,3 +10,10 @@ Thumbs.db
 *.tsbuildinfo
 playwright-report/
 test-results/
+.codex-parallel/ms-playwright/
+.codex-parallel/npm-cache/
+.codex-parallel/playwright-report/
+.codex-parallel/test-results/
+.codex-parallel/electron-user-data-smoke/
+.codex-parallel/logs/
+.codex-parallel/results/

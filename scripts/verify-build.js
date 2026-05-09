@@ -122,6 +122,7 @@ for (const test of tests) {
   check(`test/${test}`, `tests/unit/${test}.ts`)
 }
 check('e2e/app.spec', 'tests/e2e/app.spec.ts')
+check('e2e/playwright.config', 'playwright.config.ts')
 
 console.log('\n[Handoff Files]')
 const handoffFiles = [
@@ -135,7 +136,7 @@ for (const hf of handoffFiles) {
 console.log('\n[Package Scripts]')
 try {
   const pkg = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf-8'))
-  const requiredScripts = ['dev', 'build', 'dist', 'test', 'test:e2e', 'typecheck', 'lint', 'format', 'icon', 'shortcut', 'verify', 'release']
+  const requiredScripts = ['dev', 'build', 'dist', 'test', 'test:e2e', 'test:static-browser', 'typecheck', 'lint', 'format', 'icon', 'shortcut', 'verify', 'release']
   for (const script of requiredScripts) {
     if (pkg.scripts && pkg.scripts[script]) {
       console.log(`  PASS  script/${script}`)

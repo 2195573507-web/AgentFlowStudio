@@ -16,6 +16,8 @@ import {
   ChevronRight,
   Sparkles,
   ArrowRight,
+  Settings,
+  PlayCircle,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { GlassCard, StatCard, EmptyState, Charts } from '../components/';
@@ -209,6 +211,30 @@ export default function Dashboard() {
     { label: 'Codex 交接', icon: Package, route: '/skills', color: 'text-cyan-400', bg: 'bg-cyan-500/10 hover:bg-cyan-500/20' },
   ];
 
+  const beginnerSteps = [
+    {
+      title: '1. 创建项目',
+      description: '写下想法，生成 PRD、任务和可交给 AI 的开发提示词。',
+      icon: FolderKanban,
+      route: '/projects',
+      action: '进入项目',
+    },
+    {
+      title: '2. 配置工具',
+      description: '设置默认路径、AI 提供商和共享记忆注入方式。',
+      icon: Settings,
+      route: '/settings',
+      action: '打开设置',
+    },
+    {
+      title: '3. 开始闭环',
+      description: '用 Prompt Lab、日志分析和安全检查把问题跑到可验证结果。',
+      icon: PlayCircle,
+      route: '/prompts',
+      action: '生成 Prompt',
+    },
+  ];
+
   // ── Status badge helper ─────────────────────────────────────────────────
   const statusBadge = (status: string) => {
     const map: Record<string, { label: string; cls: string }> = {
@@ -355,6 +381,34 @@ export default function Dashboard() {
           </button>
         ))}
       </div>
+
+      <GlassCard className="p-5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-zinc-100">新手启动路径</h2>
+            <p className="text-sm text-zinc-400 mt-1">第一次打开时，按这三步就能从想法进入可验证的 AI 开发流程。</p>
+          </div>
+          <span className="text-xs text-zinc-500">本地优先 · 可恢复 · 可验证</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+          {beginnerSteps.map((step) => (
+            <button
+              key={step.title}
+              type="button"
+              onClick={() => navigate(step.route)}
+              className="text-left rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors p-4 min-h-[142px]"
+            >
+              <step.icon className="w-5 h-5 text-blue-300 mb-3" />
+              <h3 className="text-sm font-semibold text-zinc-100">{step.title}</h3>
+              <p className="text-xs text-zinc-400 leading-5 mt-2">{step.description}</p>
+              <span className="inline-flex items-center gap-1 text-xs text-blue-300 mt-3">
+                {step.action}
+                <ChevronRight className="w-3 h-3" />
+              </span>
+            </button>
+          ))}
+        </div>
+      </GlassCard>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

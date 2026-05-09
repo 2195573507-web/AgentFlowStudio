@@ -1,10 +1,52 @@
-# Changelog
+﻿# Changelog
+
+## [1.1.0] - 2026-05-09 14:05 +08:00
+
+### Branch and Version
+- Branch: `codex-static-quality-pass`
+- Starting commit: `fb442d686b21c993887c0d60c5c3a3a107d21d5d`
+- Final commit: `v1.1.0 tag target / release HEAD`
+- Tag: pending `v1.1.0`
+- Push status: pending
+
+### Fixed
+- Fixed Electron production startup by replacing ESM-unsafe `__dirname` usage in the main process.
+- Added project-local Electron startup smoke support with `AGENTFLOW_USER_DATA_DIR`, keeping test data under `.codex-parallel`.
+- Fixed Dashboard crashes from rendering lucide `forwardRef` icon objects as raw React children.
+- Hardened main-process storage/provider/memory/export IPC secret redaction and provider API-key masking.
+- Fixed Prompt Lab duplicate branch lint failure.
+- Kept the static launcher on the explicit `static-app 4173` entry path.
+
+### Added
+- Added Playwright E2E wrapper using project-local `.codex-parallel/ms-playwright` browsers.
+- Added static browser smoke coverage for navigation, persistence, redaction, console errors, layout, and Liquid Glass blur.
+- Added Electron startup smoke test.
+- Added 30-minute static fallback long-run stability test with HTTP, page navigation, error, process, and heap sampling.
+- Added a beginner-friendly Dashboard onboarding path and unified mixed Chinese/English font stack.
+- Added recoverable handoff files: `current-progress.md`, `validation-report.md`, `long-run-test-log.md`, and `final-summary.md`.
+
+### Validation
+- `npm.cmd run typecheck`: PASS
+- `npm.cmd run lint`: PASS with 36 existing warnings and 0 errors
+- `npm.cmd run smoke`: PASS
+- `npm.cmd run verify`: PASS
+- `npm.cmd run test`: PASS
+- `npm.cmd run build`: PASS
+- `npm.cmd run test:launch-static`: PASS
+- `npm.cmd run test:static-browser`: PASS
+- `npm.cmd run test:e2e`: PASS 5/5
+- `npm.cmd run test:electron-startup`: PASS
+- 30-minute long-run static fallback: PASS, 31 samples, no console errors, page errors, network failures, crashes, or heap growth.
+
+### Push
+- GitHub branch push: pending
+- GitHub tag push: pending
 
 ## [1.0.0] - 2026-05-07
 
 ### Added
 - Initial release of AgentFlow Studio
-- Project Planner: idea → PRD → architecture → tasks → prompts
+- Project Planner: idea 鈫?PRD 鈫?architecture 鈫?tasks 鈫?prompts
 - Prompt Lab with 13 built-in templates and variable filling
 - Log Analyzer detecting 15+ common development errors
 - Safety Box checking 20+ dangerous command patterns

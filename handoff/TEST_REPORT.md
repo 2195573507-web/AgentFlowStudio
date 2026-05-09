@@ -1,5 +1,45 @@
 # AgentFlow Studio - Test Report
 
+## Stability Release 1.1.0 - 2026-05-09
+
+Baseline commit: `fb442d686b21c993887c0d60c5c3a3a107d21d5d`
+
+Branch: `codex-static-quality-pass`
+
+### Latest Verified Results
+
+| Check | Status | Details |
+|---|---:|---|
+| `npm.cmd run typecheck` | PASS | TypeScript renderer/main checks passed. |
+| `npm.cmd run lint` | PASS | 0 errors, 36 existing warnings under the configured threshold. |
+| `npm.cmd run smoke` | PASS | 117/117 smoke checks passed. |
+| `npm.cmd run verify` | PASS | 99/99 build completeness checks passed, then smoke passed. |
+| `npm.cmd run test` | PASS | Vitest: 9 files, 109 tests passed. |
+| `npm.cmd run build` | PASS | Renderer and Electron main/preload built successfully; Charts chunk-size warning only. |
+| `npm.cmd run test:launch-static` | PASS | Static server starts, returns HTTP 200, validates Chinese/English keywords, and remains alive. |
+| `npm.cmd run test:static-browser` | PASS | Browser workflow covers navigation, project creation, Prompt Lab, log analysis, safety, memory, settings, persistence, redaction, Liquid Glass, 1024x680 layout, and console/network/page errors. |
+| `npm.cmd run test:e2e` | PASS | Playwright React web suite: 5/5 tests passed with project-local browser cache. |
+| `npm.cmd run test:electron-startup` | PASS | Real Electron startup reached ready marker using project-local `.codex-parallel/electron-user-data-smoke`. |
+| `npm.cmd run test:long-run` | PASS | 30.04-minute static fallback run: 31 samples, no crash, disconnect, console error, page error, network failure, or heap growth. |
+
+### Fixes Verified
+
+- Electron production startup no longer crashes on ESM `__dirname`.
+- Dashboard no longer crashes when rendering lucide `forwardRef` icons in `StatCard`.
+- Prompt Lab lint blocker is fixed.
+- Provider API keys are masked for renderer display and not prefilled back into the edit form.
+- Memory/export/storage paths redact secrets.
+- Static fallback remains available through `start-agentflow-static.bat -> scripts/static-server.js static-app 4173`.
+- Liquid Glass blur is still present in React and static paths.
+- Dashboard now includes a beginner-friendly three-step path.
+- Renderer base CSS now has a unified Chinese/English font stack.
+
+### Current Notes
+
+- All test/browser/cache/log artifacts from this pass stay under `D:\AgentFlowStudio\.codex-parallel` or `D:\AgentFlowStudio\handoff`.
+- `npm audit` still reports dependency vulnerabilities that require major upgrades; they were not changed in this stability release to avoid dependency churn.
+- Build still reports a non-failing Vite chunk-size warning for Charts.
+
 ## Static Quality Pass - 2026-05-08
 
 Baseline commit: `cec7dfb fix: stabilize localized static launcher`

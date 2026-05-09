@@ -157,8 +157,6 @@ export default function PromptLab() {
           }
           if (ctx) {
             basePrompt = injectMemoryIntoPrompt(basePrompt, ctx, injectionMode);
-          } else if (ctx) {
-            basePrompt = `<!-- Shared Memory Context -->\n${ctx}\n\n<!-- Prompt -->\n${basePrompt}`;
           }
         } catch (err) {
           console.error('Memory injection failed:', err);

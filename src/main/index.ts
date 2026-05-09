@@ -1,5 +1,6 @@
 import { app, BrowserWindow, shell } from 'electron';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import { registerIpcHandlers } from './ipc.js';
 import storage from './storage.js';
 import type { Project, Task, Memory } from '../shared/types.js';
@@ -10,6 +11,12 @@ import type { Project, Task, Memory } from '../shared/types.js';
 
 const isDev = !app.isPackaged;
 const devServerUrl = process.env.VITE_DEV_SERVER_URL ?? 'http://localhost:5173';
+const startupSmoke = process.env.AGENTFLOW_STARTUP_SMOKE === '1';
+const mainDir = path.dirname(fileURLToPath(import.meta.url));
+
+if (process.env.AGENTFLOW_USER_DATA_DIR) {
+  app.setPath('userData', path.resolve(process.env.AGENTFLOW_USER_DATA_DIR));
+}
 
 // ---------------------------------------------------------------------------
 // Demo data seeding
@@ -282,15 +289,40 @@ function createWindow(): BrowserWindow {
     height: 900,
     minWidth: 1024,
     minHeight: 680,
+    show: !startupSmoke,
     frame: true,
     titleBarStyle: 'default',
     title: 'AgentFlow Studio',
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(mainDir, 'preload.js'),
     },
   });
+
+  let smokeReported = false;
+  const reportSmokeResult = (ok: boolean, details: string): void => {
+    if (!startupSmoke || smokeReported) return;
+    smokeReported = true;
+    const prefix = ok ? 'AGENTFLOW_ELECTRON_READY' : 'AGENTFLOW_ELECTRON_STARTUP_FAIL';
+    console.log(`${prefix} ${details} userData=${app.getPath('userData')}`);
+    setTimeout(() => {
+      if (ok) app.quit();
+      else app.exit(1);
+    }, 250);
+  };
+
+  if (startupSmoke) {
+    win.webContents.once('did-finish-load', () => {
+      reportSmokeResult(true, `url=${win.webContents.getURL()}`);
+    });
+    win.webContents.once('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+      reportSmokeResult(false, `code=${errorCode} description="${errorDescription}" url=${validatedURL}`);
+    });
+    win.webContents.once('render-process-gone', (_event, details) => {
+      reportSmokeResult(false, `render-process-gone=${details.reason}`);
+    });
+  }
 
   // Open external links in the system browser
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -300,9 +332,11 @@ function createWindow(): BrowserWindow {
 
   if (isDev) {
     win.loadURL(devServerUrl);
-    win.webContents.openDevTools({ mode: 'detach' });
+    if (!startupSmoke && process.env.AGENTFLOW_SKIP_DEVTOOLS !== '1') {
+      win.webContents.openDevTools({ mode: 'detach' });
+    }
   } else {
-    win.loadFile(path.join(__dirname, '..', '..', 'dist', 'index.html'));
+    win.loadFile(path.join(mainDir, '..', '..', 'dist', 'index.html'));
   }
 
   return win;

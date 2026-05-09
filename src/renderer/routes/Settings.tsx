@@ -35,6 +35,12 @@ import { GlassCard, EmptyState, Button, Input, Badge, Modal } from '../component
 import type { ProviderSetting, AppSettings, ThemeMode, AITool, MemoryInjectionMode } from '../lib/types';
 import { generateId, classNames } from '../lib/utils';
 
+const MASKED_API_KEY_PREFIX = 'Saved key ending in ';
+
+function isMaskedApiKey(value: string): boolean {
+  return value === '' || value === '[REDACTED]' || value.startsWith(MASKED_API_KEY_PREFIX);
+}
+
 // ── Demo data ──────────────────────────────────────────────────────────────
 const DEMO_SETTINGS: AppSettings = {
   theme: 'dark',
@@ -212,7 +218,7 @@ export default function Settings() {
     setProviderForm({
       providerName: p.providerName,
       baseUrl: p.baseUrl,
-      apiKey: p.apiKey,
+      apiKey: isMaskedApiKey(p.apiKey) ? '' : p.apiKey,
       modelName: p.modelName,
       enabled: p.enabled,
       memoryEnabled: p.memoryEnabled,

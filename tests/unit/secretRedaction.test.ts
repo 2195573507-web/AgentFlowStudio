@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { containsSecret, redactSecrets } from '../../src/renderer/lib/secretRedaction'
+import { containsSecret, redactSecrets, sanitizeObject } from '../../src/renderer/lib/secretRedaction'
 
 describe('containsSecret', () => {
   it('detects OpenAI-style API keys', () => {
@@ -92,5 +92,52 @@ describe('redactSecrets', () => {
     const result = redactSecrets('api_key: my-key-123')
     expect(result).toContain('api_key')
     expect(result).not.toContain('my-key-123')
+  })
+})
+
+describe('sanitizeObject', () => {
+  it('redacts nested sensitive keys and values', () => {
+    const result = sanitizeObject({
+      title: 'Provider config',
+      apiKey: 'sk-provider-secret1234567890',
+      nested: {
+        authorization: 'Bearer nested-token-1234567890',
+        notes: ['safe text', 'password=plain-secret'],
+      },
+    })
+
+    expect(JSON.stringify(result)).not.toContain('sk-provider-secret1234567890')
+    expect(JSON.stringify(result)).not.toContain('nested-token-1234567890')
+    expect(JSON.stringify(result)).not.toContain('plain-secret')
+    expect(JSON.stringify(result)).toContain('[REDACTED]')
+  })
+
+  it('redacts provider scope and metadata secrets without changing safe text', () => {
+    const result = sanitizeObject({
+      providerScope: 'api_key=scope-secret-value',
+      modelScope: 'gpt-4.1',
+      metadata: {
+        databaseUrl: 'postgres://user:database-secret@localhost:5432/db',
+        safe: 'AgentFlow local memory',
+      },
+    })
+
+    expect(JSON.stringify(result)).not.toContain('scope-secret-value')
+    expect(JSON.stringify(result)).not.toContain('database-secret')
+    expect(JSON.stringify(result)).toContain('gpt-4.1')
+    expect(JSON.stringify(result)).toContain('AgentFlow local memory')
+  })
+
+  it('handles circular references safely', () => {
+    const value: Record<string, unknown> = {
+      title: 'Circular',
+      apiKey: 'sk-circular-secret1234567890',
+    }
+    value.self = value
+
+    const result = sanitizeObject(value) as Record<string, unknown>
+
+    expect(result.apiKey).toBe('[REDACTED]')
+    expect(result.self).toBe('[Circular]')
   })
 })

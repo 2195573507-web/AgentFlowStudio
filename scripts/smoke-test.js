@@ -31,7 +31,7 @@ console.log('='.repeat(50))
 
 console.log('\n[Package Scripts]')
 const pkg = JSON.parse(readText('package.json'))
-const requiredScripts = ['typecheck', 'test', 'build', 'verify', 'smoke', 'test:e2e']
+const requiredScripts = ['typecheck', 'test', 'build', 'verify', 'smoke', 'test:e2e', 'test:static-browser']
 for (const script of requiredScripts) {
   check(`script/${script}`, Boolean(pkg.scripts?.[script]))
 }
@@ -54,6 +54,7 @@ for (const testName of unitTests) {
   check(`unit/${testName}`, fileExists(`tests/unit/${testName}.test.ts`))
 }
 check('e2e/app.spec', fileExists('tests/e2e/app.spec.ts'))
+check('e2e/playwright.config', fileExists('playwright.config.ts'))
 
 const viteConfig = readText('vite.config.ts')
 check('vitest includes unit tests', viteConfig.includes("include: ['tests/unit/**/*.test.ts']"))
@@ -106,6 +107,7 @@ const staticLaunchTest = readText('scripts/launch-static-test.js')
 check('static launcher uses per-run launcher log', staticLauncher.includes('launcher-static-%LAUNCH_ID%.log'))
 check('static launcher uses per-run server log', staticLauncher.includes('static-server-%LAUNCH_ID%.log'))
 check('static launcher does not redirect server output to launcher log', !staticLauncher.includes('static-server.js" >> "%LAUNCHER_LOG%"'))
+check('static launcher passes explicit root and port', staticLauncher.includes('"scripts\\static-server.js" "static-app" 4173'))
 check('static server accepts custom log path', staticServer.includes('AGENTFLOW_STATIC_LOG_PATH'))
 check('static launch test uses isolated log path', staticLaunchTest.includes('static-server-test-') && staticLaunchTest.includes('AGENTFLOW_STATIC_LOG_PATH'))
 for (const keyword of ['仪表盘', '项目管理', '项目详情', '提示词实验室', '日志分析', '安全检查', '共享记忆中心', '技能管理', 'Git 时间线', '设置', '界面偏好', '浅色', '深色', '跟随系统']) {
@@ -151,6 +153,10 @@ check('secret redaction module exists', secretRedaction.includes('redactSecrets'
 check('secret detection module exists', secretRedaction.includes('containsSecret'))
 check('recursive redaction module exists', sharedRedaction.includes('sanitizeValue') && sharedRedaction.includes('WeakMap'))
 check('secret redaction covers authorization/token', sharedRedaction.includes('authorization') && sharedRedaction.includes('token'))
+const mainIpc = readText('src/main/ipc.ts')
+check('generic storage IPC uses collection allowlist', mainIpc.includes('ALLOWED_STORAGE_COLLECTIONS') && mainIpc.includes('assertAllowedCollection(collection)'))
+check('provider list masks api keys', mainIpc.includes('maskProviderForRenderer') && mainIpc.includes('Saved key ending in'))
+check('export IPC sanitizes data', mainIpc.includes('JSON.stringify(sanitizeObject(data), null, 2)') && mainIpc.includes('sanitizeObject(content)'))
 check('memory context marker exists', memoryInjection.includes('[Shared Memory Context]'))
 check('memory context canonical sections exist', ['项目背景', '已做决策', '当前进度', '已知问题', '用户偏好', 'API Provider 注意事项'].every((keyword) => memoryInjection.includes(keyword)))
 const appTsx = readText('src/renderer/App.tsx')

@@ -19,8 +19,8 @@ export interface StatCardProps {
   label: string;
   /** The main numeric/string value. */
   value: string | number;
-  /** Optional icon (lucide-react element). */
-  icon?: React.ReactNode | React.ComponentType<{ className?: string }>;
+  /** Optional icon element or component. Supports lucide-react forwardRef icons. */
+  icon?: React.ReactElement<{ className?: string }> | React.ElementType<{ className?: string }>;
   /** Optional accent color used by older page code. */
   color?: 'blue' | 'emerald' | 'purple' | 'amber' | 'pink' | 'cyan' | 'red' | string;
   /** Optional click handler for interactive stat cards. */
@@ -72,10 +72,18 @@ const StatCard: React.FC<StatCardProps> = ({
       accent: 'text-accent-500 bg-white/30 dark:bg-white/10',
     }[color] ?? 'text-accent-500 bg-white/30 dark:bg-white/10';
 
-  const iconNode =
-    typeof icon === 'function'
-      ? React.createElement(icon, { className: 'w-5 h-5' })
-      : icon;
+  const iconNode = React.useMemo(() => {
+    if (!icon) return null;
+
+    if (React.isValidElement<{ className?: string }>(icon)) {
+      return React.cloneElement(icon, {
+        className: classNames('w-5 h-5', icon.props.className),
+      });
+    }
+
+    const Icon = icon as React.ElementType<{ className?: string }>;
+    return <Icon className="w-5 h-5" />;
+  }, [icon]);
 
   return (
     <GlassCard

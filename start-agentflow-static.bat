@@ -51,7 +51,7 @@ call :say browser
 echo.
 
 set "AGENTFLOW_STATIC_LOG_PATH=%STATIC_SERVER_LOG%"
-node "scripts\static-server.js"
+node "scripts\static-server.js" "static-app" 4173
 set "EXIT_CODE=%ERRORLEVEL%"
 
 echo.

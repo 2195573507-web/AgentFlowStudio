@@ -18,6 +18,95 @@ function handleError(err: unknown): { error: string } {
   return { error: String(err) };
 }
 
+const ALLOWED_STORAGE_COLLECTIONS = new Set([
+  'projects',
+  'tasks',
+  'prompts',
+  'runs',
+  'memories',
+  'riskChecks',
+  'providerSettings',
+  'settings',
+]);
+
+const MASKED_SECRET = '[REDACTED]';
+const MASKED_API_KEY_PREFIX = 'Saved key ending in ';
+
+type ProviderRecord = { id: string; apiKey?: string; [key: string]: unknown };
+
+function assertAllowedCollection(collection: string): void {
+  if (!ALLOWED_STORAGE_COLLECTIONS.has(collection)) {
+    throw new Error(`Storage collection is not allowed: ${collection}`);
+  }
+}
+
+function sanitizeForCollection(collection: string, value: unknown): unknown {
+  if (collection === 'providerSettings') {
+    const providers = Array.isArray(value) ? value : value ? [value] : [];
+    const masked = providers.map((provider) =>
+      maskProviderForRenderer(provider as { apiKey?: string; [key: string]: unknown }),
+    );
+    return Array.isArray(value) ? masked : masked[0] ?? value;
+  }
+  if (collection === 'memories') {
+    return sanitizeObject(value);
+  }
+  return value;
+}
+
+function sanitizeStorageWriteForCollection(collection: string, value: unknown): unknown {
+  if (collection === 'providerSettings') {
+    return sanitizeProviderForStorage(value);
+  }
+  if (collection === 'memories') {
+    return sanitizeObject(value);
+  }
+  return value;
+}
+
+function maskApiKey(apiKey: unknown): string {
+  if (typeof apiKey !== 'string' || apiKey.length === 0) return '';
+  if (apiKey === MASKED_SECRET || apiKey.startsWith(MASKED_API_KEY_PREFIX)) return apiKey;
+  const last4 = apiKey.slice(-4);
+  return last4 ? `${MASKED_API_KEY_PREFIX}${last4}` : MASKED_SECRET;
+}
+
+function maskProviderForRenderer<T extends { apiKey?: unknown }>(provider: T): T {
+  return {
+    ...sanitizeObject(provider),
+    apiKey: maskApiKey(provider.apiKey),
+  };
+}
+
+function isMaskedApiKey(value: unknown): boolean {
+  return (
+    typeof value === 'string' &&
+    (value === '' || value === MASKED_SECRET || value.startsWith(MASKED_API_KEY_PREFIX))
+  );
+}
+
+function sanitizeProviderForStorage(data: unknown, existingApiKey = ''): unknown {
+  const payload = sanitizeObject(data) as { apiKey?: unknown; [key: string]: unknown };
+  const source =
+    data && typeof data === 'object' ? (data as { apiKey?: unknown; [key: string]: unknown }) : {};
+  const submittedApiKey = source.apiKey;
+
+  if (typeof submittedApiKey === 'string') {
+    if (isMaskedApiKey(submittedApiKey)) {
+      payload.apiKey = existingApiKey;
+    } else {
+      payload.apiKey = submittedApiKey;
+    }
+  }
+
+  return payload;
+}
+
+async function mergeProviderUpdate(id: string, data: unknown): Promise<unknown> {
+  const existing = await storage.getById<ProviderRecord>('providerSettings', id);
+  return sanitizeProviderForStorage(data, existing?.apiKey ?? '');
+}
+
 // ---------------------------------------------------------------------------
 // Memory context generation
 // ---------------------------------------------------------------------------
@@ -93,7 +182,8 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.STORAGE_GET, async (_event, collection: string, id: string) => {
     try {
-      return await storage.getById(collection as never, id);
+      assertAllowedCollection(collection);
+      return sanitizeForCollection(collection, await storage.getById(collection as never, id));
     } catch (err) {
       return handleError(err);
     }
@@ -101,7 +191,8 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.STORAGE_GET_ALL, async (_event, collection: string) => {
     try {
-      return await storage.getAll(collection as never);
+      assertAllowedCollection(collection);
+      return sanitizeForCollection(collection, await storage.getAll(collection as never));
     } catch (err) {
       return handleError(err);
     }
@@ -109,7 +200,12 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.STORAGE_SET, async (_event, collection: string, id: string, data: unknown) => {
     try {
-      return await storage.update(collection as never, id, data as never);
+      assertAllowedCollection(collection);
+      return await storage.update(
+        collection as never,
+        id,
+        sanitizeStorageWriteForCollection(collection, data) as never,
+      );
     } catch (err) {
       return handleError(err);
     }
@@ -117,6 +213,7 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.STORAGE_DELETE, async (_event, collection: string, id: string) => {
     try {
+      assertAllowedCollection(collection);
       return await storage.delete(collection as never, id);
     } catch (err) {
       return handleError(err);
@@ -420,7 +517,8 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.PROVIDER_LIST, async () => {
     try {
-      return await storage.getAll('providerSettings');
+      const providers = await storage.getAll<ProviderRecord>('providerSettings');
+      return providers.map(maskProviderForRenderer);
     } catch (err) {
       return handleError(err);
     }
@@ -428,7 +526,11 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.PROVIDER_CREATE, async (_event, data: unknown) => {
     try {
-      return await storage.create('providerSettings', data as never);
+      const provider = await storage.create(
+        'providerSettings',
+        sanitizeProviderForStorage(data) as never,
+      );
+      return maskProviderForRenderer(provider as ProviderRecord);
     } catch (err) {
       return handleError(err);
     }
@@ -436,7 +538,9 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.PROVIDER_UPDATE, async (_event, id: string, data: unknown) => {
     try {
-      return await storage.update('providerSettings', id, data as never);
+      const payload = await mergeProviderUpdate(id, data);
+      const provider = await storage.update('providerSettings', id, payload as never);
+      return maskProviderForRenderer(provider as ProviderRecord);
     } catch (err) {
       return handleError(err);
     }
@@ -471,7 +575,7 @@ export function registerIpcHandlers(): void {
         if (result.canceled || !result.filePath) return { canceled: true };
 
         const safePath = sanitizeFilePath(result.filePath);
-        await fs.writeFile(safePath, content, 'utf-8');
+        await fs.writeFile(safePath, sanitizeObject(content), 'utf-8');
         return { success: true, path: safePath };
       } catch (err) {
         return handleError(err);
@@ -498,7 +602,7 @@ export function registerIpcHandlers(): void {
         if (result.canceled || !result.filePath) return { canceled: true };
 
         const safePath = sanitizeFilePath(result.filePath);
-        await fs.writeFile(safePath, JSON.stringify(data, null, 2), 'utf-8');
+        await fs.writeFile(safePath, JSON.stringify(sanitizeObject(data), null, 2), 'utf-8');
         return { success: true, path: safePath };
       } catch (err) {
         return handleError(err);
