@@ -47,3 +47,20 @@
 - Dashboard now needs to function as an agent workflow guide, not only a metrics page. The implemented lifecycle rail is: Idea, Plan, Tasks, Prompt, Safety, Logs, Memory, Handoff.
 - Static browser smoke now catches mobile-width horizontal overflow at `390x844`.
 - A concurrent React E2E run can fail with `127.0.0.1:5173` connection refused when other local-service tests are running. Single rerun passed, so schedule local server tests sequentially when possible.
+
+## Project Creation Close-Loop Findings - 2026-05-09
+
+- New-user workflow gap: after creating a project, staying on the list made the next action ambiguous. The React flow now opens `/projects/:id?next=plan` and highlights plan generation.
+- Accessibility finding: the new project modal used visible labels that were not bound to form controls. `Input`/`Textarea` labels and select `htmlFor`/`id` pairs now support `getByLabel` and screen readers.
+- Stability finding from parallel review: `api.projects.create` can return an IPC error object instead of throwing. The Projects route now detects `{ error }` and keeps the user in the modal with a form error instead of navigating to a fake success.
+- State finding from parallel review: ProjectDetail could carry an old generated plan while navigating between projects in the same component instance. The fetch path now clears `plan` before applying the loaded project data.
+- Test coverage finding: React E2E now covers create -> detail -> `?next=plan` -> highlighted next-step card -> generate plan -> plan actions visible.
+- Remaining test-infra risk: Playwright still uses fixed `5173` with `reuseExistingServer`; this did not block the new E2E but should be hardened next.
+
+## E2E Lifecycle Findings - 2026-05-09
+
+- Root cause confirmed: Playwright E2E and Electron startup smoke both used `5173`; when run concurrently, both could pick the same apparently-free port and one runner failed before startup.
+- Fix implemented: `scripts/free-port.js` now reserves port lock directories under `.codex-parallel/port-locks`, Playwright E2E defaults to `5173-5199`, and Electron startup smoke defaults to `5200-5229`.
+- Playwright now reads `AGENTFLOW_E2E_PORT`/`AGENTFLOW_E2E_BASE_URL` and defaults `AGENTFLOW_E2E_REUSE_SERVER` to `0`, avoiding accidental reuse of an unrelated dev server.
+- Electron startup smoke now reads `AGENTFLOW_ELECTRON_SMOKE_PORT`, passes `--strictPort`, and logs the actual dev server URL.
+- Validation evidence: one intentional concurrent run reproduced the old collision; after port reservation, concurrent `npm.cmd run test:e2e` and `npm.cmd run test:electron-startup` passed with E2E on `5173` and Electron on `5200`.

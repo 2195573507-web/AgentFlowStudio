@@ -123,6 +123,21 @@ const difficultyColor: Record<Difficulty, string> = {
   Hard: 'bg-red-500/20 text-red-300 border-red-500/30',
 };
 
+const isProject = (value: unknown): value is Project =>
+  Boolean(
+    value &&
+    typeof value === 'object' &&
+    typeof (value as Project).id === 'string' &&
+    typeof (value as Project).name === 'string' &&
+    typeof (value as Project).idea === 'string',
+  );
+
+const getCreateError = (value: unknown) => {
+  if (!value || typeof value !== 'object' || !('error' in value)) return null;
+  const error = (value as { error?: unknown }).error;
+  return typeof error === 'string' && error.trim() ? error : '创建失败';
+};
+
 // ── Component ──────────────────────────────────────────────────────────────
 export default function Projects() {
   const navigate = useNavigate();
@@ -210,13 +225,20 @@ export default function Projects() {
         updatedAt: new Date().toISOString(),
       };
 
-      if (api && typeof api.projects?.create === 'function') {
-        await api.projects.create(newProject);
-      }
+      const createdProject =
+        api && typeof api.projects?.create === 'function'
+          ? await api.projects.create(newProject)
+          : newProject;
+      const createError = getCreateError(createdProject);
+      if (createError) throw new Error(createError);
+      const savedProject = isProject(createdProject) ? createdProject : newProject;
 
-      setProjects((prev) => [newProject, ...prev]);
+      setProjects((prev) => [savedProject, ...prev]);
       resetForm();
       setShowNewModal(false);
+      navigate(`/projects/${savedProject.id}?next=plan`, {
+        state: { highlightPlan: true, project: savedProject },
+      });
     } catch (err: any) {
       setFormErrors({ _form: err?.message || '创建失败' });
     } finally {
@@ -299,31 +321,28 @@ export default function Projects() {
         </div>
       )}
 
-      <div>
-        <label className="block text-xs font-medium text-zinc-400 mb-1.5">项目名称 *</label>
-        <Input
-          value={form.name}
-          onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-          placeholder="输入项目名称"
-          error={formErrors.name}
-        />
-      </div>
+      <Input
+        label="项目名称 *"
+        value={form.name}
+        onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+        placeholder="输入项目名称"
+        error={formErrors.name}
+      />
 
-      <div>
-        <label className="block text-xs font-medium text-zinc-400 mb-1.5">项目描述 *</label>
-        <Textarea
-          value={form.idea}
-          onChange={(e) => setForm((f) => ({ ...f, idea: e.target.value }))}
-          placeholder="描述项目想法和核心功能"
-          rows={4}
-          error={formErrors.idea}
-        />
-      </div>
+      <Textarea
+        label="项目描述 *"
+        value={form.idea}
+        onChange={(e) => setForm((f) => ({ ...f, idea: e.target.value }))}
+        placeholder="描述项目想法和核心功能"
+        rows={4}
+        error={formErrors.idea}
+      />
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">平台</label>
+          <label htmlFor="project-platform" className="block text-xs font-medium text-zinc-400 mb-1.5">平台</label>
           <select
+            id="project-platform"
             value={form.platform}
             onChange={(e) => setForm((f) => ({ ...f, platform: e.target.value as Platform }))}
             className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-zinc-200 text-sm
@@ -335,8 +354,9 @@ export default function Projects() {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">难度</label>
+          <label htmlFor="project-difficulty" className="block text-xs font-medium text-zinc-400 mb-1.5">难度</label>
           <select
+            id="project-difficulty"
             value={form.difficulty}
             onChange={(e) => setForm((f) => ({ ...f, difficulty: e.target.value as Difficulty }))}
             className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-zinc-200 text-sm
@@ -350,22 +370,18 @@ export default function Projects() {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">技术栈</label>
-          <Input
-            value={form.techStack}
-            onChange={(e) => setForm((f) => ({ ...f, techStack: e.target.value }))}
-            placeholder="如: React, Node.js"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">UI 风格</label>
-          <Input
-            value={form.uiStyle}
-            onChange={(e) => setForm((f) => ({ ...f, uiStyle: e.target.value }))}
-            placeholder="如: Glassmorphism"
-          />
-        </div>
+        <Input
+          label="技术栈"
+          value={form.techStack}
+          onChange={(e) => setForm((f) => ({ ...f, techStack: e.target.value }))}
+          placeholder="如: React, Node.js"
+        />
+        <Input
+          label="UI 风格"
+          value={form.uiStyle}
+          onChange={(e) => setForm((f) => ({ ...f, uiStyle: e.target.value }))}
+          placeholder="如: Glassmorphism"
+        />
       </div>
     </div>
   );

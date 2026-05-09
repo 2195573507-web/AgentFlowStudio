@@ -44,3 +44,23 @@ Starting from baseline commit `cec7dfb`, preserve the working Static fallback wh
 | Playwright Chromium executable was missing. | Browser click check | Recorded as environment limitation; HTTP, launch-static, and Node VM static checks were used instead. |
 | `The process cannot access the file because it is being used by another process.` during static launch. | User-reported launcher run | Fixed by separating per-run launcher/server logs and avoiding shared launcher log redirection. Regression locked `logs\launcher-static.log` while launching and passed. |
 | `test:e2e` connection refused on `127.0.0.1:5173` | Ran concurrently with other local-service tests | Single rerun passed 6/6; record as local service concurrency issue, not app regression. |
+
+## Round 10 - Project Creation Planning Close Loop
+
+| Phase | Status | Notes |
+|---|---|---|
+| 1. Parallel review | complete | Two read-only agents reviewed React create/detail flow and E2E coverage. |
+| 2. Create-to-detail code path | complete | New projects now navigate directly to Project Detail with `?next=plan` and route-state fallback. |
+| 3. Edge-case hardening | complete | IPC `{ error }` create responses now surface as form errors, and ProjectDetail clears stale plans on project switch. |
+| 4. Accessibility cleanup | complete | New project modal fields now use bound `Input`/`Textarea` labels and `select` `htmlFor`/`id` pairs. |
+| 5. E2E lifecycle hardening | complete | Playwright and Electron startup smoke now reserve separate free ports and default to no external server reuse. |
+| 6. Validation | complete | Full matrix passed, including 30.07-minute long-run, static launch, static browser, React E2E, and concurrent E2E/Electron checks. |
+| 7. Commit and push | pending | Commit after docs, long-run result, and final static validation complete. |
+
+## Round 10 Next Suggestions
+
+1. Add Settings local runtime status and provider validation feedback.
+2. Add PromptLab post-generation next actions and optional run-record creation.
+3. Add i18n mojibake quality gate for source/tests/docs.
+4. Add a unit/source gate for future E2E port lifecycle regressions.
+5. Continue warning reduction in `GitTimeline`, `LogAnalyzer`, `Projects`, and `ProjectDetail`.

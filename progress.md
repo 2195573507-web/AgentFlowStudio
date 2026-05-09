@@ -39,3 +39,20 @@
 - Expanded smoke and browser checks for Liquid Glass tokens, lifecycle rail, layered shadow, 1024x680, and 390x844.
 - Validation passed: `npm.cmd install`, `typecheck`, `lint`, `smoke`, `node --check static-app\app.js`, `test`, `build`, `test:launch-static`, `test:static-browser`, `test:electron-startup`, `test:e2e` rerun, and `verify`.
 - One concurrent `test:e2e` run hit `127.0.0.1:5173` connection refused while other local service tests were running; single rerun passed 6/6.
+
+## 2026-05-09 Round 10
+
+- Continued on `codex-liquid-glass-ui-agent-optimization` without creating folders outside `D:\AgentFlowStudio`.
+- Spawned two read-only parallel review agents, then closed both after results were received.
+- Implemented the new-user close loop: project creation now navigates to Project Detail with `?next=plan`, passes route-state fallback data, and shows a `plan-next-step` Liquid Glass card.
+- Hardened failure behavior: `api.projects.create` `{ error }` responses now become form errors instead of fake success navigation.
+- Hardened ProjectDetail state: `navigationState` is memoized and stale `plan` state is cleared when loading a project before demo fallback logic reapplies demo data.
+- Improved new project modal labels so Playwright and assistive technology can target the fields by label.
+- Added React E2E coverage for create -> detail -> plan highlight -> generate plan.
+- Added React E2E coverage for IPC create error handling that keeps the user in the modal.
+- Parallel review findings fixed in the same round: create error handling and stale plan reset.
+- Hardened E2E server lifecycle with a shared free-port reservation module and no default reuse of unrelated 5173 services.
+- Concurrent validation initially reproduced the old 5173 race; after port locking, parallel `test:e2e` and `test:electron-startup` passed with separate ports.
+- Validation passed so far: `typecheck`, `lint` (0 errors / 25 warnings), focused unit tests (30/30), full unit tests (116/116), `build`, `smoke` (138/138), `verify` (100/100 + smoke 138/138), `test:electron-startup`, concurrent `test:e2e` + `test:electron-startup`, and `test:e2e` (9/9).
+- Final static validation passed: `test:long-run` completed 30.07 minutes with 31 samples, no console/page/network errors, no crash, and 0 MB heap delta.
+- Final static validation passed: `test:launch-static` and `test:static-browser` both passed after long-run released the static port.

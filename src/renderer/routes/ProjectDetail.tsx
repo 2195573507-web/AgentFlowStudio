@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft,
   FolderKanban,
@@ -264,6 +264,7 @@ function getRunStatusInfo(status: string) {
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [project, setProject] = useState<Project | null>(null);
   const [plan, setPlan] = useState<ProjectPlan | null>(null);
@@ -285,6 +286,13 @@ export default function ProjectDetail() {
   const [runSummary, setRunSummary] = useState('');
   const [runLog, setRunLog] = useState('');
   const [runSaveStatus, setRunSaveStatus] = useState<string | null>(null);
+  const navigationState = useMemo(
+    () => location.state as { highlightPlan?: boolean; project?: Project } | null,
+    [location.state],
+  );
+  const shouldHighlightPlan =
+    new URLSearchParams(location.search).get('next') === 'plan' ||
+    Boolean(navigationState?.highlightPlan);
 
   // ── Fetch ──────────────────────────────────────────────────────────────
   const fetchProject = useCallback(async () => {
@@ -299,6 +307,9 @@ export default function ProjectDetail() {
 
       if (api && typeof api.projects?.get === 'function') {
         proj = await api.projects.get(id);
+        if (!proj && navigationState?.project?.id === id) {
+          proj = navigationState.project;
+        }
         if (api.tasks?.listByProject) {
           taskList = await api.tasks.listByProject(id);
         }
@@ -311,7 +322,12 @@ export default function ProjectDetail() {
       } else {
         // Demo fallback
         setApiAvailable(false);
-        proj = DEMO_PROJECT.id === id ? DEMO_PROJECT : undefined;
+        proj =
+          navigationState?.project?.id === id
+            ? navigationState.project
+            : DEMO_PROJECT.id === id
+              ? DEMO_PROJECT
+              : undefined;
         taskList = DEMO_PLAN.tasks.filter((t) => t.projectId === id);
         runList = [];
         memList = [];
@@ -324,6 +340,7 @@ export default function ProjectDetail() {
       }
 
       setProject(proj);
+      setPlan(null);
       setTasks(Array.isArray(taskList) ? taskList : DEMO_PLAN.tasks);
       setRuns(Array.isArray(runList) ? runList : []);
       setMemories(Array.isArray(memList) ? memList : []);
@@ -346,7 +363,7 @@ export default function ProjectDetail() {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, navigationState]);
 
   useEffect(() => { fetchProject(); }, [fetchProject]);
 
@@ -624,6 +641,36 @@ export default function ProjectDetail() {
           </div>
         </div>
       </GlassCard>
+
+      {shouldHighlightPlan && !plan && (
+        <GlassCard
+          className="p-5 border-accent-400/50 bg-accent-500/10"
+          data-testid="plan-next-step"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 rounded-xl border border-accent-400/30 bg-accent-400/15 p-2 text-accent-400">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-slate-900 dark:text-zinc-100">
+                  下一步：生成项目规划
+                </h2>
+                <p className="mt-1 max-w-2xl text-sm text-slate-600 dark:text-zinc-400">
+                  项目已创建。现在可以把想法转成 PRD、架构、任务看板和可复制给 Agent 的开发 Prompt。
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={handleGeneratePlan}
+              loading={generating}
+              icon={<Sparkles className="w-4 h-4" />}
+            >
+              生成规划
+            </Button>
+          </div>
+        </GlassCard>
+      )}
 
       {/* Memory injection mode selector */}
       {plan && (

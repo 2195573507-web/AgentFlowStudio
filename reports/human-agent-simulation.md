@@ -77,6 +77,16 @@ Used code review plus automated browser checks as the simulated user evidence:
 4. Add i18n mojibake quality gate in unit tests.
 5. Harden E2E server lifecycle to avoid parallel `5173` contention.
 
+## Round 10 Simulation Addendum - 2026-05-09
+
+- User 1 follow-up path improved: after creating a project, the app now lands on Project Detail and highlights "下一步：生成项目规划" instead of leaving the user on the list.
+- User 2 workflow improved: clicking the highlighted next-step action immediately generates PRD/architecture/tasks/prompts, then exposes export and memory actions.
+- Error scenario improved: if project creation returns an IPC `{ error }` object, the create modal now shows an error instead of silently navigating as if creation succeeded.
+- State-switch scenario improved: switching from a project with an existing plan to a newly created project no longer risks showing the previous plan.
+- Browser simulation evidence: React Playwright E2E passed 9/9 and covers create -> detail -> next-step -> generate plan plus IPC create error handling.
+- Multi-agent pressure simulation improved: concurrent React E2E and Electron startup smoke now reserve different ports, so parallel validators no longer collide on `5173` by default.
+- Long-run user simulation evidence: static fallback ran 30.07 minutes across core pages with no crash, console error, page error, network failure, or heap growth.
+
 ## Worker TestingDocs Addendum
 
 - Added `tests/unit/apiRuns.test.ts` to cover the Agent run record API contract without adding any arbitrary command execution path.

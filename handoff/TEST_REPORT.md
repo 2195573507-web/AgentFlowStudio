@@ -6,6 +6,35 @@ Baseline tag: `codex-liquid-glass-ui-base-20260509-172941`
 
 Branch: `codex-liquid-glass-ui-agent-optimization`
 
+### Project Creation Planning Close Loop - 2026-05-09
+
+| Check | Status | Details |
+|---|---:|---|
+| `npm.cmd run typecheck` | PASS | TypeScript passed after route-state and create-result hardening. |
+| `npm.cmd run lint` | PASS | 0 errors, 25 existing warnings under threshold. |
+| `npm.cmd run test -- tests/unit/planner.test.ts tests/unit/memoryInjection.test.ts tests/unit/exporters.test.ts` | PASS | Focused planning/export/memory regression: 3 files, 30 tests. |
+| `npm.cmd run test` | PASS | Vitest: 11 files, 116 tests. |
+| `npm.cmd run build` | PASS | Renderer and Electron build passed; existing Charts chunk-size warning only. |
+| `npm.cmd run smoke` | PASS | 138/138 checks passed, including E2E/Electron port lifecycle guards. |
+| `npm.cmd run verify` | PASS | 100/100 build completeness checks, then smoke 138/138. |
+| `npm.cmd run test:electron-startup` | PASS | Electron ready marker captured with project-local userData. |
+| `npm.cmd run test:e2e` | PASS | React Playwright suite passed 9/9, including create -> detail -> plan next-step flow and IPC error handling. |
+| Concurrent `test:e2e` + `test:electron-startup` | PASS | Port reservation hardening avoided the previous `5173` collision; Electron used `5200` in the successful run. |
+| `npm.cmd run test:long-run` | PASS | 30.07-minute static stability run, 31 samples, no crash/error/network failure/heap growth. |
+| `npm.cmd run test:launch-static` | PASS | Static fallback launch and localized markers verified after long-run completed. |
+| `npm.cmd run test:static-browser` | PASS | Static browser workflow, Agent run record flow, 1024x680, 390x844, and browser error checks passed. |
+
+### Fixes Verified In This Close Loop
+
+- New project creation opens Project Detail directly and marks plan generation as the next action.
+- Form labels in the new project modal are bound to controls for accessibility and stable E2E selectors.
+- Create responses containing IPC `{ error }` no longer navigate as successful creations.
+- ProjectDetail clears stale `plan` state during project loads, preventing an old plan from hiding the next-step card.
+- E2E verifies the full user-visible path: create project, land on detail, see next-step card, generate plan, and see export/memory actions.
+- Playwright and Electron startup validations now reserve separate free ports, use strict Vite ports, and no longer default to reusing an arbitrary existing `5173` service.
+- Long-run result JSON: `D:\AgentFlowStudio\.codex-parallel\results\long-run-static-20260509150812.json`.
+- Static browser smoke result JSON: `D:\AgentFlowStudio\.codex-parallel\results\static-browser-smoke-20260509153918.json`.
+
 ### Latest Results
 
 | Check | Status | Details |

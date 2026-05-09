@@ -102,6 +102,81 @@ test.describe('AgentFlow Studio React web entry', () => {
     await expect(page.getByText(/\[Shared Memory Context\]|Build|实现|分析/).first()).toBeVisible()
   })
 
+  test('opens new projects on detail with plan as the next step', async ({ page }) => {
+    await page.evaluate(() => {
+      const projects: Array<Record<string, string>> = []
+      Object.defineProperty(window, 'agentflow', {
+        configurable: true,
+        value: {
+          projects: {
+            list: async () => projects,
+            get: async (id: string) => projects.find((project) => project.id === id) ?? null,
+            create: async (project: Record<string, string>) => {
+              const created = {
+                ...project,
+                id: project.id || 'project-created-by-e2e',
+                createdAt: project.createdAt || new Date().toISOString(),
+                updatedAt: project.updatedAt || new Date().toISOString(),
+              }
+              projects.unshift(created)
+              return created
+            },
+          },
+          tasks: {
+            list: async () => [],
+          },
+          memory: {
+            list: async () => [],
+          },
+          runs: {
+            list: async () => [],
+            create: async (run: Record<string, string>) => ({ ...run, id: 'run-created-by-e2e' }),
+          },
+        },
+      })
+    })
+
+    await page.goto('/#/projects', { waitUntil: 'networkidle' })
+    await page.locator('main').getByRole('button', { name: '新建项目' }).first().click()
+    await page.getByLabel('项目名称 *').fill('E2E 新手闭环项目')
+    await page.getByLabel('项目描述 *').fill('验证创建后直接进入详情，并提示生成项目规划。')
+    await page.getByLabel('技术栈').fill('React, Electron, TypeScript')
+    await page.getByRole('button', { name: '创建项目' }).click()
+
+    await expect(page).toHaveURL(/#\/projects\/.+\?next=plan/)
+    await expect(page.getByRole('heading', { name: 'E2E 新手闭环项目' })).toBeVisible()
+    const nextStep = page.getByTestId('plan-next-step')
+    await expect(nextStep.getByRole('heading', { name: '下一步：生成项目规划' })).toBeVisible()
+    await nextStep.getByRole('button', { name: '生成规划' }).click()
+    await expect(nextStep).toBeHidden()
+    await expect(page.getByRole('button', { name: '导出 Markdown' })).toBeVisible()
+    await expect(page.getByRole('button', { name: '创建记忆' })).toBeVisible()
+  })
+
+  test('keeps users in the create modal when project creation returns an IPC error', async ({ page }) => {
+    await page.evaluate(() => {
+      Object.defineProperty(window, 'agentflow', {
+        configurable: true,
+        value: {
+          projects: {
+            list: async () => [],
+            create: async () => ({ error: 'E2E create failed' }),
+          },
+        },
+      })
+    })
+
+    await page.goto('/#/projects', { waitUntil: 'networkidle' })
+    await page.locator('main').getByRole('button', { name: '新建项目' }).first().click()
+    await page.getByLabel('项目名称 *').fill('E2E 创建失败项目')
+    await page.getByLabel('项目描述 *').fill('验证 IPC error 不会被当成创建成功。')
+    await page.getByRole('button', { name: '创建项目' }).click()
+
+    await expect(page).toHaveURL(/#\/projects$/)
+    await expect(page.getByText('E2E create failed')).toBeVisible()
+    await expect(page.getByRole('button', { name: '创建项目' })).toBeVisible()
+  })
+
   test('records a safe Agent run on project detail', async ({ page }) => {
     await page.evaluate(() => {
       const project = {

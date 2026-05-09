@@ -103,3 +103,10 @@ Dashboard 的重点是“现在该做什么、哪里有风险、最近发生了�
 - 不用大面积模糊掩盖层级混乱。
 - 不隐藏本地运行限制。
 - 不把 API key、日志、记忆导出路径绕过现有脱敏层。
+
+## 2026-05-09 Source Refresh
+
+- Apple Liquid Glass: use the material as a functional navigation/control layer, not as decorative blur on every content card. This supports the current AgentFlow direction of stronger sidebar/topbar/card hierarchy and restrained glass accents. Source: [Apple Liquid Glass](https://developer.apple.com/documentation/TechnologyOverviews/liquid-glass), [Apple Materials HIG](https://developer.apple.com/design/Human-Interface-Guidelines/materials).
+- Linear AI workflows: prioritize quiet automation, triage, status summaries, and MCP/AI-tool handoff rather than forcing users to manually stitch pages together. Source: [Linear AI](https://linear.app/ai), [Linear Build](https://linear.app/build).
+- Raycast: preserve speed, keyboard-friendly actions, and reliability as first-class UX requirements; AgentFlow should keep common actions discoverable and fast. Source: [Raycast](https://www.raycast.com/).
+- Langflow: flows are saved, runnable workflow representations made of components; AgentFlow should keep lifecycle and plan/task/prompt artifacts visible before adding heavy canvas complexity. Source: [Langflow overview](https://docs.langflow.org/), [Langflow agents](https://docs.langflow.org/agents), [Langflow flows](https://docs.langflow.org/next/concepts-flows).

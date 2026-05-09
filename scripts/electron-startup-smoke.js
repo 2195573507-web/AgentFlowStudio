@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { reserveFreePort } from './free-port.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
@@ -79,15 +80,21 @@ async function main() {
   fs.writeFileSync(viteLogPath, '', 'utf8');
   fs.writeFileSync(electronLogPath, '', 'utf8');
 
-  const vite = spawnLogged(process.execPath, [viteCli, '--mode', 'web', '--host', '127.0.0.1', '--port', '5173'], viteLogPath, {
+  const reservation = process.env.AGENTFLOW_ELECTRON_SMOKE_PORT
+    ? { port: Number(process.env.AGENTFLOW_ELECTRON_SMOKE_PORT), release: async () => {} }
+    : await reserveFreePort(5200, 5229);
+  const devPort = String(reservation.port);
+  const devServerUrl = `http://127.0.0.1:${devPort}`;
+
+  const vite = spawnLogged(process.execPath, [viteCli, '--mode', 'web', '--host', '127.0.0.1', '--port', devPort, '--strictPort'], viteLogPath, {
     BROWSER: 'none',
   });
 
   try {
-    await waitForDevServer('http://127.0.0.1:5173');
+    await waitForDevServer(devServerUrl);
 
     const electron = spawnLogged(electronBin, [electronMain], electronLogPath, {
-      VITE_DEV_SERVER_URL: 'http://127.0.0.1:5173',
+      VITE_DEV_SERVER_URL: devServerUrl,
       AGENTFLOW_STARTUP_SMOKE: '1',
       AGENTFLOW_SKIP_DEVTOOLS: '1',
       AGENTFLOW_USER_DATA_DIR: userDataDir,
@@ -121,12 +128,14 @@ async function main() {
     }
 
     console.log(`PASS Electron ready marker captured. Log: ${electronLogPath}`);
+    console.log(`PASS Dev server URL: ${devServerUrl}`);
     console.log(`PASS Project-local userData: ${userDataDir}`);
     console.log(`PASS Vite log: ${viteLogPath}\n`);
   } finally {
     if (vite.exitCode === null) {
       vite.kill();
     }
+    await reservation.release();
   }
 }
 

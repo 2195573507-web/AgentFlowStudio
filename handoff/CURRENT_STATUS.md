@@ -86,6 +86,46 @@ Current round validation:
 4. Add i18n mojibake quality gate.
 5. Harden E2E server lifecycle to avoid parallel `5173` contention.
 
+## Round 10 Update - 2026-05-09
+
+- Implemented project creation close loop in React:
+  - `src/renderer/routes/Projects.tsx` now opens newly created projects directly at `/projects/:id?next=plan`.
+  - `src/renderer/routes/ProjectDetail.tsx` now reads the route hint and shows a highlighted next-step card for generating the project plan.
+  - ProjectDetail uses route-state project fallback so the user does not lose the just-created project if storage lookup lags or the preload bridge is unavailable.
+- Hardened edge cases found by parallel review:
+  - IPC `{ error }` create responses are now treated as failures and displayed in the create modal.
+  - ProjectDetail clears stale plan state while loading a project, preventing a previous project plan from hiding the new next-step card.
+  - `location.state` is memoized before entering the fetch callback dependency list.
+- Added E2E regression in `tests/e2e/app.spec.ts` for create -> detail -> highlighted plan next step -> generate plan.
+- Added E2E regression for IPC `{ error }` create responses staying in the create modal.
+- Hardened local browser validation lifecycle:
+  - `scripts/free-port.js` reserves free ports with lock directories under `.codex-parallel/port-locks`.
+  - `scripts/run-playwright-e2e.js` passes a reserved port/base URL to Playwright and defaults to no external server reuse.
+  - `playwright.config.ts` reads the dynamic base URL and starts Vite with `--strictPort`.
+  - `scripts/electron-startup-smoke.js` uses a separate reserved port range and logs the actual dev server URL.
+- Validation completed for this update:
+  - `npm.cmd run typecheck`: PASS.
+  - `npm.cmd run lint`: PASS, 0 errors / 25 existing warnings.
+  - `npm.cmd run test -- tests/unit/planner.test.ts tests/unit/memoryInjection.test.ts tests/unit/exporters.test.ts`: PASS, 30/30.
+  - `npm.cmd run test`: PASS, 116/116.
+  - `npm.cmd run build`: PASS, existing Charts chunk-size warning only.
+  - `npm.cmd run smoke`: PASS, 138/138.
+  - `npm.cmd run verify`: PASS, 100/100 + smoke 138/138.
+  - `npm.cmd run test:electron-startup`: PASS.
+  - `npm.cmd run test:e2e`: PASS, 9/9.
+  - Concurrent `npm.cmd run test:e2e` + `npm.cmd run test:electron-startup`: PASS after port reservation hardening.
+  - `npm.cmd run test:long-run`: PASS, 30.07 minutes / 31 samples / no crash, console error, page error, network failure, or heap growth.
+  - `npm.cmd run test:launch-static`: PASS.
+  - `npm.cmd run test:static-browser`: PASS.
+
+## Updated Next Round Suggestions
+
+1. Add Settings local runtime status and provider validation feedback.
+2. Add PromptLab next actions after prompt generation and optional run recording.
+3. Add an i18n/mojibake quality gate.
+4. Add a unit/source smoke gate for Playwright/Electron port lifecycle assumptions.
+5. Continue reducing existing lint warnings in `GitTimeline`, `LogAnalyzer`, `Projects`, and `ProjectDetail`.
+
 ## Push Status
 
-Pushed to `origin/codex-liquid-glass-ui-agent-optimization`. Latest functional commit is `ae4e1ac`; follow-up status commits are pushed on top. Baseline tag also pushed.
+Pending this round commit/push. Previous pushed functional commit was `ae4e1ac`; follow-up status commits are already on remote. Baseline tag also pushed.

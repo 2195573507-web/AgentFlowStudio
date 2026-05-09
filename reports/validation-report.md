@@ -51,3 +51,28 @@ Liquid Glass UI and workflow onboarding pass is validated. Static fallback remai
 3. Add Prompt Lab post-generation next actions and optional run recording.
 4. Add unit gate for i18n mojibake.
 5. Harden E2E server lifecycle to avoid parallel `5173` contention.
+
+## Project Creation Planning Close Loop - 2026-05-09
+
+| Command | Status | Notes |
+|---|---:|---|
+| `npm.cmd run typecheck` | PASS | Route-state and create-result changes typecheck. |
+| `npm.cmd run lint` | PASS | 0 errors / 25 existing warnings. |
+| `npm.cmd run test -- tests/unit/planner.test.ts tests/unit/memoryInjection.test.ts tests/unit/exporters.test.ts` | PASS | 30/30 focused tests. |
+| `npm.cmd run test` | PASS | 116/116 unit tests. |
+| `npm.cmd run build` | PASS | Existing Charts chunk-size warning only. |
+| `npm.cmd run smoke` | PASS | 138/138 smoke checks, including E2E/Electron port lifecycle guards. |
+| `npm.cmd run verify` | PASS | 100/100 plus smoke 138/138. |
+| `npm.cmd run test:electron-startup` | PASS | Electron ready marker captured. |
+| `npm.cmd run test:e2e` | PASS | 9/9 React browser tests, including new create-to-plan flow and IPC error handling. |
+| Concurrent `npm.cmd run test:e2e` + `npm.cmd run test:electron-startup` | PASS | After port locking, E2E used `5173` and Electron startup smoke used `5200`. |
+| `npm.cmd run test:long-run` | PASS | 30.07 minutes, 31 samples, no crash/error/network failure/heap growth. |
+| `npm.cmd run test:launch-static` | PASS | Static launcher verified after long-run released the port. |
+| `npm.cmd run test:static-browser` | PASS | Static browser workflow and responsive/browser-error checks passed. |
+
+### Round 10 Risk Notes
+
+- Parallel code review found and this round fixed two edge cases: IPC `{ error }` create responses and stale ProjectDetail plan state.
+- New E2E proves the beginner workflow close loop in the React path.
+- A first concurrent validation intentionally reproduced the old `5173` collision; port reservation fixed it in the same round.
+- Static fallback source is unchanged by this code change; final static checks passed after long-run released the port.
