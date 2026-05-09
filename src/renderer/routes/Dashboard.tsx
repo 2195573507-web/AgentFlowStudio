@@ -158,8 +158,9 @@ export default function Dashboard() {
         (m: Memory) => m.type === 'safety_check' || (m.tags || []).includes('safety')
       );
       setRiskCount(safetyMemories.length || 0);
-    } catch (err: any) {
-      console.error('Dashboard fetch error:', err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error('Dashboard fetch error:', message, err);
       // Fallback to demo data on error
       setApiAvailable(false);
       setProjects(DEMO_PROJECTS);

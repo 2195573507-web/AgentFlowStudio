@@ -1083,3 +1083,134 @@
 - 是否继续下一轮：是
 - 继续原因：用户要求每轮 push 后继续下一轮；Round 9 必须按本轮建议完成真实代码更改。
 - 下一轮是否必须改代码：是
+
+## Round 9 - 2026-05-09 17:23:00 +08:00
+
+### 1. 本轮开始状态
+
+- 当前分支：`codex-static-quality-pass`
+- 当前 commit：`b0ce53e` (`test: type planner unit fixtures`)
+- git status：本轮开始干净，跟踪 `origin/codex-static-quality-pass`
+- 当前主入口：Electron 主入口仍为 `dist-electron/main/index.js`，开发入口为 `npm.cmd run dev`
+- 当前 fallback 状态：本轮不改 static fallback；通过 `test:static-browser` 验证 HTTP、导航、中文/英文、深浅色、Liquid Glass 和无 console/page/network error
+- 当前 UI 状态：本轮只改 Dashboard catch 类型，不改布局、路由、demo fallback 或错误页条件；E2E 继续覆盖 Dashboard 首屏和快捷入口
+- 当前 Liquid Glass 状态：未改样式；static browser smoke 继续验证 blur 存在
+- 当前风险点：这是进入生产 UI 文件的类型清理，必须避免把 API 失败路径从 demo fallback 改成 error state
+
+### 2. 本轮学习内容
+
+- 项目内部学习：
+  - 读取 Round 8 的“下一轮代码建议”，确认本轮只处理 `src/renderer/routes/Dashboard.tsx` 的 `catch (err: any)`。
+  - 检查 Dashboard `fetchData()`，确认 catch 分支只记录错误，然后设置 `apiAvailable=false` 并加载 demo 数据。
+  - 检查现有 E2E，确认 `loads dashboard with Liquid Glass shell` 与 `dashboard quick actions use primary routes` 覆盖本轮主要 UI 风险。
+  - 让只读 subagent 复核，确认不应在本轮添加 `setError(message)`，否则会改变 fallback 体验。
+- 相似项目/相似产品学习：
+  - UI 数据加载失败时，低风险类型清理应保持原有可用 fallback，不顺手改变错误展示策略。
+  - catch unknown 后应同时保留可读 message 和原始 error 对象，方便调试。
+- 可借鉴设计思路：
+  - `err instanceof Error ? err.message : String(err)` 是最小安全消息提取方式。
+  - 只改日志和类型，不改状态机，是本轮最稳妥的生产代码清理。
+- 不采用的方案及原因：
+  - 不调用 `setError(message)`：会让 demo fallback 变成错误页，属于行为变化。
+  - 不抽全局 `getErrorMessage()` helper：当前只有一处 Dashboard 清理，抽象过早。
+  - 不同时清理 GitTimeline 或 LogAnalyzer：保持每轮改动面小。
+
+### 3. 本轮发现的问题
+
+- 问题 1：`src/renderer/routes/Dashboard.tsx` 第 161 行 `catch (err: any)` 触发 lint warning。
+- 问题 2：catch 分支应该继续保留原始错误对象，避免类型清理降低调试信息质量。
+- 问题 3：剩余 lint warning 已降到 24，下一批主要集中在 GitTimeline、LogAnalyzer、ProjectDetail、Projects 等页面。
+
+### 4. 本轮拆分的小任务
+
+| 小任务 | 目标 | 涉及文件 | 风险等级 | 验证方式 | 回滚方式 | 是否适合 subagent |
+|---|---|---|---|---|---|---|
+| Dashboard catch unknown | 用 `unknown` 替换 `any` | `src/renderer/routes/Dashboard.tsx` | 低 | `lint`、`typecheck` | `git revert` 本轮 commit | 是 |
+| 保留 fallback 行为 | 不改变 `setApiAvailable(false)` 和 demo 数据设置 | `src/renderer/routes/Dashboard.tsx` | 低 | E2E、static browser smoke | `git revert` 本轮 commit | 是 |
+| 保留调试信息 | 打印 message 和原始 err | `src/renderer/routes/Dashboard.tsx` | 低 | code review、typecheck | `git revert` 本轮 commit | 否 |
+
+### 5. 本轮实际执行
+
+- 执行了哪些小任务：
+  - 将 `catch (err: any)` 改为 `catch (err: unknown)`。
+  - 增加 `const message = err instanceof Error ? err.message : String(err)`。
+  - 将日志改为 `console.error('Dashboard fetch error:', message, err)`。
+- 为什么先做这些：
+  - 完全按 Round 8 下一轮建议执行。
+  - 这是最小生产代码类型清理，能降低 lint 噪声，同时不改变 Dashboard 首屏体验。
+- 本轮真实代码更改是什么：
+  - Dashboard 数据加载错误处理类型收紧。
+- 修改了哪些代码文件：
+  - `src/renderer/routes/Dashboard.tsx`
+- 修改了哪些文档文件：
+  - `CURRENT_OPTIMIZATION_PROGRESS.md`
+- 是否完成至少一个代码更改：是
+- 如果没有代码更改，为什么没有进入下一轮：不适用
+
+### 6. 本轮测试记录
+
+- 测试命令：
+  - `npm.cmd run lint`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run test:e2e`
+  - `npm.cmd run smoke`
+  - `npm.cmd run verify`
+  - `npm.cmd run test`
+  - `npm.cmd run build`
+  - `npm.cmd run test:static-browser`
+  - `npm.cmd install`
+  - `git diff --check`
+  - `Get-ChildItem .\scripts -Recurse -Force | Select-Object FullName`
+- 测试结果：
+  - `lint`：PASS，0 errors / 24 warnings，warning 数从 25 降到 24
+  - `typecheck`：PASS
+  - `test:e2e`：PASS，6/6，Dashboard 首屏、快捷入口和首屏 browser errors 检查通过
+  - `smoke`：PASS，121/121
+  - `verify`：PASS，100/100 后继续 smoke 121/121
+  - `test`：PASS，10 files / 113 tests
+  - `build`：PASS；仍有既有 Charts chunk-size warning
+  - `test:static-browser`：PASS，static fallback HTTP、导航、中文/英文、主题、Secret redaction、1024x680、无 console/page/network error
+  - `npm.cmd install`：PASS，依赖 up to date；仍报告既有 17 个 audit vulnerabilities
+  - `git diff --check`：PASS；仅 Git LF/CRLF 提示
+- 是否通过：是
+- 是否发现新问题：未发现本轮代码导致的新问题
+- 是否修复新问题：无新问题需要修复
+- 是否需要继续测试：Round 10 若处理 GitTimeline 类型，建议跑 lint、typecheck、E2E、static browser smoke、build
+
+### 7. Git 版本记录
+
+- 是否执行 git status：是
+- 是否执行 git add：待本记录追加后执行
+- 是否执行 git commit：待本记录追加后执行
+- commit hash：待提交
+- 是否执行 git push：待提交后执行
+- push 结果：待执行
+- 如果失败，失败原因和修复过程：暂无失败
+
+### 8. 下一轮代码建议
+
+- 下一轮必须落实的代码更改 1：清理 `src/renderer/routes/GitTimeline.tsx` 中 `catch (err: any)`，改为 `catch (err: unknown)` 并安全提取错误消息。
+- 下一轮必须落实的代码更改 2：清理 `api.memory.create({...} as any)`，使用 `Omit<Memory, 'id' | 'createdAt' | 'updatedAt' | 'lastUsedAt'> | Memory` 的兼容类型，避免 `as any`。
+- 下一轮必须落实的代码更改 3：运行 lint、typecheck、E2E、static browser smoke、build，确认 Git Timeline 页面和 memory create 流程不受影响。
+- 建议原因：GitTimeline 当前有两个 warning，且都在同一页面的错误处理/记忆生成流程中；这是下一块低风险、可验证的生产代码类型清理。
+- 预计涉及代码文件：
+  - `src/renderer/routes/GitTimeline.tsx`
+- 风险等级：低到中
+- 修改范围：只改 catch 类型和 memory payload 类型，不改 Git log 数据加载逻辑、不改页面布局、不改 IPC。
+- 推荐验证方式：
+  - `npm.cmd run lint`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run test:e2e`
+  - `npm.cmd run test:static-browser`
+  - `npm.cmd run smoke`
+  - `npm.cmd run build`
+- 回滚方式：`git revert <第十轮commit>`；如果未提交，恢复 `src/renderer/routes/GitTimeline.tsx`。
+- 是否适合 subagent 并行处理：适合；subagent 可只读审查 Memory 类型和 GitTimeline 流程，主线程负责改动和回归。
+- 为什么下一轮应该做这个：它能一次清掉同一页面的两个 `any` warning，同时范围仍局限在一个页面文件。
+- 预计 commit 信息：`fix: type git timeline error and memory payload`
+
+### 9. 是否继续
+
+- 是否继续下一轮：是
+- 继续原因：用户要求每轮 push 后继续下一轮；Round 10 必须按本轮建议完成真实代码更改。
+- 下一轮是否必须改代码：是
