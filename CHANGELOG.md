@@ -1,5 +1,38 @@
 ﻿# Changelog
 
+## [1.1.1] - 2026-05-09 15:21 +08:00
+
+### Branch and Version
+- Branch: `codex-static-quality-pass`
+- Starting commit: `97e37f7473f67a6ac41d25f2ac1f5f3e4200f691`
+- Final commit: `v1.1.1 tag target / release HEAD`
+- Tag: `v1.1.1` pushed
+- Push status: branch and tag pushed to GitHub
+
+### Changed
+- Added a continuation stability record after the `v1.1.0` release.
+- Bumped package, lockfile, and `VERSION` from `1.1.0` to `1.1.1`.
+- Updated handoff progress and final summary so the continuation state is recoverable after terminal or context loss.
+
+### Validation
+- `npm.cmd run test:long-run`: PASS, 30.04 minutes, 31 samples, no console errors, page errors, network failures, crashes, or heap growth.
+- `npm.cmd run typecheck`: PASS
+- `npm.cmd run lint`: PASS with 36 existing warnings and 0 errors
+- `npm.cmd run smoke`: PASS 117/117
+- `npm.cmd run verify`: PASS 99/99 plus smoke 117/117
+- `npm.cmd run test`: PASS 109/109
+- `npm.cmd run build`: PASS with existing Charts chunk-size warning only
+- `npm.cmd run test:launch-static`: PASS
+- `npm.cmd run test:static-browser`: PASS
+- `npm.cmd run test:e2e`: PASS 5/5
+- `npm.cmd run test:electron-startup`: PASS
+- Visited pages: Dashboard, Projects, Prompt Lab, Log Analyzer, SafetyBox, Shared Memory Hub, Settings.
+- Result file: `D:\AgentFlowStudio\.codex-parallel\results\long-run-static-20260509065035.json`
+
+### Push
+- GitHub branch push: complete (`codex-static-quality-pass`)
+- GitHub tag push: complete (`v1.1.1`)
+
 ## [1.1.0] - 2026-05-09 14:05 +08:00
 
 ### Branch and Version

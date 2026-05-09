@@ -1,6 +1,6 @@
 {
   "name": "agentflow-studio",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Local AI project orchestration hub for Claude Code, Codex, Cursor and more",
   "main": "dist-electron/main/index.js",
   "author": "AgentFlow Studio",

@@ -46,6 +46,10 @@ Bring AgentFlowStudio to a stable beginner-friendly deliverable with verified st
 - 2026-05-09 14:00: Final regression suite PASS: `typecheck`, `lint`, `smoke`, `verify`, `test`, `build`, `test:launch-static`, `test:static-browser`, `test:e2e`, and `test:electron-startup`. Follow-up after script robustness tweak: `node --check` for new scripts PASS, `npm.cmd run test:e2e` PASS, short `npm.cmd run test:long-run` PASS.
 - 2026-05-09 14:09: Created release commit (to be identified by `v1.1.0` tag target) (`fix: stabilize AgentFlowStudio v1.1.0`). Annotated tag and GitHub push are next.
 - 2026-05-09 14:12: Created annotated tag `v1.1.0`, pushed branch `codex-static-quality-pass`, and pushed tag `v1.1.0` to GitHub.
+- 2026-05-09 22:00: Continuation run started after user requested `继续长时间任务`. Baseline rechecked: branch `codex-static-quality-pass`, HEAD `97e37f7473f67a6ac41d25f2ac1f5f3e4200f691`, tag `v1.1.0`, remote `origin`, worktree clean. Next action is an additional long-run stability pass using `npm.cmd run test:long-run`.
+- 2026-05-09 15:20: Continuation `npm.cmd run test:long-run` PASS for 30.04 minutes. Static fallback visited Dashboard, Projects, Prompt Lab, Log Analyzer, SafetyBox, Shared Memory Hub, and Settings across 31 samples; no console errors, page errors, network failures, process crash, or JS heap growth.
+- 2026-05-09 15:21: Version bumped to `1.1.1` for the continuation stability evidence. Release documentation, CHANGELOG, validation, and final summary are being updated before regression checks, commit, annotated tag, and GitHub push.
+- 2026-05-09 15:30: Continuation regression PASS: `typecheck`, `lint`, `smoke`, `verify`, `test`, `build`, `test:launch-static`, `test:static-browser`, `test:e2e`, and `test:electron-startup`. Static browser smoke re-confirmed Liquid Glass blur, core navigation, persistence, redaction, 1024x680 layout, and no console/page/network errors.
 
 ## Recovery Point
-All requested phases are complete. Release commit is the `v1.1.0` tag target; a follow-up documentation commit records completed push status.
+Continuation stability evidence for `v1.1.1` has passed and regression checks are complete. Resume from git finalization if interrupted: `git status -sb`, `git diff`, commit, annotated tag `v1.1.1`, push branch, push tag.

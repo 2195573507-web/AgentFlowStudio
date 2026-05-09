@@ -6,7 +6,7 @@
 - Starting commit: `fb442d686b21c993887c0d60c5c3a3a107d21d5d`
 
 ## Long-Run Runs
-No long-run test has started yet in this session. The first run will record command, start/end time, duration, visited pages, checked features, issues, fixes, and conclusion.
+Completed runs are listed below. Each run records command, start/end time, duration, visited pages, checked features, issues, fixes, and conclusion.
 
 ## 2026-05-09T05:19:29.374Z Static Fallback Long-Run
 
@@ -60,4 +60,22 @@ No long-run test has started yet in this session. The first run will record comm
 - Network failures:
 - Process crashed: no
 - Memory conclusion: JS heap delta 0.00 MB across 4 samples.
+- Final conclusion: PASS: no crash, disconnect, serious browser error, network failure, or obvious memory anomaly observed.
+
+## 2026-05-09T06:50:35.889Z Static Fallback Long-Run
+
+- Startup command: `node scripts/static-server.js static-app 4173`
+- Start time: 2026-05-09T06:50:35.889Z
+- End time: 2026-05-09T07:20:38.267Z
+- Duration: 30.04 minutes
+- Visited pages: Dashboard, Projects, Prompt Lab, Log Analyzer, SafetyBox, Shared Memory Hub, Settings
+- Verified functions: HTTP availability; page navigation; language/theme shell load; static server process liveness; browser console/page/network error collection; heap sampling
+- Result JSON: `D:\AgentFlowStudio\.codex-parallel\results\long-run-static-20260509065035.json`
+- Screenshot: `D:\AgentFlowStudio\.codex-parallel\results\long-run-static-20260509065035.png`
+- Server log: `D:\AgentFlowStudio\.codex-parallel\logs\long-run-static-server-20260509065035.log`
+- Console errors: 
+- Page errors: 
+- Network failures: 
+- Process crashed: no
+- Memory conclusion: JS heap delta 0.00 MB across 31 samples.
 - Final conclusion: PASS: no crash, disconnect, serious browser error, network failure, or obvious memory anomaly observed.

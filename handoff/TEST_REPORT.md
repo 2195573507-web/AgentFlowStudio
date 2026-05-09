@@ -1,5 +1,34 @@
 # AgentFlow Studio - Test Report
 
+## Continuation Stability Release 1.1.1 - 2026-05-09
+
+Baseline commit: `97e37f7473f67a6ac41d25f2ac1f5f3e4200f691`
+
+Branch: `codex-static-quality-pass`
+
+### Latest Continuation Results
+
+| Check | Status | Details |
+|---|---:|---|
+| `npm.cmd run test:long-run` | PASS | Additional 30.04-minute static fallback run, 31 samples, no crash, disconnect, console error, page error, network failure, or heap growth. |
+| `npm.cmd run typecheck` | PASS | TypeScript checks passed at `1.1.1`. |
+| `npm.cmd run lint` | PASS | 0 errors, 36 existing warnings under configured threshold. |
+| `npm.cmd run smoke` | PASS | 117/117 checks passed. |
+| `npm.cmd run verify` | PASS | 99/99 build completeness checks passed, then smoke passed. |
+| `npm.cmd run test` | PASS | Vitest: 9 files, 109 tests passed. |
+| `npm.cmd run build` | PASS | Renderer and Electron build passed; existing Charts chunk-size warning only. |
+| `npm.cmd run test:launch-static` | PASS | Static launcher, HTTP 200, localized keywords, and server liveness verified. |
+| `npm.cmd run test:static-browser` | PASS | Navigation, persistence, redaction, Liquid Glass blur, layout, and console/network/page errors verified. |
+| `npm.cmd run test:e2e` | PASS | Playwright React web suite: 5/5 passed. |
+| `npm.cmd run test:electron-startup` | PASS | Electron ready marker captured with project-local userData. |
+
+### Continuation Notes
+
+- Result JSON: `D:\AgentFlowStudio\.codex-parallel\results\long-run-static-20260509065035.json`
+- Screenshot: `D:\AgentFlowStudio\.codex-parallel\results\long-run-static-20260509065035.png`
+- Server log: `D:\AgentFlowStudio\.codex-parallel\logs\long-run-static-server-20260509065035.log`
+- Version files are bumped to `1.1.1`; source code behavior is unchanged from the verified `v1.1.0` release.
+
 ## Stability Release 1.1.0 - 2026-05-09
 
 Baseline commit: `fb442d686b21c993887c0d60c5c3a3a107d21d5d`

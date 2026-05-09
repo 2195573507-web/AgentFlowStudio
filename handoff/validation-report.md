@@ -4,7 +4,16 @@
 - Date: 2026-05-09
 - Branch: `codex-static-quality-pass`
 - Starting commit: `fb442d686b21c993887c0d60c5c3a3a107d21d5d`
-- Version under validation: `1.1.0`
+- Version under validation: `1.1.1`
+
+## Continuation Validation - 2026-05-09
+
+| Area | Method | Status | Notes / Fix |
+|---|---|---:|---|
+| Git baseline | `git status -sb`, branch, HEAD, remote, tag check | PASS | Continued from clean `v1.1.0` release state on `codex-static-quality-pass`, HEAD `97e37f7473f67a6ac41d25f2ac1f5f3e4200f691`. |
+| Static fallback long-run | `npm.cmd run test:long-run` | PASS | 30.04 minutes, 31 samples, pages Dashboard/Projects/Prompt Lab/Log Analyzer/SafetyBox/Shared Memory Hub/Settings, no crash/errors/network failures, JS heap delta 0.00 MB. |
+| Handoff recovery | `current-progress.md`, `long-run-test-log.md`, `final-summary.md` update | PASS | Continuation progress and result paths recorded for recovery. |
+| Regression after version bump | `typecheck`, `lint`, `smoke`, `verify`, `test`, `build`, static launch/browser, E2E, Electron startup | PASS | All commands passed at `1.1.1`; lint still has 36 existing warnings under the configured gate; build has existing Charts chunk-size warning only. |
 
 ## Validation Matrix
 
@@ -44,4 +53,4 @@
 - Some features are intentionally local-only or fallback/demo based in web/static mode; real file/git/native operations remain IPC-backed in Electron.
 
 ## Current Result
-All requested core usability, startup, fallback, security, UI, and long-run validations have passed. Final commit/tag/push is still pending at the time this report section was written.
+All requested core usability, startup, fallback, security, UI, and long-run validations have passed. The continuation release is ready for commit/tag/push finalization.
