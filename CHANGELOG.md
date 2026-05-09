@@ -6,8 +6,8 @@
 - Branch: `codex-static-quality-pass`
 - Starting commit: `fb442d686b21c993887c0d60c5c3a3a107d21d5d`
 - Final commit: `v1.1.0 tag target / release HEAD`
-- Tag: pending `v1.1.0`
-- Push status: pending
+- Tag: `v1.1.0` pushed
+- Push status: branch and tag pushed to GitHub
 
 ### Fixed
 - Fixed Electron production startup by replacing ESM-unsafe `__dirname` usage in the main process.
@@ -39,8 +39,8 @@
 - 30-minute long-run static fallback: PASS, 31 samples, no console errors, page errors, network failures, crashes, or heap growth.
 
 ### Push
-- GitHub branch push: pending
-- GitHub tag push: pending
+- GitHub branch push: complete (`codex-static-quality-pass`)
+- GitHub tag push: complete (`v1.1.0`)
 
 ## [1.0.0] - 2026-05-07
 

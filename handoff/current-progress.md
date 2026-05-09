@@ -22,7 +22,7 @@ Bring AgentFlowStudio to a stable beginner-friendly deliverable with verified st
 - Phase G - UI and beginner flow optimization: complete.
 - Phase H - Version records and handoff cleanup: complete.
 - Phase I - Final self-check: complete.
-- Phase J - Commit, annotated tag, push branch and tag: in progress.
+- Phase J - Commit, annotated tag, push branch and tag: complete.
 
 ## Running Notes
 - 2026-05-09 12:39: Read `AGENTS.md`, `README.md`, `package.json`, primary handoff files, and relevant memory. Current known stable path is static fallback, but all conclusions will be revalidated in this session.
@@ -45,6 +45,7 @@ Bring AgentFlowStudio to a stable beginner-friendly deliverable with verified st
 - 2026-05-09 14:05: Bumped version to `1.1.0` in `package.json`, `package-lock.json`, and `VERSION`. Updated `CHANGELOG.md`, `validation-report.md`, and `final-summary.md`; final commit/tag/push still pending.
 - 2026-05-09 14:00: Final regression suite PASS: `typecheck`, `lint`, `smoke`, `verify`, `test`, `build`, `test:launch-static`, `test:static-browser`, `test:e2e`, and `test:electron-startup`. Follow-up after script robustness tweak: `node --check` for new scripts PASS, `npm.cmd run test:e2e` PASS, short `npm.cmd run test:long-run` PASS.
 - 2026-05-09 14:09: Created release commit (to be identified by `v1.1.0` tag target) (`fix: stabilize AgentFlowStudio v1.1.0`). Annotated tag and GitHub push are next.
+- 2026-05-09 14:12: Created annotated tag `v1.1.0`, pushed branch `codex-static-quality-pass`, and pushed tag `v1.1.0` to GitHub.
 
 ## Recovery Point
-Implementation, validation, long-run testing, version files, handoff reports, and final commit are complete. Resume at Phase J: create annotated tag `v1.1.0`, push branch, push tag, then update `CHANGELOG.md` and `final-summary.md` with push status if not already done.
+All requested phases are complete. Release commit is the `v1.1.0` tag target; a follow-up documentation commit records completed push status.

@@ -5,9 +5,9 @@
 - Branch: `codex-static-quality-pass`
 - Starting commit: `fb442d686b21c993887c0d60c5c3a3a107d21d5d`
 - Final commit: `v1.1.0 tag target / release HEAD`
-- Tag: pending `v1.1.0`
-- Branch push: pending
-- Tag push: pending
+- Tag: `v1.1.0` pushed
+- Branch push: complete (`codex-static-quality-pass`)
+- Tag push: complete (`v1.1.0`)
 
 ## What Changed
 - Fixed real Electron startup failure caused by ESM `__dirname` usage in the built main process.
@@ -44,7 +44,7 @@
 - Result file: `D:\AgentFlowStudio\.codex-parallel\results\long-run-static-20260509052011.json`
 
 ## Current Status
-Implementation, validation, long-run testing, version records, and final commit are complete. Annotated tag, branch push, and tag push are pending.
+Implementation, validation, long-run testing, version records, release commit, annotated tag, branch push, and tag push are complete.
 
 ## Residual Risk
 - Lint still reports 36 warnings from the existing codebase, but the configured lint gate passes.
