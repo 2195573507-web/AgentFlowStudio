@@ -705,6 +705,54 @@ button {
   font-size: 13px;
 }
 
+.compact-fields {
+  gap: 12px;
+}
+
+.run-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.run-card {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.38);
+}
+
+[data-theme="dark"] .run-card {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.run-card h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.run-card p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.run-card pre {
+  max-height: 150px;
+  margin: 10px 0;
+  padding: 10px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(12, 17, 27, 0.86);
+  color: #e8f0ff;
+  white-space: pre-wrap;
+  font-family: "Cascadia Code", Consolas, "Microsoft YaHei UI", monospace;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
 .risk-high,
 .risk-critical {
   color: var(--danger);

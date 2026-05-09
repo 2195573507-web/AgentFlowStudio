@@ -3,7 +3,7 @@ import { classNames } from '../lib/utils';
 
 export type GlassCardPadding = 'none' | 'sm' | 'md' | 'lg';
 
-export interface GlassCardProps {
+export interface GlassCardProps extends Omit<React.HTMLAttributes<HTMLElement>, 'onClick'> {
   /** Card content. */
   children: React.ReactNode;
   /** Additional className applied to the card wrapper. */
@@ -29,12 +29,14 @@ const GlassCard: React.FC<GlassCardProps> = ({
   onClick,
   hoverable = false,
   padding = 'lg',
+  ...rest
 }) => {
   if (onClick) {
     return (
       <button
         type="button"
         onClick={onClick as React.MouseEventHandler<HTMLButtonElement>}
+        {...rest}
         className={classNames(
           'liquid-glass-card liquid-focus',
           // Padding
@@ -55,6 +57,7 @@ const GlassCard: React.FC<GlassCardProps> = ({
 
   return (
     <div
+      {...rest}
       className={classNames(
         'liquid-glass-card',
         // Padding

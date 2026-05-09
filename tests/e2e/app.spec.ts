@@ -102,6 +102,64 @@ test.describe('AgentFlow Studio React web entry', () => {
     await expect(page.getByText(/\[Shared Memory Context\]|Build|实现|分析/).first()).toBeVisible()
   })
 
+  test('records a safe Agent run on project detail', async ({ page }) => {
+    await page.evaluate(() => {
+      const project = {
+        id: 'demo-1',
+        name: 'AI 聊天助手',
+        idea: '验证 Project Detail 的 Agent 执行记录面板。',
+        platform: 'Desktop',
+        techStack: 'Electron, React, TypeScript',
+        uiStyle: 'Liquid Glass',
+        difficulty: 'Medium',
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+      const runs: Array<Record<string, string>> = []
+      Object.defineProperty(window, 'agentflow', {
+        configurable: true,
+        value: {
+        projects: {
+          get: async () => project,
+        },
+        tasks: {
+          list: async () => [],
+        },
+        memory: {
+          list: async () => [],
+        },
+        runs: {
+          list: async () => runs,
+          create: async (run: Record<string, string>) => {
+            const created = { ...run, id: `run-${runs.length + 1}` }
+            runs.unshift(created)
+            return created
+          },
+        },
+        },
+      })
+    })
+
+    await page.goto('/#/projects/demo-1', { waitUntil: 'networkidle' })
+    await expect(page).toHaveURL(/#\/projects\/demo-1/)
+    const panel = page.getByTestId('agent-run-panel')
+    await expect(panel.getByRole('heading', { name: 'Agent 执行记录' })).toBeVisible()
+    await expect(panel.getByText('不会执行任何命令')).toBeVisible()
+
+    await panel.getByLabel('执行标题').fill('E2E Agent 运行记录')
+    await panel.getByLabel('工具').selectOption('Codex')
+    await panel.getByLabel('状态').selectOption('success')
+    await panel.getByLabel('结果摘要').fill('浏览器测试保存了一条本地执行记录。')
+    await panel.getByLabel('关键日志').fill('npm.cmd run test:e2e passed for run panel.')
+    await panel.getByRole('button', { name: '保存执行记录' }).click()
+
+    await expect(panel.getByText('执行记录已保存')).toBeVisible()
+    const savedRun = panel.getByRole('article').filter({ hasText: 'E2E Agent 运行记录' })
+    await expect(savedRun.getByRole('heading', { name: 'E2E Agent 运行记录' })).toBeVisible()
+    await expect(savedRun.getByText('已完成')).toBeVisible()
+  })
+
   test('has no serious browser errors on first run', async ({ page }) => {
     const collected = await page.locator('body').evaluate((body) => ({
       consoleErrors: JSON.parse(body.dataset.consoleErrors ?? '[]'),

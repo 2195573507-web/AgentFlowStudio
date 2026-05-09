@@ -150,6 +150,10 @@ const statusLabels = {
   planning: '规划中',
   paused: '已暂停',
   done: '已完成',
+  planned: '待执行',
+  running: '运行中',
+  success: '已完成',
+  failed: '失败',
   todo: '待办',
   doing: '进行中',
   blocked: '受阻',
@@ -262,6 +266,16 @@ function defaultState() {
           { id: uid('task'), title: '生成 static-app 静态降级版', status: 'doing' },
           { id: uid('task'), title: '重建桌面快捷方式并验证 HTTP', status: 'todo' },
           { id: uid('task'), title: '更新 handoff 测试报告', status: 'blocked' },
+        ],
+        agentRuns: [
+          {
+            id: uid('run'),
+            tool: 'Codex',
+            status: 'success',
+            summary: '建立静态 fallback 交付路径，保留本地优先和中文界面。',
+            log: '记录启动脚本、静态页面和本机 localStorage 数据路径；未执行远程操作。',
+            createdAt: nowIso(),
+          },
         ],
       },
       {
@@ -703,6 +717,16 @@ function renderProjectDetail() {
     ['blocked', '受阻'],
     ['done', '已完成'],
   ];
+  const runStatuses = [
+    ['planned', '待执行'],
+    ['running', '运行中'],
+    ['success', '已完成'],
+    ['failed', '失败'],
+    ['blocked', '受阻'],
+  ];
+  const recentRuns = [...(project.agentRuns || [])]
+    .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+    .slice(0, 6);
   return shell(`
     <section class="grid two-col">
       <div class="panel">
@@ -754,6 +778,51 @@ function renderProjectDetail() {
         <button class="btn small" type="button" data-copy-project-prompt>复制</button>
       </div>
       <pre class="output">${escapeHtml(projectPrompt(project))}</pre>
+    </section>
+    <section class="grid two-col" style="margin-top:16px">
+      <div class="panel">
+        <div class="section-title">
+          <div><h2>Agent 运行记录</h2><p>只记录本地协作过程，不执行命令，不上传数据。</p></div>
+          <span class="tag">${recentRuns.length} 条最近记录</span>
+        </div>
+        <form class="grid" data-form="agent-run">
+          <div class="grid two-col compact-fields">
+            ${field('runTool', '工具 / Agent', '', 'text', '例如：Codex、Claude Code、Cursor')}
+            ${select('runStatus', '状态', 'success', runStatuses.map(([value, label]) => ({ value, label })))}
+          </div>
+          ${field('runSummary', '摘要', '', 'text', '例如：完成静态详情页记录面板')}
+          <div class="field">
+            <label for="runLog">日志 / 备注</label>
+            <textarea id="runLog" name="runLog" placeholder="粘贴关键日志、验证结果或接手说明。敏感信息会按现有规则脱敏。"></textarea>
+          </div>
+          <div class="row">
+            <button class="btn primary" type="submit">保存运行记录</button>
+            <span class="subtle">保存到当前浏览器 localStorage。</span>
+          </div>
+        </form>
+      </div>
+      <div class="panel">
+        <div class="section-title"><h2>最近运行</h2><span class="tag">Local only</span></div>
+        <div class="run-list">
+          ${recentRuns
+            .map(
+              (run) => `
+                <article class="run-card">
+                  <div class="spread">
+                    <div>
+                      <h3>${escapeHtml(run.tool || '未命名 Agent')}</h3>
+                      <p>${escapeHtml(run.summary || '暂无摘要')}</p>
+                    </div>
+                    ${statusBadge(run.status || 'success')}
+                  </div>
+                  ${run.log ? `<pre>${escapeHtml(run.log)}</pre>` : ''}
+                  <div class="subtle">${formatDate(run.createdAt)}</div>
+                </article>
+              `,
+            )
+            .join('') || '<div class="empty">暂无运行记录</div>'}
+        </div>
+      </div>
     </section>
   `);
 }
@@ -1293,6 +1362,25 @@ function onSubmit(event) {
     saveState();
     render();
     toast('任务已保存');
+  }
+
+  if (form.dataset.form === 'agent-run') {
+    const project = selectedProject();
+    if (!project) return;
+    project.agentRuns = project.agentRuns || [];
+    project.agentRuns.unshift(redactDeep({
+      id: uid('run'),
+      tool: data.runTool || '未命名 Agent',
+      status: data.runStatus || 'success',
+      summary: data.runSummary || '暂无摘要',
+      log: data.runLog || '',
+      createdAt: nowIso(),
+    }));
+    project.agentRuns = project.agentRuns.slice(0, 30);
+    project.updatedAt = nowIso();
+    saveState();
+    render();
+    toast('运行记录已保存');
   }
 
   if (form.dataset.form === 'prompt') {

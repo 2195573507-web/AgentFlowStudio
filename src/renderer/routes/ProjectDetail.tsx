@@ -13,6 +13,7 @@ import {
   Sparkles,
   Download,
   Brain,
+  ClipboardList,
   Copy,
   Check,
   Code2,
@@ -24,16 +25,14 @@ import {
   RefreshCw,
   ChevronRight,
   Lightbulb,
-  Wand2,
-  CpuIcon,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { generateProjectPlan } from '../lib/planner';
 import { injectMemoryIntoPrompt, generateSharedMemoryContext } from '../lib/memoryInjection';
 import { exportProjectPlanToMarkdown } from '../lib/exporters';
-import { GlassCard, Badge, Button, EmptyState, TaskBoard, EmptyState as EmptyStateComp } from '../components/';
+import { GlassCard, Badge, Button, Input, Textarea, TaskBoard } from '../components/';
 import type {
-  Project, ProjectPlan, Task, Memory, MemoryInjectionMode, MemoryType,
+  Project, ProjectPlan, Task, Run, Memory, MemoryInjectionMode, MemoryType,
 } from '../lib/types';
 import { formatDate, formatRelativeDate, copyToClipboard, classNames } from '../lib/utils';
 
@@ -247,6 +246,20 @@ const STATUS_MAP: Record<string, { label: string; color: string }> = {
   done: { label: '已完成', color: 'bg-zinc-500/20 text-zinc-300 border-zinc-500/30' },
 };
 
+const RUN_TOOL_OPTIONS = ['Codex', 'Claude Code', 'Cursor', 'ChatGPT', 'Other'];
+
+const RUN_STATUS_OPTIONS = [
+  { value: 'planned', label: '待执行', variant: 'default' as const },
+  { value: 'running', label: '执行中', variant: 'info' as const },
+  { value: 'success', label: '已完成', variant: 'success' as const },
+  { value: 'failed', label: '失败', variant: 'danger' as const },
+  { value: 'blocked', label: '受阻', variant: 'warning' as const },
+];
+
+function getRunStatusInfo(status: string) {
+  return RUN_STATUS_OPTIONS.find((item) => item.value === status) || RUN_STATUS_OPTIONS[0];
+}
+
 // ── Component ──────────────────────────────────────────────────────────────
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -255,6 +268,7 @@ export default function ProjectDetail() {
   const [project, setProject] = useState<Project | null>(null);
   const [plan, setPlan] = useState<ProjectPlan | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [runs, setRuns] = useState<Run[]>([]);
   const [memories, setMemories] = useState<Memory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -265,6 +279,12 @@ export default function ProjectDetail() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [apiAvailable, setApiAvailable] = useState(true);
   const [memoryGenStatus, setMemoryGenStatus] = useState<string | null>(null);
+  const [runTitle, setRunTitle] = useState('下一轮 Agent 执行');
+  const [runTool, setRunTool] = useState('Codex');
+  const [runStatus, setRunStatus] = useState('planned');
+  const [runSummary, setRunSummary] = useState('');
+  const [runLog, setRunLog] = useState('');
+  const [runSaveStatus, setRunSaveStatus] = useState<string | null>(null);
 
   // ── Fetch ──────────────────────────────────────────────────────────────
   const fetchProject = useCallback(async () => {
@@ -274,12 +294,16 @@ export default function ProjectDetail() {
     try {
       let proj: Project | null | undefined;
       let taskList: Task[] = [];
+      let runList: Run[] = [];
       let memList: Memory[] = [];
 
       if (api && typeof api.projects?.get === 'function') {
         proj = await api.projects.get(id);
         if (api.tasks?.listByProject) {
           taskList = await api.tasks.listByProject(id);
+        }
+        if (api.runs?.list) {
+          runList = await api.runs.list(id);
         }
         if (api.memory?.listByProject) {
           memList = await api.memory.listByProject(id);
@@ -289,6 +313,7 @@ export default function ProjectDetail() {
         setApiAvailable(false);
         proj = DEMO_PROJECT.id === id ? DEMO_PROJECT : undefined;
         taskList = DEMO_PLAN.tasks.filter((t) => t.projectId === id);
+        runList = [];
         memList = [];
       }
 
@@ -300,6 +325,7 @@ export default function ProjectDetail() {
 
       setProject(proj);
       setTasks(Array.isArray(taskList) ? taskList : DEMO_PLAN.tasks);
+      setRuns(Array.isArray(runList) ? runList : []);
       setMemories(Array.isArray(memList) ? memList : []);
 
       // If demo, show plan
@@ -314,6 +340,7 @@ export default function ProjectDetail() {
         setProject(DEMO_PROJECT);
         setPlan(DEMO_PLAN);
         setTasks(DEMO_PLAN.tasks);
+        setRuns([]);
         setApiAvailable(false);
       }
     } finally {
@@ -379,6 +406,48 @@ export default function ProjectDetail() {
     } catch (err: any) {
       setMemoryGenStatus('创建失败');
       setTimeout(() => setMemoryGenStatus(null), 2000);
+    }
+  };
+
+  // ── Record agent run ────────────────────────────────────────────────────
+  const handleCreateRun = async () => {
+    if (!project) return;
+    const title = runTitle.trim();
+    if (!title) {
+      setRunSaveStatus('请先填写执行标题');
+      setTimeout(() => setRunSaveStatus(null), 2200);
+      return;
+    }
+
+    const payload: Omit<Run, 'id'> = {
+      projectId: project.id,
+      title,
+      tool: runTool,
+      status: runStatus,
+      summary: runSummary.trim(),
+      log: runLog.trim(),
+      createdAt: new Date().toISOString(),
+    };
+
+    try {
+      const created = await api.runs.create(payload);
+      const normalized: Run = {
+        ...payload,
+        ...created,
+        id: created.id || `local-${Date.now()}`,
+      };
+      setRuns((current) => [normalized, ...current.filter((run) => run.id !== normalized.id)]);
+      setRunTitle('下一轮 Agent 执行');
+      setRunTool('Codex');
+      setRunStatus('planned');
+      setRunSummary('');
+      setRunLog('');
+      setRunSaveStatus('执行记录已保存');
+    } catch (err: any) {
+      console.error('Create run record error:', err);
+      setRunSaveStatus(err?.message || '保存失败，请稍后重试');
+    } finally {
+      setTimeout(() => setRunSaveStatus(null), 2400);
     }
   };
 
@@ -587,6 +656,141 @@ export default function ProjectDetail() {
           </button>
         </GlassCard>
       )}
+
+      {/* Agent run record */}
+      <GlassCard className="p-6" data-testid="agent-run-panel">
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
+          <div>
+            <div className="flex items-center gap-2">
+              <ClipboardList className="w-5 h-5 text-accent-400" />
+              <h2 className="text-base font-semibold text-slate-900 dark:text-zinc-100">
+                Agent 执行记录
+              </h2>
+            </div>
+            <p className="text-sm text-slate-600 dark:text-zinc-400 mt-1 max-w-2xl">
+              记录 Codex、Claude Code、Cursor 或 ChatGPT 的执行结果，便于下一轮接手。这里只保存本地日志，不会执行任何命令。
+            </p>
+          </div>
+          <Badge variant={apiAvailable ? 'success' : 'warning'} dot>
+            {apiAvailable ? '本地存储已连接' : '演示模式'}
+          </Badge>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.82fr)]">
+          <div className="space-y-4">
+            <Input
+              label="执行标题"
+              value={runTitle}
+              onChange={(event) => setRunTitle(event.target.value)}
+              placeholder="例如：修复设置页 API 错误提示"
+            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="run-tool" className="text-xs font-medium text-slate-600 dark:text-slate-400 tracking-wide uppercase">
+                  工具
+                </label>
+                <select
+                  id="run-tool"
+                  value={runTool}
+                  onChange={(event) => setRunTool(event.target.value)}
+                  className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-surface)] px-3.5 py-2.5 text-sm text-slate-800 shadow-[var(--glass-inner)] outline-none backdrop-blur-md transition-all duration-200 focus:border-accent-400/70 focus:ring-2 focus:ring-accent-400/60 dark:text-slate-100"
+                >
+                  {RUN_TOOL_OPTIONS.map((tool) => (
+                    <option key={tool} value={tool}>{tool}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="run-status" className="text-xs font-medium text-slate-600 dark:text-slate-400 tracking-wide uppercase">
+                  状态
+                </label>
+                <select
+                  id="run-status"
+                  value={runStatus}
+                  onChange={(event) => setRunStatus(event.target.value)}
+                  className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-surface)] px-3.5 py-2.5 text-sm text-slate-800 shadow-[var(--glass-inner)] outline-none backdrop-blur-md transition-all duration-200 focus:border-accent-400/70 focus:ring-2 focus:ring-accent-400/60 dark:text-slate-100"
+                >
+                  {RUN_STATUS_OPTIONS.map((status) => (
+                    <option key={status.value} value={status.value}>{status.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <Textarea
+              label="结果摘要"
+              value={runSummary}
+              onChange={(event) => setRunSummary(event.target.value)}
+              placeholder="一句话说明完成内容、卡点或下一步"
+              className="min-h-[92px]"
+            />
+            <Textarea
+              label="关键日志"
+              value={runLog}
+              onChange={(event) => setRunLog(event.target.value)}
+              placeholder="粘贴关键错误、测试结果或人工观察，不要粘贴密钥"
+              className="min-h-[132px] font-mono"
+            />
+            <div className="flex flex-wrap items-center gap-3">
+              <Button onClick={handleCreateRun} icon={<ClipboardList className="w-4 h-4" />}>
+                保存执行记录
+              </Button>
+              {runSaveStatus && (
+                <span className="text-xs text-emerald-500 dark:text-emerald-400">
+                  {runSaveStatus}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-surface)] p-4 shadow-[var(--glass-inner)] backdrop-blur-md">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h3 className="text-sm font-semibold text-slate-800 dark:text-zinc-200">
+                最近执行
+              </h3>
+              <Badge variant="info">{runs.length} 条</Badge>
+            </div>
+            {runs.length ? (
+              <div className="space-y-3 max-h-[430px] overflow-y-auto pr-1">
+                {runs.slice(0, 6).map((run) => {
+                  const status = getRunStatusInfo(run.status);
+                  return (
+                    <article
+                      key={run.id}
+                      className="rounded-xl border border-white/10 bg-white/45 p-3 shadow-sm backdrop-blur-sm dark:bg-zinc-950/35"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h4 className="truncate text-sm font-semibold text-slate-900 dark:text-zinc-100">
+                            {run.title}
+                          </h4>
+                          <p className="mt-1 text-xs text-slate-500 dark:text-zinc-500">
+                            {run.tool} · {formatRelativeDate(run.createdAt)}
+                          </p>
+                        </div>
+                        <Badge variant={status.variant}>{status.label}</Badge>
+                      </div>
+                      {run.summary && (
+                        <p className="mt-2 text-sm text-slate-600 dark:text-zinc-300">
+                          {run.summary}
+                        </p>
+                      )}
+                      {run.log && (
+                        <pre className="mt-2 max-h-28 overflow-y-auto whitespace-pre-wrap rounded-lg border border-white/10 bg-zinc-950/70 p-2 text-xs leading-relaxed text-zinc-200">
+                          {run.log}
+                        </pre>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-[var(--glass-border)] bg-white/30 p-5 text-sm text-slate-600 dark:bg-zinc-950/25 dark:text-zinc-400">
+                还没有执行记录。建议在每次 Agent 修改、测试或受阻后保存一条，下一轮就能直接接手。
+              </div>
+            )}
+          </div>
+        </div>
+      </GlassCard>
 
       {/* Tab Navigation */}
       {plan && (

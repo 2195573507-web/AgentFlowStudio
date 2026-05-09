@@ -12,15 +12,16 @@ Branch: `codex-liquid-glass-ui-agent-optimization`
 |---|---:|---|
 | `npm.cmd install` | PASS | Dependencies up to date; existing audit issues unchanged. |
 | `npm.cmd run typecheck` | PASS | TypeScript passed. |
-| `npm.cmd run lint` | PASS | 0 errors, 24 existing warnings under threshold. |
+| `npm.cmd run lint` | PASS | 0 errors, 25 existing warnings under threshold after concurrent ProjectDetail edits. |
 | `npm.cmd run smoke` | PASS | 132/132 checks passed, including Liquid Glass tokens and workflow lifecycle rail markers. |
 | `node --check static-app\app.js` | PASS | Static fallback JS syntax valid. |
-| `npm.cmd run test` | PASS | Vitest: 10 files, 113 tests passed. |
+| `npm.cmd run test -- tests/unit/apiRuns.test.ts` | PASS | New focused regression: 1 file, 3 tests passed for Agent run record create/list bridge behavior. |
+| `npm.cmd run test` | PASS | Vitest: 11 files, 116 tests passed. |
 | `npm.cmd run build` | PASS | Renderer and Electron build passed; existing Charts chunk-size warning only. |
 | `npm.cmd run test:launch-static` | PASS | Static fallback launch, HTTP 200, localized keywords, and static markers verified. |
-| `npm.cmd run test:static-browser` | PASS | Liquid Glass blur/shadow, next-step CTA, lifecycle rail, 1024x680, 390x844, persistence, redaction, and console/network/page errors verified. |
+| `npm.cmd run test:static-browser` | PASS | Liquid Glass blur/shadow, next-step CTA, lifecycle rail, Agent run record save flow, 1024x680, 390x844, persistence, redaction, and console/network/page errors verified. |
 | `npm.cmd run test:electron-startup` | PASS | Electron ready marker captured with project-local userData. |
-| `npm.cmd run test:e2e` | PASS after rerun | First concurrent local-service run hit `127.0.0.1:5173` connection refused; single rerun passed 6/6. |
+| `npm.cmd run test:e2e` | PASS | React Playwright suite passed 7/7, including ProjectDetail Agent run record save flow. Earlier parallel local-service run hit `127.0.0.1:5173` connection refused. |
 | `npm.cmd run verify` | PASS | 100/100 build completeness checks, then smoke 132/132. |
 
 ### Fixes Verified
@@ -30,14 +31,16 @@ Branch: `codex-liquid-glass-ui-agent-optimization`
 - Dashboard now tells users the next action and shows the AI collaboration lifecycle: Idea, Plan, Tasks, Prompt, Safety, Logs, Memory, Handoff.
 - Static fallback preserves the stable launcher while gaining the same onboarding rail.
 - Static browser smoke now covers mobile-width `390x844` no-horizontal-overflow checks.
+- Agent run record API regression now covers `api.runs.create()` and `api.runs.list()` against the namespaced preload bridge, legacy bridge fallback, and no-preload fallback.
+- ProjectDetail now has browser-click validation for saving a local-only Agent execution record.
 
 ### Remaining Work
 
-- Add ProjectDetail run-record panel using `api.runs` without arbitrary command execution.
 - Navigate newly created projects directly to detail and highlight plan generation.
 - Add Settings runtime status and provider test feedback.
 - Add Prompt Lab post-generation next actions.
 - Add i18n mojibake quality gate.
+- Harden E2E server lifecycle to avoid parallel `5173` contention.
 
 ## Continuation Stability Release 1.1.1 - 2026-05-09
 

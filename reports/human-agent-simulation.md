@@ -11,6 +11,8 @@ Used code review plus automated browser checks as the simulated user evidence:
 - Static browser smoke exercised first launch, navigation, project creation, Prompt Lab, Log Analyzer, SafetyBox, Shared Memory Hub, Settings, persistence, redaction, 1024x680, and 390x844.
 - React E2E exercised dashboard, navigation, quick actions, language/theme persistence, Prompt Lab, and browser error collection.
 - Electron startup smoke verified the Electron path still reaches ready state.
+- Focused unit regression now exercises Agent run record create/list behavior through `api.runs`, including preload and fallback paths.
+- React E2E and static browser smoke now both save a local-only Agent execution record from the UI.
 
 ## User 1: 完全新手
 
@@ -30,9 +32,9 @@ Used code review plus automated browser checks as the simulated user evidence:
 - 卡住的位置: 旧版没有把这些页面串成“工作流”。
 - UI/文案问题: 用户需要自己理解每个页面之间的关系。
 - 功能问题: 当前仍没有真正的内置 agent 执行器，本项目安全边界要求不暴露任意命令执行。
-- 建议修复: 先做生命周期轨和下一步，下一轮再用 `api.runs` 记录“外部 AI 工具执行记录”。
-- 是否已修复: 部分修复，流程入口已串联；运行记录面板待下一轮。
-- 回归测试结果: Static workflow creation and Prompt generation PASS。
+- 建议修复: 增加本地运行记录面板，用 `api.runs` 记录外部 AI 工具执行结果，但不执行命令。
+- 是否已修复: 已修复，React ProjectDetail 和 static fallback 都可保存 Agent 运行记录。
+- 回归测试结果: Static workflow creation, Agent run save, Prompt generation PASS；React E2E run-record save PASS。
 
 ## User 3: 高级用户
 
@@ -70,7 +72,14 @@ Used code review plus automated browser checks as the simulated user evidence:
 ## Remaining Feedback
 
 1. Project creation should navigate directly to Project Detail and highlight plan generation.
-2. Project Detail needs a safe “record Agent run” panel using existing `api.runs`, not arbitrary command execution.
-3. Settings needs runtime status and provider validation/test feedback.
-4. Prompt Lab needs post-generation next actions and optional run recording.
-5. Add i18n mojibake quality gate in unit tests.
+2. Settings needs runtime status and provider validation/test feedback.
+3. Prompt Lab needs post-generation next actions and optional run recording.
+4. Add i18n mojibake quality gate in unit tests.
+5. Harden E2E server lifecycle to avoid parallel `5173` contention.
+
+## Worker TestingDocs Addendum
+
+- Added `tests/unit/apiRuns.test.ts` to cover the Agent run record API contract without adding any arbitrary command execution path.
+- Regression scope: `api.runs.create()` and `api.runs.list()` through the namespaced preload bridge, legacy bridge fallback, and no-preload fallback.
+- Validation: `npm.cmd run test -- tests/unit/apiRuns.test.ts` PASS, `npm.cmd run test` PASS, `npm.cmd run lint` PASS with 25 warnings under the configured threshold, `npm.cmd run test:e2e` PASS 7/7, and `npm.cmd run test:static-browser` PASS.
+- Remaining manual simulation risk: provider connection testing and Settings runtime status still need a dedicated next pass.
