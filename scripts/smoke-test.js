@@ -146,6 +146,7 @@ check('nodeIntegration disabled', main.includes('nodeIntegration: false'))
 check('preload uses contextBridge', preload.includes('contextBridge.exposeInMainWorld'))
 check('preload uses ipcRenderer.invoke', preload.includes('ipcRenderer.invoke'))
 check('no exec exposure in preload', !/child_process|exec\(|spawn\(/.test(preload))
+check('demo seed avoids dangerous permission bypass', !main.includes('--dangerously-skip-permissions'))
 
 console.log('\n[Shared Memory Safety]')
 const secretRedaction = readText('src/renderer/lib/secretRedaction.ts')

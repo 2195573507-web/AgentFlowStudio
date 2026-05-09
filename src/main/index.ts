@@ -186,9 +186,9 @@ async function seedDemoDataIfNeeded(): Promise<void> {
     {
       id: 'demo-mem-1',
       type: 'user_preference',
-      title: 'Preferred AI tool is Claude Code',
-      content: 'The developer prefers using Claude Code for all agent-driven development tasks. Use Claude Code CLI with --dangerously-skip-permissions flag for trusted operations.',
-      tags: ['claude-code', 'ai-tool', 'preference'],
+      title: 'Preferred AI workflow is auditable local-first delivery',
+      content: 'The developer prefers agent-driven work that starts with a short plan, uses the smallest safe commands needed, records tests and risks, and keeps all project context local.',
+      tags: ['ai-tool', 'preference', 'safety'],
       projectId: '',
       providerScope: 'claude',
       modelScope: '',

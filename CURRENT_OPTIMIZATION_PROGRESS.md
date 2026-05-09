@@ -417,3 +417,134 @@
 - 是否继续下一轮：是
 - 继续原因：用户要求继续完成刚刚未做完的闭环，并且每轮 push 后继续下一轮。
 - 下一轮是否必须改代码：是
+
+## Round 4 - 2026-05-09 16:52:42 +08:00
+
+### 1. 本轮开始状态
+
+- 当前分支：`codex-static-quality-pass`
+- 当前 commit：`d0b3ce4` (`fix: align dashboard quick action routes`)
+- git status：本轮开始干净，跟踪 `origin/codex-static-quality-pass`
+- 当前主入口：Electron 主入口仍为 `dist-electron/main/index.js`，开发入口为 `npm.cmd run dev`
+- 当前 fallback 状态：static fallback 未改动，Round 3 已通过 static browser smoke
+- 当前 UI 状态：Dashboard 快捷入口主路由已对齐，E2E 6/6 通过
+- 当前 Liquid Glass 状态：未改动；static browser smoke 保持通过
+- 当前风险点：主进程 demo seed 中仍有会误导 AI 恢复上下文的危险权限跳过示例
+
+### 2. 本轮学习内容
+
+- 项目内部学习：
+  - 读取 Round 3 的“下一轮代码建议”，确认本轮按建议执行。
+  - 查看 `src/main/index.ts` 的 `seedDemoDataIfNeeded()`，确认 `demo-mem-1` 是初次无数据时写入的 Shared Memory 示例。
+  - 查看 `scripts/smoke-test.js` 的 Electron Security / Shared Memory Safety 检查区，确认适合加入 seed 安全守护。
+  - 确认本轮不改变用户已有数据，只影响新安装/空数据目录的 demo seed。
+- 相似项目/相似产品学习：
+  - local-first 工具的示例数据不应鼓励绕过权限或安全确认；示例会被新手和 AI 恢复上下文当成行为规范。
+  - 安全 guard 应放在 smoke 中，类似“禁止回归”的轻量政策测试。
+- 可借鉴设计思路：
+  - demo seed 应强调可审计、最小命令、测试记录、风险记录。
+  - 自动化测试要明确禁止危险字符串重新进入初始上下文。
+- 不采用的方案及原因：
+  - 不迁移或清理用户现有 data：这会碰用户数据，超出低风险范围。
+  - 不删除所有 demo memories：demo 对首次体验仍有价值。
+  - 不修改 Provider 默认值：本轮目标是危险内容移除，不扩大到设置策略。
+
+### 3. 本轮发现的问题
+
+- 问题 1：`demo-mem-1` 内容包含 `--dangerously-skip-permissions`，会鼓励跳过工具权限确认。
+- 问题 2：`demo-mem-1` 标题固定偏向 Claude Code，容易把示例偏好误认为用户真实偏好。
+- 问题 3：smoke 没有守护该危险字符串，未来可能被重新加入。
+
+### 4. 本轮拆分的小任务
+
+| 小任务 | 目标 | 涉及文件 | 风险等级 | 验证方式 | 回滚方式 | 是否适合 subagent |
+|---|---|---|---|---|---|---|
+| 清理危险 demo memory | 移除 `--dangerously-skip-permissions` 并改为安全工作流偏好 | `src/main/index.ts` | 低 | `typecheck`, `test:electron-startup` | `git revert` 本轮 commit | 是 |
+| 加 smoke 防回归 | 禁止危险权限跳过字符串重新进入主进程 seed | `scripts/smoke-test.js` | 低 | `smoke`, `verify` | `git revert` 本轮 commit | 是 |
+
+### 5. 本轮实际执行
+
+- 执行了哪些小任务：
+  - 将 `demo-mem-1` 标题改为 `Preferred AI workflow is auditable local-first delivery`。
+  - 将内容改为“先短计划、使用最小安全命令、记录测试和风险、上下文保持本地”。
+  - 将 tags 从 `claude-code, ai-tool, preference` 改为 `ai-tool, preference, safety`。
+  - 在 `scripts/smoke-test.js` 加入 `demo seed avoids dangerous permission bypass` 检查。
+- 为什么先做这些：
+  - 完全按 Round 3 下一轮建议执行。
+  - 这是 Shared Memory/Prompt 安全边界上的低风险真实代码改动。
+- 本轮真实代码更改是什么：
+  - 主进程 demo seed 文案安全化。
+  - smoke 安全检查增加一个防回归断言。
+- 修改了哪些代码文件：
+  - `src/main/index.ts`
+  - `scripts/smoke-test.js`
+- 修改了哪些文档文件：
+  - `CURRENT_OPTIMIZATION_PROGRESS.md`
+- 是否完成至少一个代码更改：是
+- 如果没有代码更改，为什么没有进入下一轮：不适用
+
+### 6. 本轮测试记录
+
+- 测试命令：
+  - `node --check .\scripts\smoke-test.js`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run smoke`
+  - `npm.cmd run test:electron-startup`
+  - `npm.cmd run verify`
+  - `npm.cmd run test`
+  - `npm.cmd run build`
+  - `npm.cmd run lint`
+  - `npm.cmd run test:e2e`
+- 测试结果：
+  - `node --check`：PASS
+  - `typecheck`：PASS
+  - `smoke`：PASS，120/120
+  - `test:electron-startup`：PASS，Electron ready marker captured
+  - `verify`：PASS，99/99 后 smoke 120/120
+  - `test`：PASS，9 files / 109 tests
+  - `build`：PASS；仍有既有 Charts chunk-size warning
+  - `lint`：PASS，0 errors / 36 existing warnings
+  - `test:e2e`：PASS，6/6
+- 是否通过：是
+- 是否发现新问题：没有发现本轮改动导致的新问题
+- 是否修复新问题：不需要
+- 是否需要继续测试：Round 5 若清理正则 lint warnings，建议跑 `lint`、`typecheck`、相关 unit tests、`smoke`、`build`
+
+### 7. Git 版本记录
+
+- 是否执行 git status：是
+- 是否执行 git add：待本记录追加后执行
+- 是否执行 git commit：待本记录追加后执行
+- commit hash：待提交
+- 是否执行 git push：待提交后执行
+- push 结果：待执行
+- 如果失败，失败原因和修复过程：暂无失败
+
+### 8. 下一轮代码建议
+
+- 下一轮必须落实的代码更改 1：清理 `src/shared/secretRedaction.ts` 中 ESLint 报告的无意义正则转义：`[a-zA-Z0-9_\-]`、`[a-zA-Z0-9_\-\.=:+/]`、`[0-9A-Za-z\-_]`。
+- 下一轮必须落实的代码更改 2：同步清理 `src/renderer/lib/memoryRetriever.ts` 中同类无意义正则转义，保持 secret 检测行为不变。
+- 下一轮必须落实的代码更改 3：运行 secret redaction 与 memory retriever 相关单测，确认安全检测不退化。
+- 建议原因：当前 lint 虽通过但有 36 个 warning；先清理无行为变化的 no-useless-escape warning，是低风险代码质量提升。
+- 预计涉及代码文件：
+  - `src/shared/secretRedaction.ts`
+  - `src/renderer/lib/memoryRetriever.ts`
+  - 可能无需改测试文件
+- 风险等级：低
+- 修改范围：只改正则字符类中的冗余转义，不改变正则匹配语义。
+- 推荐验证方式：
+  - `npm.cmd run lint`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run test -- --run tests/unit/secretRedaction.test.ts tests/unit/memoryRetriever.test.ts`
+  - `npm.cmd run smoke`
+  - `npm.cmd run build`
+- 回滚方式：`git revert <第五轮commit>`；如果未提交，恢复上述两个文件。
+- 是否适合 subagent 并行处理：适合；测试 subagent 可审查 warning 是否减少和 secret tests 是否覆盖。
+- 为什么下一轮应该做这个：它能降低 lint 噪声，增加后续 lint gate 的可读性，且不会触及 UI/启动/存储行为。
+- 预计 commit 信息：`chore: reduce secret regex lint noise`
+
+### 9. 是否继续
+
+- 是否继续下一轮：是
+- 继续原因：用户要求持续闭环优化；Round 5 必须完成真实代码改动。
+- 下一轮是否必须改代码：是
