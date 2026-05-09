@@ -29,3 +29,12 @@
 - React routes are wrapped in `ErrorBoundary`; React helper files `i18n.ts` and `theme.ts` were added.
 - `npm.cmd run test` and `npm.cmd run build` still fail at esbuild `spawn EPERM`; this is an environment limit rather than a Static fallback regression.
 - Playwright click verification could not run because the Chromium headless shell is not installed.
+
+## Launcher File Lock Finding
+
+- `start-agentflow-static.bat` used one fixed `logs\launcher-static.log` path for every run.
+- The batch file also redirected the long-running `node scripts\static-server.js` stdout/stderr into that same launcher log.
+- If a previous launcher/server window is still running, or Windows has not released the append handle yet, a new launcher run can fail while truncating, appending, or printing `launcher-static.log`.
+- The static server already maintains its own `logs\static-server.log`; launcher and server logs can be separated cleanly.
+- Fix implemented: launcher logs are now per run, static server logs are per run when launched through the batch file, and `launcher-static.log` is only a best-effort latest-copy file.
+- Regression result: with `logs\launcher-static.log` locked using exclusive `FileShare.None`, `start-agentflow-static.bat` still started and wrote `logs\launcher-static-20260508-191336-257.log` plus `logs\static-server-20260508-191336-257.log`.

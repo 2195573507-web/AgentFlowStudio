@@ -14,6 +14,7 @@ Starting from baseline commit `cec7dfb`, preserve the working Static fallback wh
 | 4. Integrate implementation | complete | Static fallback and React paths were updated without rebuilding or replacing the project. |
 | 5. Final verification | complete | Required commands and real launcher HTTP checks passed; test/build remain blocked by esbuild EPERM. |
 | 6. Handoff and commit | in_progress | Handoff files and `.codex-parallel\PARALLEL_SUMMARY.md` updated; commit is next. |
+| 7. Fix launcher log file locking | complete | Static launcher now uses per-run logs and no longer redirects the long-running server output into `launcher-static.log`; locked legacy log regression passed. |
 
 ## Acceptance Checklist
 
@@ -39,3 +40,4 @@ Starting from baseline commit `cec7dfb`, preserve the working Static fallback wh
 | `npm.cmd run test` failed at Vite/Vitest config load with esbuild `spawn EPERM`. | Post-change optional verification | Recorded as environment limitation; Static fallback verification is not blocked. |
 | `npm.cmd run build` failed at Vite config load with esbuild `spawn EPERM`. | Post-change optional verification | Recorded as environment limitation; Static fallback verification is not blocked. |
 | Playwright Chromium executable was missing. | Browser click check | Recorded as environment limitation; HTTP, launch-static, and Node VM static checks were used instead. |
+| `The process cannot access the file because it is being used by another process.` during static launch. | User-reported launcher run | Fixed by separating per-run launcher/server logs and avoiding shared launcher log redirection. Regression locked `logs\launcher-static.log` while launching and passed. |

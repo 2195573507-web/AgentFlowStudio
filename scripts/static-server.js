@@ -7,7 +7,9 @@ import { spawn } from 'node:child_process'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectDir = path.resolve(__dirname, '..')
 const logsDir = path.join(projectDir, 'logs')
-const logPath = path.join(logsDir, 'static-server.log')
+const logPath = process.env.AGENTFLOW_STATIC_LOG_PATH
+  ? path.resolve(process.env.AGENTFLOW_STATIC_LOG_PATH)
+  : path.join(logsDir, 'static-server.log')
 const host = process.env.HOST || '127.0.0.1'
 const preferredPort = Number(process.argv[3] || process.env.PORT || 4173)
 const portCandidates = [preferredPort, 4173, 4174, 4175, 4176, 4177]
@@ -41,16 +43,43 @@ const contentTypes = {
 
 let activeServer = null
 let activeRoot = null
+let logFileAvailable = true
 
 function ensureDir(dir) {
   fs.mkdirSync(dir, { recursive: true })
 }
 
 function log(message) {
-  ensureDir(logsDir)
   const line = `[${new Date().toISOString()}] ${message}`
   console.log(line)
-  fs.appendFileSync(logPath, `${line}\n`, 'utf8')
+  if (!logFileAvailable) {
+    return
+  }
+  try {
+    ensureDir(path.dirname(logPath))
+    fs.appendFileSync(logPath, `${line}\n`, 'utf8')
+  } catch (error) {
+    logFileAvailable = false
+    console.error(
+      `[${new Date().toISOString()}] Static server log disabled: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    )
+  }
+}
+
+function initializeLogFile() {
+  try {
+    ensureDir(path.dirname(logPath))
+    fs.writeFileSync(logPath, `[${new Date().toISOString()}] AgentFlow Studio static server log started\n`, 'utf8')
+  } catch (error) {
+    logFileAvailable = false
+    console.error(
+      `[${new Date().toISOString()}] Static server log disabled: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    )
+  }
 }
 
 function escapeHtml(value) {
@@ -326,8 +355,7 @@ process.on('unhandledRejection', (reason) => {
 process.on('SIGINT', () => shutdown('SIGINT'))
 process.on('SIGTERM', () => shutdown('SIGTERM'))
 
-ensureDir(logsDir)
-fs.writeFileSync(logPath, `[${new Date().toISOString()}] AgentFlow Studio 静态服务器日志开始\n`, 'utf8')
+initializeLogFile()
 log(`项目路径：${projectDir}`)
 activeRoot = selectStaticRoot()
 startServer()

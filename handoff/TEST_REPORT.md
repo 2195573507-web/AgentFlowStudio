@@ -26,9 +26,10 @@ IconLocation: D:\AgentFlowStudio\assets\icon.ico,0
 | Fresh agent workspace | PASS | Previous `.codex-parallel` archived to `handoff\archived-agents\run-20260508-173352`; new A-G task/log files created. |
 | New subagents | PASS | Six real subagents B-G were started; Agent A regression guard was run in the main thread. |
 | `npm.cmd run icon` | PASS | Regenerated `assets\icon.svg`, `assets\icon.png`, and `assets\icon.ico`. |
-| `npm.cmd run smoke` | PASS | Expanded static QA passed, 106/106 checks. |
+| `npm.cmd run smoke` | PASS | Expanded static QA passed, 111/111 checks, including launcher log-lock guards. |
 | `npm.cmd run typecheck` | PASS | `tsc --noEmit -p tsconfig.json` completed successfully. |
 | `npm.cmd run test:launch-static` | PASS | Starts `scripts\static-server.js`, returns HTTP 200, validates Chinese and English keywords, confirms process stays alive >5 seconds. |
+| Locked launcher log regression | PASS | Held `logs\launcher-static.log` open with an exclusive lock; `start-agentflow-static.bat` still started and wrote per-run launcher/server logs. |
 | `npm.cmd run shortcut` | PASS | Recreated/verified Desktop shortcut to the static launcher. |
 | Desktop shortcut COM verification | PASS | Target, working directory, and icon match the required Static fallback values. |
 | Real bat launch | PASS | `cmd /k start-agentflow-static.bat` stayed open after 15 seconds and wrote launcher/server logs. |
@@ -55,6 +56,7 @@ IconLocation: D:\AgentFlowStudio\assets\icon.ico,0
 - Recursive secret redaction now covers strings, arrays, objects, nested objects, circular references, key-aware fields, and export/injection paths.
 - React routes are wrapped in a route-level ErrorBoundary.
 - Static fallback catches page render errors and shows localized fallback actions.
+- Static launcher uses per-run `launcher-static-<timestamp>.log` and `static-server-<timestamp>.log` files, so an old open window or locked `launcher-static.log` no longer blocks startup.
 
 ### Environment Notes
 
@@ -68,6 +70,8 @@ IconLocation: D:\AgentFlowStudio\assets\icon.ico,0
 ```text
 D:\AgentFlowStudio\logs\launcher-static.log
 D:\AgentFlowStudio\logs\static-server.log
+D:\AgentFlowStudio\logs\launcher-static-<timestamp>.log
+D:\AgentFlowStudio\logs\static-server-<timestamp>.log
 D:\AgentFlowStudio\.codex-parallel\PARALLEL_SUMMARY.md
 D:\AgentFlowStudio\.codex-parallel\logs\
 ```

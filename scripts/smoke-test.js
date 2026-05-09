@@ -100,6 +100,14 @@ check('static-app/assets/icon.svg', fileExists('static-app/assets/icon.svg'))
 const staticIndex = readText('static-app/index.html')
 const staticApp = readText('static-app/app.js')
 const staticText = `${staticIndex}\n${staticApp}`
+const staticLauncher = readText('start-agentflow-static.bat')
+const staticServer = readText('scripts/static-server.js')
+const staticLaunchTest = readText('scripts/launch-static-test.js')
+check('static launcher uses per-run launcher log', staticLauncher.includes('launcher-static-%LAUNCH_ID%.log'))
+check('static launcher uses per-run server log', staticLauncher.includes('static-server-%LAUNCH_ID%.log'))
+check('static launcher does not redirect server output to launcher log', !staticLauncher.includes('static-server.js" >> "%LAUNCHER_LOG%"'))
+check('static server accepts custom log path', staticServer.includes('AGENTFLOW_STATIC_LOG_PATH'))
+check('static launch test uses isolated log path', staticLaunchTest.includes('static-server-test-') && staticLaunchTest.includes('AGENTFLOW_STATIC_LOG_PATH'))
 for (const keyword of ['仪表盘', '项目管理', '项目详情', '提示词实验室', '日志分析', '安全检查', '共享记忆中心', '技能管理', 'Git 时间线', '设置', '界面偏好', '浅色', '深色', '跟随系统']) {
   check(`static-app localized/${keyword}`, staticText.includes(keyword))
 }

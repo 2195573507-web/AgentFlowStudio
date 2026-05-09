@@ -37,7 +37,7 @@ const requiredEnglishKeywords = [
   'Dark',
   'System',
 ]
-const serverLogPath = path.join(root, 'logs', 'static-server.log')
+const serverLogPath = path.join(root, 'logs', `static-server-test-${Date.now()}.log`)
 
 let child = null
 let processOutput = ''
@@ -109,11 +109,10 @@ async function main() {
   }
 
   fs.mkdirSync(path.dirname(serverLogPath), { recursive: true })
-  fs.writeFileSync(serverLogPath, '', 'utf8')
 
   child = spawn(process.execPath, ['scripts/static-server.js', 'static-app', '4173'], {
     cwd: root,
-    env: { ...process.env, AGENTFLOW_NO_OPEN: '1' },
+    env: { ...process.env, AGENTFLOW_NO_OPEN: '1', AGENTFLOW_STATIC_LOG_PATH: serverLogPath },
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
   })

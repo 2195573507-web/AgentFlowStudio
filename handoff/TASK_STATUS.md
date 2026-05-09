@@ -16,7 +16,8 @@ Baseline commit: `cec7dfb fix: stabilize localized static launcher`
 | Shared Memory recovery Prompt | Complete | Recovery Prompt includes project name, current scheme, launch method, known limitation, next step, and redacted memory context. |
 | Recursive secret redaction | Complete | Shared redaction module handles nested arrays/objects, circular references, key-aware fields, exports, memory save, and injection paths. |
 | Route-level error handling | Complete | Static fallback has render try/catch with localized fallback; React routes use `ErrorBoundary`. |
-| Static QA expansion | Complete | `smoke` now has 106 checks; `launch-static` validates bilingual keywords and new static markers. |
+| Static QA expansion | Complete | `smoke` now has 111 checks; `launch-static` validates bilingual keywords and new static markers. |
+| Launcher log-lock fix | Complete | Static launcher writes per-run launcher/server logs and passed a regression with legacy `logs\launcher-static.log` held under an exclusive lock. |
 | Handoff docs | Complete | TEST_REPORT, TASK_STATUS, CODEX_HANDOFF, CURRENT_CONTEXT_FOR_ANY_MODEL, NEXT_CODEX_LOOP_PROMPT, and PARALLEL_SUMMARY updated. |
 
 ## Current Launch Entry

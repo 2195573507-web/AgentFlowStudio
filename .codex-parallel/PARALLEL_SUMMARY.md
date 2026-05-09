@@ -32,13 +32,14 @@ Shortcut COM verification still reports:
 ## Verification
 
 - `npm.cmd run icon`: PASS.
-- `npm.cmd run smoke`: PASS, 106/106.
+- `npm.cmd run smoke`: PASS, 111/111.
 - `npm.cmd run typecheck`: PASS.
 - `npm.cmd run test:launch-static`: PASS.
 - `npm.cmd run shortcut`: PASS.
 - Real `cmd /k start-agentflow-static.bat`: PASS after 15 seconds.
 - HTTP `http://127.0.0.1:4173`: PASS 200 with AgentFlow Studio, Chinese navigation, and English preference keywords.
 - PowerShell COM shortcut verification: PASS.
+- Locked legacy launcher log regression: PASS. `logs\launcher-static.log` was held open exclusively and the launcher still started using per-run launcher/server logs.
 
 ## Environment Limitation
 
