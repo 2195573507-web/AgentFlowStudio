@@ -72,3 +72,17 @@
 - Fixed E2E auth gating by adding authenticated preload mocks to existing app E2E tests.
 - Replaced renderer `i18n.ts` with valid UTF-8 translations to remove a Vite parse failure from historical mojibake.
 - Validation passed: `typecheck`, `test` 149/149, `test:e2e` 14/14, `lint` 0 errors / 28 warnings, `build`, and `smoke` 168/168.
+
+## 2026-05-10 Platform Security Hardening Round
+
+- Continued on `codex-liquid-glass-ui-agent-optimization` from `2087f56 feat: add authentication and admin management`.
+- Reused previous read-only security review findings and checked current diffs for session, RBAC, audit, timeline, MCP, static fallback, and mojibake coverage.
+- Confirmed renderer session state no longer stores raw `sessionToken`; preload sends only an auth envelope and main process resolves the active token.
+- Confirmed main-process guard blocks privileged IPC for users marked `mustChangePassword`.
+- Confirmed resource ACL helpers support owner/editor/viewer/admin semantics and are enforced for project/workflow-scoped resources.
+- Confirmed audit records include retention, hash-chain fields, integrity export, and run event timeline records.
+- Confirmed MCP allowlist IPC/storage is admin-gated.
+- Confirmed static fallback has launch token/cookie gating and loopback-only default host policy.
+- Confirmed mojibake scan exists as `npm.cmd run scan:mojibake` with legacy docs allowlisted.
+- Final validation passed: `typecheck`, `test` 155/155, `test:e2e` 14/14, `lint`, `build`, `test:electron-startup`, `test:launch-static`, `test:static-browser`, `smoke` 179/179, `verify`, and `scan:mojibake`.
+- Updated `PROJECT_PROGRESS.md`, `handoff/TEST_REPORT.md`, `task_plan.md`, and `progress.md` with this round's completed work and residual risks.

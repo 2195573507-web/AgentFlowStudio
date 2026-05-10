@@ -1,6 +1,7 @@
 import http from 'node:http'
 import fs from 'node:fs'
 import path from 'node:path'
+import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
 
@@ -29,6 +30,12 @@ const logPath = resolveProjectOwnedPath(
   path.join(logsDir, 'static-server.log'),
 )
 const host = process.env.HOST || '127.0.0.1'
+const isLoopbackHost = host === '127.0.0.1' || host === 'localhost' || host === '::1'
+if (!isLoopbackHost && process.env.AGENTFLOW_ALLOW_REMOTE !== '1') {
+  console.error(`[${new Date().toISOString()}] Refusing non-loopback HOST=${host}. Set AGENTFLOW_ALLOW_REMOTE=1 to allow remote static access.`)
+  process.exit(1)
+}
+const launchToken = process.env.AGENTFLOW_STATIC_TOKEN || crypto.randomBytes(18).toString('base64url')
 const preferredPort = Number(process.argv[3] || process.env.PORT || 4173)
 const portCandidates = [preferredPort, 4173, 4174, 4175, 4176, 4177]
   .filter((port, index, ports) => Number.isInteger(port) && port > 0 && ports.indexOf(port) === index)
@@ -58,6 +65,8 @@ const contentTypes = {
   '.woff2': 'font/woff2',
   '.txt': 'text/plain; charset=utf-8',
 }
+const deniedExtensions = new Set(['.map'])
+const deniedNames = new Set(['.env', '.env.local', '.npmrc'])
 
 let activeServer = null
 let activeRoot = null
@@ -213,6 +222,30 @@ function wantsHtml(req, pathname) {
   return req.method === 'GET' && (accept.includes('text/html') || !path.extname(pathname))
 }
 
+function hasStaticSession(req) {
+  const parsed = new URL(req.url || '/', `http://${host}`)
+  const cookie = req.headers.cookie || ''
+  return parsed.searchParams.get('token') === launchToken || cookie.split(/;\s*/).includes(`agentflow_static_token=${launchToken}`)
+}
+
+function assertStaticSession(req) {
+  if (process.env.AGENTFLOW_STATIC_AUTH === '0') return
+  if (hasStaticSession(req)) return
+  const err = new Error('Static fallback launch token required.')
+  err.statusCode = 401
+  throw err
+}
+
+function assertPublicStaticFile(filePath) {
+  const ext = path.extname(filePath).toLowerCase()
+  const base = path.basename(filePath).toLowerCase()
+  if (deniedExtensions.has(ext) || deniedNames.has(base) || base.startsWith('.')) {
+    const err = new Error(`Refusing private static file: ${base}`)
+    err.statusCode = 403
+    throw err
+  }
+}
+
 async function resolveRequestPath(req) {
   const requestUrl = req.url || '/'
   let pathname = '/'
@@ -265,6 +298,7 @@ async function resolveRequestPath(req) {
       err.statusCode = 403
       throw err
     }
+    assertPublicStaticFile(filePath)
   } catch (error) {
     if (error && error.statusCode === 403) {
       throw error
@@ -288,6 +322,7 @@ async function handleRequest(req, res) {
   }
 
   try {
+    assertStaticSession(req)
     const filePath = await resolveRequestPath(req)
     const ext = path.extname(filePath).toLowerCase()
     const data = req.method === 'HEAD' ? null : await fs.promises.readFile(filePath)
@@ -295,6 +330,7 @@ async function handleRequest(req, res) {
     res.writeHead(200, {
       'Content-Type': contentTypes[ext] || 'application/octet-stream',
       'Cache-Control': ext === '.html' ? 'no-store' : 'public, max-age=3600',
+      'Set-Cookie': `agentflow_static_token=${launchToken}; HttpOnly; SameSite=Strict; Path=/`,
     })
 
     if (data) {
@@ -371,13 +407,15 @@ function startServer(portIndex = 0) {
     activeServer = server
     const actualPort = server.address().port
     const url = `http://${host}:${actualPort}`
+    const launchUrl = `${url}/?token=${launchToken}`
     log(`AGENTFLOW_STATIC_URL=${url}`)
+    log(`AGENTFLOW_STATIC_LAUNCH_URL=${launchUrl}`)
     log('静态服务器已启动。')
     log(`服务地址：${url}`)
     log(`静态目录：${activeRoot}`)
     log(`日志文件：${logPath}`)
     log('请保持此窗口打开；按 Ctrl+C 可以停止服务。')
-    openBrowser(url)
+    openBrowser(launchUrl)
   })
 }
 

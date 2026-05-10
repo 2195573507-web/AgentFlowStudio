@@ -39,7 +39,7 @@ test.describe('AgentFlow Studio React web entry', () => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }
-      localStorage.setItem('agentflow.auth.session', JSON.stringify({ sessionId: 'e2e-session', sessionToken: 'e2e-token' }))
+      localStorage.setItem('agentflow.auth.session', JSON.stringify({ sessionId: 'e2e-session' }))
       Object.defineProperty(window, 'agentflow', {
         configurable: true,
         value: {

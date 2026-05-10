@@ -27,10 +27,13 @@ export type RiskLevel = 'safe' | 'low' | 'medium' | 'high' | 'critical' | 'Safe'
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type AITool = 'Claude Code' | 'Codex' | 'Cursor' | 'Other'
 export type { UserRole, UserStatus, AuthUser, StoredAuthUser, AuthSession, SessionUser, AuthSessionState, LoginRequest, LoginResult, ChangePasswordRequest, CreateUserRequest, ResetPasswordRequest, UpdateUserRequest, PublicUser } from './authTypes.js'
+export type { ResourceAcl, ResourceAclEntry, ResourceRole, ResourceType } from './authTypes.js'
 export type { AuditSeverity, AuditStatus, AuditActor, AuditEvent, AuditQuery } from './auditTypes.js'
 
 export interface Project {
   id: string
+  ownerUserId?: string
+  acl?: import('./authTypes.js').ResourceAcl
   name: string
   idea: string
   platform: Platform
@@ -76,6 +79,7 @@ export interface SavedPrompt {
 export interface Run {
   id: string
   projectId: string
+  actorUserId?: string
   workflowTemplateId?: string
   promptId?: string
   providerId?: string
@@ -93,6 +97,33 @@ export interface Run {
   nodeTrace?: RunNodeTrace[]
   metadata?: Record<string, unknown>
   createdAt: string
+}
+
+export interface RunEvent {
+  id: string
+  runId?: string
+  projectId?: string
+  workflowId?: string
+  auditEventId?: string
+  type: 'run.created' | 'run.updated' | 'permission.denied' | 'audit.recorded' | 'mcp.denied' | 'mcp.allowed'
+  status: 'success' | 'failure' | 'denied' | 'info'
+  actorUserId?: string
+  title: string
+  detail?: string
+  metadata?: Record<string, unknown>
+  createdAt: string
+}
+
+export interface McpAllowlistEntry {
+  id: string
+  serverName: string
+  toolName: string
+  permission: string
+  enabled: boolean
+  riskLevel: WorkflowTemplateRisk
+  description?: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface RunNodeTrace {
@@ -334,6 +365,12 @@ export const IPC_CHANNELS = {
   // Runs
   RUN_LIST: 'run:list',
   RUN_CREATE: 'run:create',
+  RUN_EVENTS_LIST: 'runEvents:list',
+
+  // MCP
+  MCP_ALLOWLIST_LIST: 'mcp:allowlist:list',
+  MCP_ALLOWLIST_CHECK: 'mcp:allowlist:check',
+  MCP_ALLOWLIST_UPSERT: 'mcp:allowlist:upsert',
 
   // Git
   GIT_LOG: 'git:log',

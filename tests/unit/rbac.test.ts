@@ -20,5 +20,9 @@ describe('rbac', () => {
     expect(canRole('user', 'provider:write')).toBe(false)
     expect(getPermissionsForRole('admin')).toContain('provider:write')
   })
-})
 
+  it('keeps MCP allowlist administration admin-only', () => {
+    expect(canRole('admin', 'mcp:write')).toBe(true)
+    expect(canRole('user', 'mcp:write')).toBe(false)
+  })
+})

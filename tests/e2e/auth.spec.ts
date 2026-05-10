@@ -26,7 +26,6 @@ test.describe('AgentFlow auth and admin gates', () => {
               session: {
                 authenticated: true,
                 sessionId: 's1',
-                sessionToken: 't1',
                 user: admin,
                 expiresAt: new Date(Date.now() + 86400000).toISOString(),
               },
@@ -47,6 +46,7 @@ test.describe('AgentFlow auth and admin gates', () => {
     await page.getByLabel('Password').fill('123456')
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page).toHaveURL(/#\/projects/)
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('agentflow.auth.session') || '')).not.toContain('sessionToken')
     await expect(page.getByText('Local Administrator')).toBeVisible()
     await page.getByRole('button', { name: 'Logout' }).click()
     await expect(page).toHaveURL(/#\/login/)
@@ -66,7 +66,7 @@ test.describe('AgentFlow auth and admin gates', () => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }
-      localStorage.setItem('agentflow.auth.session', JSON.stringify({ sessionId: 's2', sessionToken: 't2' }))
+      localStorage.setItem('agentflow.auth.session', JSON.stringify({ sessionId: 's2' }))
       Object.defineProperty(window, 'agentflow', {
         configurable: true,
         value: {
@@ -109,7 +109,6 @@ test.describe('AgentFlow auth and admin gates', () => {
               session: {
                 authenticated: true,
                 sessionId: 's3',
-                sessionToken: 't3',
                 user,
                 expiresAt: new Date(Date.now() + 86400000).toISOString(),
               },
@@ -160,7 +159,7 @@ test.describe('AgentFlow auth and admin gates', () => {
           createdAt: new Date().toISOString(),
         },
       ]
-      localStorage.setItem('agentflow.auth.session', JSON.stringify({ sessionId: 's1', sessionToken: 't1' }))
+      localStorage.setItem('agentflow.auth.session', JSON.stringify({ sessionId: 's1' }))
       Object.defineProperty(window, 'agentflow', {
         configurable: true,
         value: {

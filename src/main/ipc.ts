@@ -1,6 +1,7 @@
 import { ipcMain, dialog, app, BrowserWindow, type IpcMainInvokeEvent } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs/promises';
+import { randomUUID } from 'crypto';
 import { IPC_CHANNELS } from '../shared/types.js';
 import type { MemoryType, ReleaseStatus, ReleaseTestResult, ReleaseTestStatus } from '../shared/types.js';
 import { sanitizeObject } from '../shared/secretRedaction.js';
@@ -10,11 +11,13 @@ import { readSkillsFromDir, fileExists } from './filesystem.js';
 import { sanitizeFilePath, sanitizeRealFilePath, validateUserChosenSavePath } from './security.js';
 import type { AuditQuery } from '../shared/auditTypes.js';
 import type { ChangePasswordRequest, CreateUserRequest, LoginRequest, ResetPasswordRequest, UpdateUserRequest } from '../shared/authTypes.js';
-import { canRole, type Permission } from './rbac.js';
+import { assertProjectAccess, canAccessProjectResource, canRole, type Permission, type ResourceAction } from './rbac.js';
 import {
   bootstrapAuth,
   changePassword,
+  clearActiveRendererSession,
   createUser,
+  getActiveRendererSession,
   listUsers,
   login,
   resetPassword,
@@ -24,6 +27,7 @@ import {
   type SessionContext,
 } from './session.js';
 import { listAuditEvents, recordAudit } from './audit.js';
+import { verifyAuditIntegrity } from './audit.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -44,10 +48,10 @@ const PUBLIC_CHANNELS = new Set<string>([
 const CHANNEL_PERMISSIONS: Partial<Record<string, Permission>> = {
   [IPC_CHANNELS.AUTH_LOGOUT]: 'app:read',
   [IPC_CHANNELS.AUTH_CHANGE_PASSWORD]: 'app:read',
-  [IPC_CHANNELS.STORAGE_GET]: 'settings:read',
-  [IPC_CHANNELS.STORAGE_GET_ALL]: 'settings:read',
-  [IPC_CHANNELS.STORAGE_SET]: 'settings:write',
-  [IPC_CHANNELS.STORAGE_DELETE]: 'settings:write',
+  [IPC_CHANNELS.STORAGE_GET]: 'admin:users',
+  [IPC_CHANNELS.STORAGE_GET_ALL]: 'admin:users',
+  [IPC_CHANNELS.STORAGE_SET]: 'admin:users',
+  [IPC_CHANNELS.STORAGE_DELETE]: 'admin:users',
   [IPC_CHANNELS.PROJECT_LIST]: 'project:read',
   [IPC_CHANNELS.PROJECT_GET]: 'project:read',
   [IPC_CHANNELS.PROJECT_CREATE]: 'project:write',
@@ -63,6 +67,10 @@ const CHANNEL_PERMISSIONS: Partial<Record<string, Permission>> = {
   [IPC_CHANNELS.PROMPT_DELETE]: 'prompt:write',
   [IPC_CHANNELS.RUN_LIST]: 'project:read',
   [IPC_CHANNELS.RUN_CREATE]: 'run:write',
+  [IPC_CHANNELS.RUN_EVENTS_LIST]: 'project:read',
+  [IPC_CHANNELS.MCP_ALLOWLIST_LIST]: 'mcp:write',
+  [IPC_CHANNELS.MCP_ALLOWLIST_CHECK]: 'mcp:write',
+  [IPC_CHANNELS.MCP_ALLOWLIST_UPSERT]: 'mcp:write',
   [IPC_CHANNELS.GIT_LOG]: 'git:read',
   [IPC_CHANNELS.GIT_STATUS]: 'git:read',
   [IPC_CHANNELS.GIT_SUMMARY]: 'git:read',
@@ -96,15 +104,18 @@ const CHANNEL_PERMISSIONS: Partial<Record<string, Permission>> = {
   [IPC_CHANNELS.AUDIT_EXPORT]: 'admin:audit',
 };
 
+const PASSWORD_CHANGE_ALLOWED = new Set<string>([
+  IPC_CHANNELS.AUTH_LOGOUT,
+  IPC_CHANNELS.AUTH_CHANGE_PASSWORD,
+  IPC_CHANNELS.AUTH_SESSION,
+]);
+
 function readAuthHeader(args: unknown[]): { sessionId?: string; sessionToken?: string; rest: unknown[] } {
   const first = args[0];
   if (first && typeof first === 'object' && '__auth' in first) {
     const auth = (first as { __auth?: { sessionId?: unknown; sessionToken?: unknown } }).__auth;
-    return {
-      sessionId: typeof auth?.sessionId === 'string' ? auth.sessionId : undefined,
-      sessionToken: typeof auth?.sessionToken === 'string' ? auth.sessionToken : undefined,
-      rest: args.slice(1),
-    };
+    const active = getActiveRendererSession();
+    return { sessionId: typeof auth?.sessionId === 'string' ? auth.sessionId : active.sessionId, sessionToken: active.sessionToken, rest: args.slice(1) };
   }
   return { rest: args };
 }
@@ -137,7 +148,82 @@ async function guardIpcCall(channel: string, args: unknown[]): Promise<{ args: u
     });
     throw new Error(`Permission denied: ${permission}`);
   }
+  if (context.user.mustChangePassword && !PASSWORD_CHANGE_ALLOWED.has(channel)) {
+    await recordAudit({
+      type: 'permission.denied',
+      action: channel,
+      status: 'denied',
+      severity: 'critical',
+      actor: { userId: context.user.id, email: context.user.email, role: context.user.role, sessionId: context.session.id },
+      metadata: { reason: 'must_change_password', channel },
+    });
+    throw new Error('Password change required before using this workspace.');
+  }
   return { args: rest, context };
+}
+
+function actorFor(context?: SessionContext) {
+  return context
+    ? { userId: context.user.id, email: context.user.email, role: context.user.role, sessionId: context.session.id }
+    : {};
+}
+
+function aclForOwner(context: SessionContext) {
+  const now = new Date().toISOString();
+  return {
+    ownerUserId: context.user.id,
+    visibility: 'private' as const,
+    entries: [{ userId: context.user.id, role: 'owner' as const, grantedBy: context.user.id, grantedAt: now }],
+  };
+}
+
+async function getProjectForAccess(projectId: string) {
+  return storage.getById<{ id: string; [key: string]: unknown }>('projects', projectId);
+}
+
+async function assertProjectResourceAccess(context: SessionContext | undefined, projectId: string, action: ResourceAction) {
+  if (!context) throw new Error('Authentication required.');
+  const project = await getProjectForAccess(projectId);
+  assertProjectAccess(context, project as never, action);
+  return project;
+}
+
+async function assertChildResourceAccess(
+  context: SessionContext | undefined,
+  collection: 'tasks' | 'prompts' | 'runs' | 'memories',
+  id: string,
+  action: ResourceAction,
+) {
+  if (!context) throw new Error('Authentication required.');
+  const item = await storage.getById<{ id: string; projectId?: string; [key: string]: unknown }>(collection, id);
+  if (!item) throw new Error('Resource not found.');
+  if (item.projectId) await assertProjectResourceAccess(context, item.projectId, action);
+  return item;
+}
+
+async function filterProjectScoped<T extends { projectId?: string }>(context: SessionContext | undefined, items: T[]) {
+  if (!context) return [];
+  if (context.user.role === 'admin') return items;
+  const visible: T[] = [];
+  for (const item of items) {
+    if (!item.projectId) continue;
+    const project = await getProjectForAccess(item.projectId);
+    if (canAccessProjectResource(context, project as never, 'read')) visible.push(item);
+  }
+  return visible;
+}
+
+async function recordMutationAudit(context: SessionContext | undefined, action: string, resource: { type: string; id?: string; label?: string }, metadata: Record<string, unknown> = {}) {
+  if (!context) return;
+  await recordAudit({
+    type: action === 'run.create' ? 'run.create' : 'admin.operation',
+    action,
+    status: 'success',
+    severity: 'info',
+    actor: actorFor(context),
+    resource,
+    metadata,
+  });
 }
 
 function assertTrustedIpcSender(event: IpcMainInvokeEvent): void {
@@ -460,6 +546,7 @@ export function registerIpcHandlers(): void {
     try {
       if (!context) return false;
       await storage.update('sessions', context.session.id, { revokedAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as never);
+      clearActiveRendererSession(context.session.id);
       await recordAudit({
         type: 'auth.logout',
         action: 'auth.logout',
@@ -528,8 +615,9 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.AUDIT_EXPORT, async () => {
     try {
-      const events = await listAuditEvents({ limit: 1000 });
-      return { auditLogs: events, exportedAt: new Date().toISOString() };
+      const events = await listAuditEvents({ limit: Number.MAX_SAFE_INTEGER });
+      const integrity = await verifyAuditIntegrity();
+      return { auditLogs: events, integrity, exportedAt: new Date().toISOString() };
     } catch (err) {
       return handleError(err);
     }
@@ -579,41 +667,66 @@ export function registerIpcHandlers(): void {
 
   // ── Projects ─────────────────────────────────────────────────────────
 
-  ipcMain.handle(IPC_CHANNELS.PROJECT_LIST, async () => {
+  ipcMain.handle(IPC_CHANNELS.PROJECT_LIST, async (_event, context?: SessionContext) => {
     try {
-      return await storage.getAll('projects');
+      const projects = await storage.getAll<{ id: string; [key: string]: unknown }>('projects');
+      if (!context || context.user.role === 'admin') return projects;
+      return projects.filter((project) => canAccessProjectResource(context, project as never, 'read'));
     } catch (err) {
       return handleError(err);
     }
   });
 
-  ipcMain.handle(IPC_CHANNELS.PROJECT_GET, async (_event, id: string) => {
+  ipcMain.handle(IPC_CHANNELS.PROJECT_GET, async (_event, id: string, context?: SessionContext) => {
     try {
-      return await storage.getById('projects', id);
+      const project = await storage.getById<{ id: string; [key: string]: unknown }>('projects', id);
+      if (project && context) assertProjectAccess(context, project as never, 'read');
+      return project;
     } catch (err) {
       return handleError(err);
     }
   });
 
-  ipcMain.handle(IPC_CHANNELS.PROJECT_CREATE, async (_event, data: unknown) => {
+  ipcMain.handle(IPC_CHANNELS.PROJECT_CREATE, async (_event, data: unknown, context?: SessionContext) => {
     try {
-      return await storage.create('projects', data as never);
+      if (!context) throw new Error('Authentication required.');
+      const payload = {
+        ...(data && typeof data === 'object' ? data : {}),
+        ownerUserId: context.user.id,
+        acl: aclForOwner(context),
+      };
+      const created = await storage.create('projects', payload as never);
+      await recordMutationAudit(context, 'workflow.create', { type: 'workflow', id: created.id, label: String((created as { name?: unknown }).name ?? '') });
+      return created;
     } catch (err) {
       return handleError(err);
     }
   });
 
-  ipcMain.handle(IPC_CHANNELS.PROJECT_UPDATE, async (_event, id: string, data: unknown) => {
+  ipcMain.handle(IPC_CHANNELS.PROJECT_UPDATE, async (_event, id: string, data: unknown, context?: SessionContext) => {
     try {
-      return await storage.update('projects', id, data as never);
+      await assertProjectResourceAccess(context, id, 'write');
+      const existing = await storage.getById<{ id: string; ownerUserId?: string; acl?: unknown }>('projects', id);
+      const incoming = data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
+      const payload = {
+        ...incoming,
+        ownerUserId: existing?.ownerUserId,
+        acl: incoming.acl ?? existing?.acl,
+      };
+      const updated = await storage.update('projects', id, payload as never);
+      await recordMutationAudit(context, 'workflow.update', { type: 'workflow', id });
+      return updated;
     } catch (err) {
       return handleError(err);
     }
   });
 
-  ipcMain.handle(IPC_CHANNELS.PROJECT_DELETE, async (_event, id: string) => {
+  ipcMain.handle(IPC_CHANNELS.PROJECT_DELETE, async (_event, id: string, context?: SessionContext) => {
     try {
-      return await storage.delete('projects', id);
+      await assertProjectResourceAccess(context, id, 'admin');
+      const deleted = await storage.delete('projects', id);
+      await recordMutationAudit(context, 'workflow.delete', { type: 'workflow', id });
+      return deleted;
     } catch (err) {
       return handleError(err);
     }
@@ -621,8 +734,9 @@ export function registerIpcHandlers(): void {
 
   // ── Tasks ────────────────────────────────────────────────────────────
 
-  ipcMain.handle(IPC_CHANNELS.TASK_LIST, async (_event, projectId: string) => {
+  ipcMain.handle(IPC_CHANNELS.TASK_LIST, async (_event, projectId: string, context?: SessionContext) => {
     try {
+      await assertProjectResourceAccess(context, projectId, 'read');
       const all = await storage.getAll<{ id: string; [key: string]: unknown }>('tasks');
       return all.filter((t) => t.projectId === projectId);
     } catch (err) {
@@ -630,25 +744,35 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle(IPC_CHANNELS.TASK_CREATE, async (_event, data: unknown) => {
+  ipcMain.handle(IPC_CHANNELS.TASK_CREATE, async (_event, data: unknown, context?: SessionContext) => {
     try {
-      return await storage.create('tasks', data as never);
+      const projectId = String((data as { projectId?: unknown })?.projectId ?? '');
+      await assertProjectResourceAccess(context, projectId, 'write');
+      const created = await storage.create('tasks', data as never);
+      await recordMutationAudit(context, 'task.create', { type: 'task', id: created.id }, { projectId });
+      return created;
     } catch (err) {
       return handleError(err);
     }
   });
 
-  ipcMain.handle(IPC_CHANNELS.TASK_UPDATE, async (_event, id: string, data: unknown) => {
+  ipcMain.handle(IPC_CHANNELS.TASK_UPDATE, async (_event, id: string, data: unknown, context?: SessionContext) => {
     try {
-      return await storage.update('tasks', id, data as never);
+      const existing = await assertChildResourceAccess(context, 'tasks', id, 'write');
+      const updated = await storage.update('tasks', id, { ...(data as Record<string, unknown>), projectId: existing.projectId } as never);
+      await recordMutationAudit(context, 'task.update', { type: 'task', id }, { projectId: existing.projectId });
+      return updated;
     } catch (err) {
       return handleError(err);
     }
   });
 
-  ipcMain.handle(IPC_CHANNELS.TASK_DELETE, async (_event, id: string) => {
+  ipcMain.handle(IPC_CHANNELS.TASK_DELETE, async (_event, id: string, context?: SessionContext) => {
     try {
-      return await storage.delete('tasks', id);
+      const existing = await assertChildResourceAccess(context, 'tasks', id, 'write');
+      const deleted = await storage.delete('tasks', id);
+      await recordMutationAudit(context, 'task.delete', { type: 'task', id }, { projectId: existing.projectId });
+      return deleted;
     } catch (err) {
       return handleError(err);
     }
@@ -656,8 +780,9 @@ export function registerIpcHandlers(): void {
 
   // ── Prompts ──────────────────────────────────────────────────────────
 
-  ipcMain.handle(IPC_CHANNELS.PROMPT_LIST, async (_event, projectId: string) => {
+  ipcMain.handle(IPC_CHANNELS.PROMPT_LIST, async (_event, projectId: string, context?: SessionContext) => {
     try {
+      await assertProjectResourceAccess(context, projectId, 'read');
       const all = await storage.getAll<{ id: string; [key: string]: unknown }>('prompts');
       return all.filter((p) => p.projectId === projectId);
     } catch (err) {
@@ -665,25 +790,35 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle(IPC_CHANNELS.PROMPT_CREATE, async (_event, data: unknown) => {
+  ipcMain.handle(IPC_CHANNELS.PROMPT_CREATE, async (_event, data: unknown, context?: SessionContext) => {
     try {
-      return await storage.create('prompts', data as never);
+      const projectId = String((data as { projectId?: unknown })?.projectId ?? '');
+      if (projectId) await assertProjectResourceAccess(context, projectId, 'write');
+      const created = await storage.create('prompts', data as never);
+      await recordMutationAudit(context, 'prompt.create', { type: 'prompt', id: created.id }, { projectId });
+      return created;
     } catch (err) {
       return handleError(err);
     }
   });
 
-  ipcMain.handle(IPC_CHANNELS.PROMPT_UPDATE, async (_event, id: string, data: unknown) => {
+  ipcMain.handle(IPC_CHANNELS.PROMPT_UPDATE, async (_event, id: string, data: unknown, context?: SessionContext) => {
     try {
-      return await storage.update('prompts', id, data as never);
+      const existing = await assertChildResourceAccess(context, 'prompts', id, 'write');
+      const updated = await storage.update('prompts', id, { ...(data as Record<string, unknown>), projectId: existing.projectId } as never);
+      await recordMutationAudit(context, 'prompt.update', { type: 'prompt', id }, { projectId: existing.projectId });
+      return updated;
     } catch (err) {
       return handleError(err);
     }
   });
 
-  ipcMain.handle(IPC_CHANNELS.PROMPT_DELETE, async (_event, id: string) => {
+  ipcMain.handle(IPC_CHANNELS.PROMPT_DELETE, async (_event, id: string, context?: SessionContext) => {
     try {
-      return await storage.delete('prompts', id);
+      const existing = await assertChildResourceAccess(context, 'prompts', id, 'write');
+      const deleted = await storage.delete('prompts', id);
+      await recordMutationAudit(context, 'prompt.delete', { type: 'prompt', id }, { projectId: existing.projectId });
+      return deleted;
     } catch (err) {
       return handleError(err);
     }
@@ -691,8 +826,9 @@ export function registerIpcHandlers(): void {
 
   // ── Runs ─────────────────────────────────────────────────────────────
 
-  ipcMain.handle(IPC_CHANNELS.RUN_LIST, async (_event, projectId: string) => {
+  ipcMain.handle(IPC_CHANNELS.RUN_LIST, async (_event, projectId: string, context?: SessionContext) => {
     try {
+      await assertProjectResourceAccess(context, projectId, 'read');
       const all = await storage.getAll<{ id: string; [key: string]: unknown }>('runs');
       return all.filter((r) => r.projectId === projectId);
     } catch (err) {
@@ -700,9 +836,89 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle(IPC_CHANNELS.RUN_CREATE, async (_event, data: unknown) => {
+  ipcMain.handle(IPC_CHANNELS.RUN_CREATE, async (_event, data: unknown, context?: SessionContext) => {
     try {
-      return await storage.create('runs', data as never);
+      if (!context) throw new Error('Authentication required.');
+      const projectId = String((data as { projectId?: unknown })?.projectId ?? '');
+      await assertProjectResourceAccess(context, projectId, 'write');
+      const created = await storage.create('runs', { ...(data as Record<string, unknown>), actorUserId: context.user.id } as never);
+      await storage.create('runEvents', {
+        id: randomUUID(),
+        runId: created.id,
+        projectId,
+        workflowId: projectId,
+        type: 'run.created',
+        status: 'success',
+        actorUserId: context.user.id,
+        title: String((created as { title?: unknown }).title ?? 'Run created'),
+        detail: String((created as { summary?: unknown }).summary ?? ''),
+        createdAt: new Date().toISOString(),
+      } as never);
+      await recordMutationAudit(context, 'run.create', { type: 'run', id: created.id }, { projectId, runId: created.id });
+      return created;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.RUN_EVENTS_LIST, async (_event, projectId?: string, context?: SessionContext) => {
+    try {
+      const all = await storage.getAll<{ id: string; projectId?: string; createdAt: string; [key: string]: unknown }>('runEvents');
+      const scoped = projectId ? all.filter((event) => event.projectId === projectId) : all;
+      const visible = projectId
+        ? (await assertProjectResourceAccess(context, projectId, 'read'), scoped)
+        : await filterProjectScoped(context, scoped);
+      return visible.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.MCP_ALLOWLIST_LIST, async () => {
+    try {
+      return await storage.getAll('mcpAllowlist');
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.MCP_ALLOWLIST_CHECK, async (_event, request: unknown, context?: SessionContext) => {
+    try {
+      const serverName = String((request as { serverName?: unknown })?.serverName ?? '');
+      const toolName = String((request as { toolName?: unknown })?.toolName ?? '');
+      const entries = await storage.getAll<{ id: string; serverName: string; toolName: string; enabled: boolean; permission?: string }>('mcpAllowlist');
+      const allowed = entries.some((entry) => entry.enabled && entry.serverName === serverName && entry.toolName === toolName);
+      await recordAudit({
+        type: allowed ? 'mcp.allowed' : 'mcp.denied',
+        action: 'mcp.allowlist.check',
+        status: allowed ? 'success' : 'denied',
+        severity: allowed ? 'info' : 'warning',
+        actor: actorFor(context),
+        resource: { type: 'mcp_tool', id: `${serverName}:${toolName}`, label: toolName },
+        metadata: { serverName, toolName },
+      });
+      return { allowed };
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.MCP_ALLOWLIST_UPSERT, async (_event, entry: unknown, context?: SessionContext) => {
+    try {
+      const now = new Date().toISOString();
+      const payload = {
+        ...(entry as Record<string, unknown>),
+        id: String((entry as { id?: unknown })?.id ?? `${(entry as { serverName?: unknown })?.serverName}:${(entry as { toolName?: unknown })?.toolName}`),
+        enabled: Boolean((entry as { enabled?: unknown })?.enabled ?? true),
+        updatedAt: now,
+        createdAt: String((entry as { createdAt?: unknown })?.createdAt ?? now),
+      };
+      const existing = await storage.getById('mcpAllowlist', String(payload.id));
+      const saved = existing
+        ? await storage.update('mcpAllowlist', String(payload.id), payload as never)
+        : await storage.create('mcpAllowlist', payload as never);
+      await recordMutationAudit(context, 'mcp.allowlist.upsert', { type: 'mcp_tool', id: String(payload.id) });
+      return saved;
     } catch (err) {
       return handleError(err);
     }
@@ -747,9 +963,11 @@ export function registerIpcHandlers(): void {
 
   // ── Memory ───────────────────────────────────────────────────────────
 
-  ipcMain.handle(IPC_CHANNELS.MEMORY_LIST, async (_event, filters?: { id: string; [key: string]: unknown }) => {
+  ipcMain.handle(IPC_CHANNELS.MEMORY_LIST, async (_event, filters?: { id: string; [key: string]: unknown }, context?: SessionContext) => {
     try {
-      const all = sanitizeObject(await storage.getAll<{ id: string; [key: string]: unknown }>('memories'));
+      const raw = await storage.getAll<{ id: string; projectId?: string; [key: string]: unknown }>('memories');
+      const scoped = await filterProjectScoped(context, raw);
+      const all = sanitizeObject(scoped) as Array<{ id: string; [key: string]: unknown }>;
       if (!filters) return all;
       return all.filter((m) => {
         for (const [key, value] of Object.entries(filters)) {
@@ -762,48 +980,62 @@ export function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle(IPC_CHANNELS.MEMORY_GET, async (_event, id: string) => {
+  ipcMain.handle(IPC_CHANNELS.MEMORY_GET, async (_event, id: string, context?: SessionContext) => {
     try {
-      return sanitizeObject(await storage.getById('memories', id));
+      const memory = await storage.getById<{ id: string; projectId?: string; [key: string]: unknown }>('memories', id);
+      if (memory?.projectId) await assertProjectResourceAccess(context, memory.projectId, 'read');
+      return sanitizeObject(memory);
     } catch (err) {
       return handleError(err);
     }
   });
 
-  ipcMain.handle(IPC_CHANNELS.MEMORY_CREATE, async (_event, data: unknown) => {
+  ipcMain.handle(IPC_CHANNELS.MEMORY_CREATE, async (_event, data: unknown, context?: SessionContext) => {
     try {
-      return await storage.create('memories', sanitizeObject(data) as never);
+      const projectId = String((data as { projectId?: unknown })?.projectId ?? '');
+      if (projectId) await assertProjectResourceAccess(context, projectId, 'write');
+      const created = await storage.create('memories', sanitizeObject(data) as never);
+      await recordMutationAudit(context, 'memory.create', { type: 'memory', id: created.id }, { projectId });
+      return created;
     } catch (err) {
       return handleError(err);
     }
   });
 
-  ipcMain.handle(IPC_CHANNELS.MEMORY_UPDATE, async (_event, id: string, data: unknown) => {
+  ipcMain.handle(IPC_CHANNELS.MEMORY_UPDATE, async (_event, id: string, data: unknown, context?: SessionContext) => {
     try {
-      return await storage.update('memories', id, sanitizeObject(data) as never);
+      const existing = await assertChildResourceAccess(context, 'memories', id, 'write');
+      const updated = await storage.update('memories', id, sanitizeObject({ ...(data as Record<string, unknown>), projectId: existing.projectId }) as never);
+      await recordMutationAudit(context, 'memory.update', { type: 'memory', id }, { projectId: existing.projectId });
+      return updated;
     } catch (err) {
       return handleError(err);
     }
   });
 
-  ipcMain.handle(IPC_CHANNELS.MEMORY_DELETE, async (_event, id: string) => {
+  ipcMain.handle(IPC_CHANNELS.MEMORY_DELETE, async (_event, id: string, context?: SessionContext) => {
     try {
-      return await storage.delete('memories', id);
+      const existing = await assertChildResourceAccess(context, 'memories', id, 'write');
+      const deleted = await storage.delete('memories', id);
+      await recordMutationAudit(context, 'memory.delete', { type: 'memory', id }, { projectId: existing.projectId });
+      return deleted;
     } catch (err) {
       return handleError(err);
     }
   });
 
-  ipcMain.handle(IPC_CHANNELS.MEMORY_EXPORT, async () => {
+  ipcMain.handle(IPC_CHANNELS.MEMORY_EXPORT, async (_event, context?: SessionContext) => {
     try {
-      const all = sanitizeObject(await storage.getAll('memories'));
+      const raw = await storage.getAll<{ id: string; projectId?: string; [key: string]: unknown }>('memories');
+      const all = sanitizeObject(await filterProjectScoped(context, raw));
+      await recordMutationAudit(context, 'memory.export', { type: 'memory' });
       return { memories: all, exportedAt: new Date().toISOString() };
     } catch (err) {
       return handleError(err);
     }
   });
 
-  ipcMain.handle(IPC_CHANNELS.MEMORY_IMPORT, async (_event, data: unknown) => {
+  ipcMain.handle(IPC_CHANNELS.MEMORY_IMPORT, async (_event, data: unknown, context?: SessionContext) => {
     try {
       const payload = sanitizeObject(data) as { memories?: Array<{ id: string; [key: string]: unknown }> };
       if (!payload || !Array.isArray(payload.memories)) {
@@ -813,6 +1045,8 @@ export function registerIpcHandlers(): void {
       const existingIds = new Set(existing.map((m) => m.id));
       let imported = 0;
       for (const mem of payload.memories) {
+        const projectId = String(mem.projectId ?? '');
+        if (projectId) await assertProjectResourceAccess(context, projectId, 'write');
         if (existingIds.has(String(mem.id))) {
           await storage.update('memories', String(mem.id), sanitizeObject(mem) as never);
         } else {
@@ -820,6 +1054,7 @@ export function registerIpcHandlers(): void {
         }
         imported++;
       }
+      await recordMutationAudit(context, 'memory.import', { type: 'memory' }, { imported });
       return { imported };
     } catch (err) {
       return handleError(err);
@@ -831,8 +1066,10 @@ export function registerIpcHandlers(): void {
     async (
       _event,
       options?: { projectId?: string; injectionMode?: string },
+      context?: SessionContext,
     ) => {
       try {
+        if (options?.projectId) await assertProjectResourceAccess(context, options.projectId, 'read');
         return await generateMemoryContext(options ?? {});
       } catch (err) {
         return handleError(err);

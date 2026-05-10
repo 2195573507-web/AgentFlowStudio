@@ -73,3 +73,11 @@
 - State management is local React state plus preload-backed API wrapper; add a small AuthProvider rather than introducing a global state library.
 - High-risk IPC surfaces for RBAC/audit: generic storage, provider settings, memory import/export/context, export markdown/json, git status/log, skill read, dialog open, app data path.
 - Unit tests should target pure auth/session/RBAC/audit helpers and the renderer API wrapper. E2E can mock `window.agentflow.auth/users/audit` and validate protected routes, admin denial, login/logout, create user, and audit UI.
+
+## Platform Security Hardening Findings - 2026-05-10
+
+- Electron `safeStorage` is main-process only and backed by OS cryptography, but platform semantics vary. On Windows it uses DPAPI and protects against other users more than same-user processes; this supports the decision to remove renderer plaintext token persistence first and defer durable secret persistence to a focused follow-up.
+- MCP authorization guidance emphasizes scoped authorization and secure token storage. For this app, the first safe step is an admin-managed allowlist plus audit records before enabling any MCP runtime execution path.
+- OWASP logging guidance supports retention boundaries, tamper detection, and testing logging failure behavior. The implemented hash chain and retention metadata are a local JSON-compatible first layer, not a replacement for append-only or externally signed logs.
+- Workflow tools such as n8n use workflow/project sharing roles like admin/editor/viewer and restrict workflow actions by role. The new ACL model mirrors that shape around workflow/project resources.
+- Agent tracing systems model workflow runs as timelines/traces of tool calls, guardrails, handoffs, and custom events. The new `runEvents` collection is the local foundation for correlating run creation, permission denial, MCP decisions, and audit events.

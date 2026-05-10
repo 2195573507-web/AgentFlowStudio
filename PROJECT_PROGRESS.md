@@ -229,3 +229,61 @@
 - `npm.cmd run lint`: PASS, 0 errors / 28 warnings under threshold.
 - `npm.cmd run build`: PASS, with existing Charts chunk-size warning and api dynamic-import note.
 - `npm.cmd run smoke`: PASS, 168/168.
+
+# 2026-05-10 Platform Security Hardening Round
+
+Baseline commit: `2087f56 feat: add authentication and admin management`
+
+Branch: `codex-liquid-glass-ui-agent-optimization`
+
+## Completed
+
+- Moved renderer session handling away from plaintext `sessionToken` persistence. The renderer now keeps only `sessionId` and `expiresAt`; the main process keeps the live token in a process-memory renderer session vault.
+- Added main-process enforcement for `mustChangePassword`, so first-login password changes cannot be bypassed by calling privileged IPC channels directly.
+- Added resource-scoped ACL support for workflow/project resources with owner, editor, viewer, and admin semantics. Project creation stamps owner metadata and owner ACL entries.
+- Extended project-scoped authorization across projects, tasks, prompts, runs, memories, audit, and user-management related operations.
+- Added audit retention metadata, tamper-evident hash-chain fields, audit integrity verification, and full audit export with integrity report.
+- Added `runEvents` timeline records that correlate run creation, permission denial, MCP decisions, and audit records.
+- Added MCP allowlist storage and IPC checks as the first control-plane layer for future MCP runtime integration.
+- Hardened static fallback with loopback-only default serving, launch token/cookie gate, denied sensitive files, and updated static smoke coverage.
+- Added a mojibake quality gate script with explicit legacy-doc allowlist.
+- Reviewed the previous auth/admin/RBAC/audit pass and fixed the highest-risk gaps: renderer-only password-change gating, last-admin/self-lockout, stale sessions after admin changes, role-only RBAC, and incomplete audit export.
+
+## Security Design Notes
+
+- IPC remains the authorization source of truth. Renderer route guards are convenience only.
+- The session vault is intentionally main-process only and avoids exposing the raw token through preload or renderer localStorage.
+- Resource ACL is project/workflow-centered for this pass. Admin users retain global override; non-admin users need matching ACL entries for project-scoped resources.
+- Audit records are sanitized before persistence, chained with SHA-256 over a stable canonical payload, and assigned a default retention deadline.
+- Static fallback remains available, but it now requires a launch token or established local cookie and rejects non-loopback hosts unless explicitly enabled.
+- MCP allowlist is admin-managed and audited, but it is not yet a full MCP runtime sandbox.
+
+## Validation
+
+- `npm.cmd run typecheck`: PASS.
+- `npm.cmd run test`: PASS, 17 files / 155 tests.
+- `npm.cmd run test:e2e`: PASS, 14/14.
+- `npm.cmd run lint`: PASS, 0 errors / 28 warnings under threshold.
+- `npm.cmd run build`: PASS, with existing Vite chunk-size warning only.
+- `npm.cmd run test:electron-startup`: PASS.
+- `npm.cmd run test:launch-static`: PASS.
+- `npm.cmd run test:static-browser`: PASS.
+- `npm.cmd run smoke`: PASS, 179/179.
+- `npm.cmd run verify`: PASS, 100/100 plus smoke 179/179.
+- `npm.cmd run scan:mojibake`: PASS, 141 files checked.
+
+## Remaining Risk
+
+- The renderer token vault is process-memory only. It removes renderer plaintext token persistence, but it is not a full OS-backed `safeStorage` recovery model across app restarts.
+- JSON storage remains non-transactional and local-only.
+- MCP allowlist is policy/control-plane only until a real MCP runtime sandbox exists.
+- Audit hash chaining is tamper-evident inside JSON storage, but it is not externally signed or append-only at the filesystem level.
+- ACL coverage is workflow/project-centered. Standalone resource sharing can be expanded after the workflow sharing model settles.
+
+## Next Suggestions
+
+- Add OS-backed `safeStorage` wrapping for durable sensitive desktop secrets where restart persistence is required.
+- Add workflow sharing UI for granting viewer/editor/owner access and reviewing ACL entries.
+- Add an MCP runtime gateway that enforces allowlist decisions before any tool execution and logs input/output summaries.
+- Add optional external audit-chain checkpoints or signed export manifests.
+- Continue UTF-8 cleanup for historical docs now that the mojibake gate exists.

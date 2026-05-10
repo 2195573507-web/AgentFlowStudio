@@ -65,6 +65,48 @@
 - Existing historical Chinese mojibake remains in some docs/source strings; this pass only appended clean new records and avoided broad text churn.
 - Dependency audit issues are still known from previous reports and were not force-fixed to avoid major dependency churn.
 
+## Platform Security Hardening Round - 2026-05-10
+
+Baseline commit: `2087f56 feat: add authentication and admin management`
+
+Branch: `codex-liquid-glass-ui-agent-optimization`
+
+### Latest Results
+
+| Check | Status | Details |
+|---|---:|---|
+| `npm.cmd run typecheck` | PASS | TypeScript passed after session, ACL, audit, timeline, MCP, and static fallback changes. |
+| `npm.cmd run test` | PASS | Vitest: 17 files, 155 tests. |
+| `npm.cmd run test:e2e` | PASS | React Playwright suite: 14/14. |
+| `npm.cmd run lint` | PASS | 0 errors, 28 warnings under configured threshold. |
+| `npm.cmd run build` | PASS | Renderer and Electron build passed; existing Vite chunk-size warning only. |
+| `npm.cmd run test:electron-startup` | PASS | Electron startup smoke passed. |
+| `npm.cmd run test:launch-static` | PASS | Static fallback launch passed with token-gated URL handling. |
+| `npm.cmd run test:static-browser` | PASS | Static browser smoke passed after token URL update. |
+| `npm.cmd run smoke` | PASS | 179/179 checks passed. |
+| `npm.cmd run verify` | PASS | 100/100 build completeness checks, then smoke 179/179. |
+| `npm.cmd run scan:mojibake` | PASS | 141 files checked; legacy docs remain explicitly allowlisted. |
+
+### Fixes Verified
+
+- Renderer no longer persists raw `sessionToken` in localStorage or reads it from preload.
+- Main-process `mustChangePassword` guard blocks privileged IPC access until password change completes.
+- Project/workflow resources now carry owner ACL metadata, and project-scoped child resources enforce ACL-derived read/write/admin checks.
+- Admin safety checks prevent self-demotion/self-disable and preserve at least one active admin.
+- Password change/reset and role/status updates revoke stale sessions as appropriate.
+- Audit logs include retention dates, hash-chain fields, export integrity reports, and timeline correlation records.
+- MCP allowlist IPC is admin-gated and writes audited timeline records.
+- Static fallback is token/cookie gated, loopback-only by default, and denies sensitive file classes.
+- Mojibake scan is available as `npm.cmd run scan:mojibake`.
+
+### Remaining Risk
+
+- Session token hardening is main-process memory based, not durable Electron `safeStorage` persistence.
+- JSON storage does not provide database transactions or append-only audit guarantees.
+- MCP allowlist is not yet a runtime sandbox; it is the policy layer for the next pass.
+- Audit hash chain is tamper-evident but not externally signed.
+- Resource ACL is centered on workflow/project resources; standalone resource-level sharing needs future expansion.
+
 ## Liquid Glass UI And Workflow Onboarding Pass - 2026-05-09
 
 Baseline tag: `codex-liquid-glass-ui-base-20260509-172941`

@@ -1,5 +1,20 @@
 export type UserRole = 'admin' | 'user'
 export type UserStatus = 'active' | 'disabled'
+export type ResourceRole = 'owner' | 'editor' | 'viewer' | 'admin'
+export type ResourceType = 'workflow' | 'run' | 'audit' | 'user'
+
+export interface ResourceAclEntry {
+  userId: string
+  role: ResourceRole
+  grantedBy?: string
+  grantedAt: string
+}
+
+export interface ResourceAcl {
+  ownerUserId: string
+  visibility: 'private' | 'shared'
+  entries: ResourceAclEntry[]
+}
 
 export interface AuthProfile {
   displayName: string
@@ -46,7 +61,6 @@ export interface SessionUser extends AuthUser {
 export interface AuthSessionState {
   authenticated: boolean
   sessionId?: string
-  sessionToken?: string
   user?: SessionUser
   expiresAt?: string
 }

@@ -29,7 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
       return;
     }
-    const result = await api.auth.session(stored.sessionId, stored.sessionToken);
+    const result = await api.auth.session(stored.sessionId);
     if (isAuthError(result) || !result.authenticated || !result.user) {
       clearStoredSession();
       setUser(null);
@@ -81,4 +81,3 @@ export function useAuth(): AuthContextValue {
   if (!value) throw new Error('useAuth must be used inside AuthProvider.');
   return value;
 }
-

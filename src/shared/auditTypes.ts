@@ -21,6 +21,9 @@ export interface AuditEvent {
     | 'user.disable'
     | 'user.reset_password'
     | 'permission.denied'
+    | 'mcp.denied'
+    | 'mcp.allowed'
+    | 'run.create'
     | 'security.exception'
     | 'export'
     | 'admin.operation'
@@ -34,7 +37,19 @@ export interface AuditEvent {
     label?: string
   }
   metadata?: Record<string, unknown>
+  retentionUntil?: string
+  previousHash?: string
+  hash?: string
+  chainVersion?: 1
   createdAt: string
+}
+
+export interface AuditIntegrityReport {
+  ok: boolean
+  checked: number
+  firstBrokenEventId?: string
+  lastHash?: string
+  generatedAt: string
 }
 
 export interface AuditQuery {
@@ -45,4 +60,3 @@ export interface AuditQuery {
   search?: string
   limit?: number
 }
-

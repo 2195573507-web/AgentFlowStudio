@@ -18,6 +18,7 @@ Starting from baseline commit `cec7dfb`, preserve the working Static fallback wh
 | 8. Liquid Glass UI and workflow onboarding | complete | React/static glass tokens unified, Dashboard next-step CTA and lifecycle rail added, reports updated, and full validation passed. |
 | 9. Commit and push Liquid Glass round | in_progress | Stage, commit, and push `codex-liquid-glass-ui-agent-optimization`. |
 | 10. Auth/admin/RBAC/audit platform phase | complete | Local hashed users, sessions, RBAC-gated IPC, admin UI, audit logs, tests, docs, and validation completed. Commit/push remains in git phase. |
+| 11. Platform security hardening | complete | Renderer token persistence removed, main-process password-change gate added, resource ACL, audit hash chain/retention/export integrity, run timeline, MCP allowlist, static fallback auth gate, mojibake scan, docs, and validation completed. |
 
 ## Acceptance Checklist
 
@@ -65,3 +66,23 @@ Starting from baseline commit `cec7dfb`, preserve the working Static fallback wh
 3. Add i18n mojibake quality gate for source/tests/docs.
 4. Add a unit/source gate for future E2E port lifecycle regressions.
 5. Continue warning reduction in `GitTimeline`, `LogAnalyzer`, `Projects`, and `ProjectDetail`.
+
+## Round 11 - Platform Security Hardening
+
+| Phase | Status | Notes |
+|---|---|---|
+| 1. Security design review | complete | Compared against Electron safeStorage, MCP authorization, OWASP logging, workflow sharing/RBAC, and agent tracing patterns. |
+| 2. Session hardening | complete | Removed renderer plaintext `sessionToken`; main process now owns the live renderer session token. |
+| 3. ACL and sharing model | complete | Added workflow/project ACL owner/editor/viewer/admin semantics and enforced project-scoped access on child resources. |
+| 4. Audit integrity and timeline | complete | Added retention metadata, hash chain verification, complete export integrity report, and run event correlation. |
+| 5. MCP and static fallback gates | complete | Added MCP allowlist IPC/storage and token/cookie-gated static fallback with loopback-only default. |
+| 6. Mojibake quality gate | complete | Added `scan:mojibake` with explicit legacy documentation allowlist. |
+| 7. Validation and publish | complete | Full required matrix passed again after the audit export/retention-window regression test update; git publish is next. |
+
+## Round 11 Next Suggestions
+
+1. Add durable Electron `safeStorage` wrapping for secrets that must survive app restart.
+2. Build workflow sharing UI around the new ACL fields.
+3. Add an MCP runtime gateway/sandbox that consumes the allowlist before tool execution.
+4. Add signed audit export manifests or external hash checkpoints.
+5. Plan a controlled UTF-8 cleanup of historical mojibake docs.

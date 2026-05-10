@@ -4,7 +4,6 @@ const SESSION_KEY = 'agentflow.auth.session';
 
 export interface PersistedAuthSession {
   sessionId: string;
-  sessionToken: string;
   expiresAt?: string;
 }
 
@@ -14,10 +13,9 @@ export function getStoredSession(): PersistedAuthSession | null {
     const raw = localStorage.getItem(SESSION_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<PersistedAuthSession>;
-    if (!parsed.sessionId || !parsed.sessionToken) return null;
+    if (!parsed.sessionId) return null;
     return {
       sessionId: parsed.sessionId,
-      sessionToken: parsed.sessionToken,
       expiresAt: parsed.expiresAt,
     };
   } catch {
@@ -27,12 +25,11 @@ export function getStoredSession(): PersistedAuthSession | null {
 
 export function storeSession(session: AuthSessionState): void {
   if (typeof window === 'undefined') return;
-  if (!session.sessionId || !session.sessionToken) return;
+  if (!session.sessionId) return;
   localStorage.setItem(
     SESSION_KEY,
     JSON.stringify({
       sessionId: session.sessionId,
-      sessionToken: session.sessionToken,
       expiresAt: session.expiresAt,
     }),
   );
@@ -50,4 +47,3 @@ export function isAuthError(value: unknown): value is { error: string } {
 export function displayNameForUser(user?: SessionUser): string {
   return user?.profile.displayName || user?.email || 'Unknown user';
 }
-

@@ -72,10 +72,8 @@ async function waitForUrl(timeoutMs = 12000) {
       throw new Error(`Static server exited early: ${child.exitCode}\n${processOutput}`)
     }
     const output = readLog()
-    const markerMatch = output.match(/AGENTFLOW_STATIC_URL=(http:\/\/127\.0\.0\.1:\d+)/)
+    const markerMatch = output.match(/AGENTFLOW_STATIC_LAUNCH_URL=(http:\/\/127\.0\.0\.1:\d+\/\?token=[^\s]+)/)
     if (markerMatch) return markerMatch[1]
-    const match = output.match(/http:\/\/127\.0\.0\.1:\d+/)
-    if (match) return match[0]
     await wait(250)
   }
   throw new Error('Timed out waiting for static server URL')
@@ -111,7 +109,7 @@ async function main() {
   })
 
   const baseUrl = await waitForUrl()
-  record('static server URL', true, baseUrl)
+  record('static server URL', true, baseUrl.replace(/\?token=.*/, '?token=<redacted>'))
 
   const home = await request(baseUrl)
   record('HTTP 200', home.statusCode === 200, `${home.statusCode} in ${home.ms}ms`)

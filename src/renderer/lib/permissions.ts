@@ -19,7 +19,8 @@ export type Permission =
   | 'settings:write'
   | 'dialog:open'
   | 'admin:users'
-  | 'admin:audit';
+  | 'admin:audit'
+  | 'mcp:write';
 
 export function hasPermission(user: SessionUser | null | undefined, permission: Permission): boolean {
   return Boolean(user?.permissions.includes(permission));
@@ -32,4 +33,3 @@ export function isAdmin(user: SessionUser | null | undefined): boolean {
 export function roleLabel(role: UserRole): string {
   return role === 'admin' ? 'Admin' : 'User';
 }
-

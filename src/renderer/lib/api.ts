@@ -37,7 +37,7 @@ interface AgentFlowPreloadAPI {
     bootstrap(): Promise<{ ok: boolean } | { error: string }>;
     login(request: LoginRequest): Promise<LoginResult | { error: string }>;
     logout(): Promise<boolean | { error: string }>;
-    session(sessionId?: string, sessionToken?: string): Promise<AuthSessionState | { error: string }>;
+    session(sessionId?: string): Promise<AuthSessionState | { error: string }>;
     changePassword(request: ChangePasswordRequest): Promise<SessionUser | { error: string }>;
   };
   users?: {
@@ -78,6 +78,12 @@ interface AgentFlowPreloadAPI {
   runs?: {
     list(projectId: string): Promise<Run[]>;
     create(run: Omit<Run, 'id'>): Promise<Run>;
+    events(projectId?: string): Promise<unknown[]>;
+  };
+  mcp?: {
+    allowlist(): Promise<unknown[]>;
+    check(request: { serverName: string; toolName: string }): Promise<{ allowed: boolean } | { error: string }>;
+    upsert(entry: unknown): Promise<unknown>;
   };
   git?: {
     log(repoPath: string): Promise<GitCommitEntry[]>;
@@ -317,10 +323,10 @@ export const api = {
         (a) => a.auth?.logout() ?? Promise.resolve(false),
         false,
       ),
-    session: (sessionId?: string, sessionToken?: string) =>
+    session: (sessionId?: string) =>
       apiCall<AuthSessionState | { error: string }>(
         'auth.session',
-        (a) => a.auth?.session(sessionId, sessionToken) ?? Promise.resolve({ authenticated: false }),
+        (a) => a.auth?.session(sessionId) ?? Promise.resolve({ authenticated: false }),
         { authenticated: false },
       ),
     changePassword: (request: ChangePasswordRequest) =>
@@ -490,6 +496,16 @@ export const api = {
         ...run,
         id: '',
       } as Run),
+    events: (projectId?: string) =>
+      apiCall<unknown[]>('listRunEvents', (a) => a.runs?.events?.(projectId) ?? Promise.resolve([]), []),
+  },
+
+  mcp: {
+    allowlist: () => apiCall<unknown[]>('mcp.allowlist', (a) => a.mcp?.allowlist() ?? Promise.resolve([]), []),
+    check: (request: { serverName: string; toolName: string }) =>
+      apiCall<{ allowed: boolean } | { error: string }>('mcp.check', (a) => a.mcp?.check(request) ?? Promise.resolve({ allowed: false }), { allowed: false }),
+    upsert: (entry: unknown) =>
+      apiCall<unknown>('mcp.upsert', (a) => a.mcp?.upsert(entry) ?? Promise.resolve({ error: 'MCP bridge unavailable.' }), { error: 'MCP bridge unavailable.' }),
   },
 
   // ── Git ──

@@ -14,7 +14,7 @@ export interface AgentFlowAPI {
     bootstrap(): Promise<unknown>;
     login(request: LoginRequest): Promise<unknown>;
     logout(): Promise<unknown>;
-    session(sessionId?: string, sessionToken?: string): Promise<unknown>;
+    session(sessionId?: string): Promise<unknown>;
     changePassword(request: ChangePasswordRequest): Promise<unknown>;
   };
   users: {
@@ -49,6 +49,12 @@ export interface AgentFlowAPI {
   runs: {
     list(projectId: string): Promise<unknown>;
     create(data: unknown): Promise<unknown>;
+    events(projectId?: string): Promise<unknown>;
+  };
+  mcp: {
+    allowlist(): Promise<unknown>;
+    check(request: { serverName: string; toolName: string }): Promise<unknown>;
+    upsert(entry: unknown): Promise<unknown>;
   };
   git: {
     log(repoPath: string): Promise<unknown>;
@@ -100,22 +106,8 @@ export interface AgentFlowAPI {
 // Expose
 // ---------------------------------------------------------------------------
 
-function getStoredSession(): { sessionId?: string; sessionToken?: string } {
-  try {
-    const raw = localStorage.getItem('agentflow.auth.session');
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as { sessionId?: unknown; sessionToken?: unknown };
-    return {
-      sessionId: typeof parsed.sessionId === 'string' ? parsed.sessionId : undefined,
-      sessionToken: typeof parsed.sessionToken === 'string' ? parsed.sessionToken : undefined,
-    };
-  } catch {
-    return {};
-  }
-}
-
 function buildAuthEnvelope() {
-  return { __auth: getStoredSession() };
+  return { __auth: true };
 }
 
 const api: AgentFlowAPI = {
@@ -123,8 +115,7 @@ const api: AgentFlowAPI = {
     bootstrap: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH_BOOTSTRAP),
     login: (request: LoginRequest) => ipcRenderer.invoke(IPC_CHANNELS.AUTH_LOGIN, request),
     logout: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH_LOGOUT, buildAuthEnvelope()),
-    session: (sessionId?: string, sessionToken?: string) =>
-      ipcRenderer.invoke(IPC_CHANNELS.AUTH_SESSION, sessionId, sessionToken),
+    session: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH_SESSION),
     changePassword: (request: ChangePasswordRequest) =>
       ipcRenderer.invoke(IPC_CHANNELS.AUTH_CHANGE_PASSWORD, buildAuthEnvelope(), request),
   },
@@ -167,6 +158,14 @@ const api: AgentFlowAPI = {
   runs: {
     list: (projectId: string) => ipcRenderer.invoke(IPC_CHANNELS.RUN_LIST, buildAuthEnvelope(), projectId),
     create: (data: unknown) => ipcRenderer.invoke(IPC_CHANNELS.RUN_CREATE, buildAuthEnvelope(), data),
+    events: (projectId?: string) => ipcRenderer.invoke(IPC_CHANNELS.RUN_EVENTS_LIST, buildAuthEnvelope(), projectId),
+  },
+
+  mcp: {
+    allowlist: () => ipcRenderer.invoke(IPC_CHANNELS.MCP_ALLOWLIST_LIST, buildAuthEnvelope()),
+    check: (request: { serverName: string; toolName: string }) =>
+      ipcRenderer.invoke(IPC_CHANNELS.MCP_ALLOWLIST_CHECK, buildAuthEnvelope(), request),
+    upsert: (entry: unknown) => ipcRenderer.invoke(IPC_CHANNELS.MCP_ALLOWLIST_UPSERT, buildAuthEnvelope(), entry),
   },
 
   git: {

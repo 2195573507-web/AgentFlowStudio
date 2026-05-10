@@ -24,6 +24,21 @@ export interface SessionContext {
   session: AuthSession;
 }
 
+let activeRendererSession: { sessionId: string; token: string } | null = null;
+
+export function getActiveRendererSession(): { sessionId?: string; sessionToken?: string } {
+  return {
+    sessionId: activeRendererSession?.sessionId,
+    sessionToken: activeRendererSession?.token,
+  };
+}
+
+export function clearActiveRendererSession(sessionId?: string): void {
+  if (!sessionId || activeRendererSession?.sessionId === sessionId) {
+    activeRendererSession = null;
+  }
+}
+
 export async function bootstrapAuth(): Promise<void> {
   const users = await storage.getAll<StoredAuthUser>('users');
   if (users.some((user) => normalizeEmail(user.email) === authConfig.DEFAULT_ADMIN_EMAIL)) return;
@@ -106,6 +121,7 @@ export async function login(request: LoginRequest) {
   }
 
   const { session, token } = createSession(user.id, undefined, now);
+  activeRendererSession = { sessionId: session.id, token };
   await storage.create('sessions', session as never);
   const updated = await storage.update('users', user.id, {
     failedLoginCount: 0,
@@ -127,7 +143,6 @@ export async function login(request: LoginRequest) {
     session: {
       authenticated: true,
       sessionId: session.id,
-      sessionToken: token,
       user: toSessionUser(activeUser, getPermissionsForRole(activeUser.role)),
       expiresAt: session.expiresAt,
     },
@@ -145,6 +160,11 @@ export async function validateSession(sessionId?: string, token?: string): Promi
 }
 
 export async function sessionState(sessionId?: string, token?: string) {
+  if (!sessionId && !token) {
+    const active = getActiveRendererSession();
+    sessionId = active.sessionId;
+    token = active.sessionToken;
+  }
   const ctx = await validateSession(sessionId, token);
   if (!ctx) return { authenticated: false };
   return {
@@ -159,6 +179,7 @@ export async function logout(sessionId?: string, token?: string): Promise<boolea
   const ctx = await validateSession(sessionId, token);
   if (!ctx) return false;
   await storage.update('sessions', ctx.session.id, { revokedAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as never);
+  clearActiveRendererSession(ctx.session.id);
   await recordAudit({
     type: 'auth.logout',
     action: 'auth.logout',
@@ -170,6 +191,41 @@ export async function logout(sessionId?: string, token?: string): Promise<boolea
   return true;
 }
 
+async function revokeUserSessions(userId: string, exceptSessionId?: string): Promise<void> {
+  const sessions = await storage.getAll<AuthSession>('sessions');
+  const now = new Date().toISOString();
+  await Promise.all(
+    sessions
+      .filter((session) => session.userId === userId && session.id !== exceptSessionId && !session.revokedAt)
+      .map((session) => storage.update('sessions', session.id, { revokedAt: now, updatedAt: now } as never)),
+  );
+  if (!exceptSessionId && activeRendererSession) {
+    const active = sessions.find((session) => session.id === activeRendererSession?.sessionId);
+    if (active?.userId === userId) clearActiveRendererSession(active.id);
+  }
+}
+
+async function assertAdminChangeIsSafe(actor: SessionContext, target: StoredAuthUser, request: UpdateUserRequest): Promise<void> {
+  const disabling = request.status === 'disabled';
+  const demoting = request.role === 'user' && target.role === 'admin';
+  if (!disabling && !demoting) return;
+  if (actor.user.id === target.id) {
+    throw new Error('Admins cannot demote or disable their own account.');
+  }
+  const users = await storage.getAll<StoredAuthUser>('users');
+  const activeAdminsAfter = users.filter((user) => {
+    if (user.id === target.id) {
+      const nextRole = request.role ?? user.role;
+      const nextStatus = request.status ?? user.status;
+      return nextRole === 'admin' && nextStatus === 'active';
+    }
+    return user.role === 'admin' && user.status === 'active';
+  });
+  if (activeAdminsAfter.length === 0) {
+    throw new Error('At least one active admin must remain.');
+  }
+}
+
 export async function changePassword(ctx: SessionContext, currentPassword: string, newPassword: string) {
   if (!verifyPassword(currentPassword, ctx.user)) throw new Error('Current password is incorrect.');
   const payload = {
@@ -178,6 +234,7 @@ export async function changePassword(ctx: SessionContext, currentPassword: strin
     updatedAt: new Date().toISOString(),
   };
   const updated = await storage.update('users', ctx.user.id, payload as never);
+  await revokeUserSessions(ctx.user.id, ctx.session.id);
   await recordAudit({
     type: 'auth.password_change',
     action: 'auth.change_password',
@@ -217,6 +274,7 @@ export async function updateUser(ctx: SessionContext, request: UpdateUserRequest
   if (!user) throw new Error('User not found.');
   if (request.role !== undefined && !isValidRole(request.role)) throw new Error('Invalid user role.');
   if (request.status !== undefined && !validateUserStatus(request.status)) throw new Error('Invalid user status.');
+  await assertAdminChangeIsSafe(ctx, user, request);
   const update: Partial<StoredAuthUser> = {
     updatedAt: new Date().toISOString(),
   };
@@ -227,6 +285,9 @@ export async function updateUser(ctx: SessionContext, request: UpdateUserRequest
   }
   if (request.profile) update.profile = { ...user.profile, ...request.profile };
   const updated = await storage.update('users', user.id, update as never);
+  if (request.status === 'disabled' || request.role !== undefined) {
+    await revokeUserSessions(user.id, ctx.session.id);
+  }
   const action = request.status === 'disabled' ? 'user.disable' : request.status === 'active' ? 'user.enable' : request.role ? 'user.update_role' : 'admin.operation';
   await recordAudit({
     type: action as never,
@@ -251,6 +312,7 @@ export async function resetPassword(ctx: SessionContext, request: ResetPasswordR
     lockedUntil: undefined,
     updatedAt: new Date().toISOString(),
   } as never);
+  await revokeUserSessions(user.id, ctx.session.id);
   await recordAudit({
     type: 'user.reset_password',
     action: 'user.reset_password',

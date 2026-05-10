@@ -18,7 +18,9 @@ type CollectionName =
   | 'settings'
   | 'users'
   | 'sessions'
-  | 'auditLogs';
+  | 'auditLogs'
+  | 'runEvents'
+  | 'mcpAllowlist';
 
 type Identifiable = { id: string };
 type DataRecord = Identifiable;

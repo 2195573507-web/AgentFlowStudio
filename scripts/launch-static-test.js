@@ -88,13 +88,9 @@ async function waitForUrl(timeoutMs = 10000) {
       throw new Error(`静态服务器提前退出，退出码：${child.exitCode}\n${processOutput}`)
     }
     const output = readLog()
-    const markerMatch = output.match(/AGENTFLOW_STATIC_URL=(http:\/\/127\.0\.0\.1:\d+)/)
+    const markerMatch = output.match(/AGENTFLOW_STATIC_LAUNCH_URL=(http:\/\/127\.0\.0\.1:\d+\/\?token=[^\s]+)/)
     if (markerMatch) {
       return markerMatch[1]
-    }
-    const match = output.match(/服务地址：(http:\/\/127\.0\.0\.1:\d+)/)
-    if (match) {
-      return match[1]
     }
     await wait(250)
   }
@@ -167,7 +163,8 @@ async function main() {
 
   const appSource = fs.readFileSync(path.join(root, 'static-app', 'app.js'), 'utf8')
   const cssSource = fs.readFileSync(path.join(root, 'static-app', 'styles.css'), 'utf8')
-  const staticSource = `${response.body}\n${appSource}\n${cssSource}`
+  const serverSource = fs.readFileSync(path.join(root, 'scripts', 'static-server.js'), 'utf8')
+  const staticSource = `${response.body}\n${appSource}\n${cssSource}\n${serverSource}`
   for (const marker of [
     'agentflow.language',
     'agentflow.theme',
@@ -177,6 +174,8 @@ async function main() {
     'Inject Shared Memory',
     '[REDACTED]',
     'Static render error',
+    'agentflow_static_token',
+    'AGENTFLOW_STATIC_LAUNCH_URL',
     '[data-theme="dark"]',
     'prefers-color-scheme',
   ]) {
