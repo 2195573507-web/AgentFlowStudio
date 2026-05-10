@@ -55,6 +55,14 @@ Login recovery validation on 2026-05-10:
 - `npm.cmd run test:e2e`: PASS, 16/16.
 - Local admin data check: PASS, `123456` matches the stored default admin hash and the account is not locked.
 
+Electron launcher/auth bridge validation on 2026-05-10:
+
+- `start-agentflow.bat` launches the built Electron shell directly with `AGENTFLOW_LOAD_DIST=1`.
+- `npm.cmd run build` keeps Vite as the owner of `dist-electron` output and uses `tsc --noEmit -p tsconfig.node.json` for Node/Electron type checking.
+- The Electron preload bundle is CommonJS so `contextBridge` is available to the renderer.
+- `npm.cmd run test:electron-auth-bridge`: PASS, built renderer loaded from `file://` and `window.agentflow.auth.login` existed.
+- `npm.cmd run verify`: PASS, 100/100 build checks and 184/184 smoke checks.
+
 ## Known Remaining Work
 
 - Add diagnostics page UI.

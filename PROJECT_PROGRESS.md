@@ -34,3 +34,23 @@
   - `npm.cmd test`: PASS, 24 files / 177 tests.
   - `npm.cmd run build`: PASS, non-fatal Vite chunk/dynamic-import warnings only.
   - `npm.cmd run test:e2e`: PASS, 16/16.
+
+## 2026-05-10 Electron Launcher Auth Bridge Follow-up
+
+- Resumed interrupted session `019e109c-7293-7e81-9c09-976bf9125f93`.
+- User-visible symptom: desktop shortcut reached the rebuilt login page, but login reported `Auth bridge unavailable`.
+- Root cause: the desktop launcher still depended on the Vite/dev style path, and production build ran `tsc -p tsconfig.node.json` after Vite. That second step overwrote Vite's Electron preload bundle with an ESM file. Electron loaded the built renderer, but `contextBridge.exposeInMainWorld('agentflow', api)` did not become available to the renderer.
+- Fix:
+  - `start-agentflow.bat` now launches `node_modules\electron\dist\electron.exe dist-electron\main\index.js` with `AGENTFLOW_LOAD_DIST=1`.
+  - `start-agentflow-electron.bat` delegates to `start-agentflow.bat`.
+  - `npm.cmd run build` now runs `vite build && tsc --noEmit -p tsconfig.node.json`, so Vite owns `dist-electron` output and TypeScript still checks Node/Electron types.
+  - `vite.config.ts` forces the Electron preload bundle to CommonJS with inline dynamic imports.
+  - `npm.cmd run test:electron-auth-bridge` verifies the built Electron app exposes `window.agentflow.auth.login`.
+- Verification after this follow-up:
+  - `npm.cmd run typecheck`: PASS.
+  - `npm.cmd test`: PASS, 24 files / 177 tests.
+  - `npm.cmd run build`: PASS, non-fatal Vite chunk/dynamic-import warnings only.
+  - `npm.cmd run lint`: PASS, 0 errors / 25 warnings.
+  - `npm.cmd run verify`: PASS, 100/100 build checks and 184/184 smoke checks.
+  - `npm.cmd run test:electron-startup`: PASS.
+  - `npm.cmd run test:electron-auth-bridge`: PASS.

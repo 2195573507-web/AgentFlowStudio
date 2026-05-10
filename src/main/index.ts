@@ -11,7 +11,7 @@ import { bootstrapAuth } from './session.js';
 // Constants
 // ---------------------------------------------------------------------------
 
-const isDev = !app.isPackaged;
+const isDev = !app.isPackaged && process.env.AGENTFLOW_LOAD_DIST !== '1';
 const devServerUrl = normalizeDevServerUrl(process.env.VITE_DEV_SERVER_URL ?? 'http://localhost:5173');
 const startupSmoke = process.env.AGENTFLOW_STARTUP_SMOKE === '1';
 const mainDir = path.dirname(fileURLToPath(import.meta.url));
@@ -315,8 +315,18 @@ function createWindow(): BrowserWindow {
   };
 
   if (startupSmoke) {
-    win.webContents.once('did-finish-load', () => {
-      reportSmokeResult(true, `url=${win.webContents.getURL()}`);
+    win.webContents.once('did-finish-load', async () => {
+      if (process.env.AGENTFLOW_REQUIRE_AUTH_BRIDGE === '1') {
+        const hasAuthBridge = await win.webContents.executeJavaScript(
+          "Boolean(window.agentflow && window.agentflow.auth && typeof window.agentflow.auth.login === 'function')",
+          true,
+        );
+        if (!hasAuthBridge) {
+          reportSmokeResult(false, `url=${win.webContents.getURL()} authBridge=false`);
+          return;
+        }
+      }
+      reportSmokeResult(true, `url=${win.webContents.getURL()} authBridge=true`);
     });
     win.webContents.once('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
       reportSmokeResult(false, `code=${errorCode} description="${errorDescription}" url=${validatedURL}`);

@@ -191,3 +191,31 @@ In progress. The rebuild study will be written to `docs/COMPETITOR_MAINLINE_REBU
 - Commit hash: pending.
 - Pushed: pending.
 - Next recommendation: add a dedicated Electron smoke test for first-launch default admin login and forced password change using project-local userData.
+
+## 12. Electron Launcher/Auth Bridge Fix - 2026-05-10
+
+- Resume id: `019e109c-7293-7e81-9c09-976bf9125f93`.
+- User-reported symptom: the rebuilt app opened from the desktop shortcut, but login failed with `Auth bridge unavailable`.
+- Confirmed current shortcut target: `C:\Users\鑷充翰\Desktop\AgentFlow Studio.lnk` -> `D:\AgentFlowStudio\start-agentflow.bat`.
+- Root cause:
+  - `start-agentflow.bat` still used the dev/Vite launch path instead of directly launching the built Electron shell.
+  - `npm.cmd run build` ran `tsc -p tsconfig.node.json` after Vite, overwriting Vite's bundled Electron preload with ESM output. The built renderer loaded, but `window.agentflow` was not exposed.
+- Fixes:
+  - `start-agentflow.bat` now launches `node_modules\electron\dist\electron.exe dist-electron\main\index.js` with `AGENTFLOW_LOAD_DIST=1`.
+  - `start-agentflow-electron.bat` delegates to `start-agentflow.bat`.
+  - `src/main/index.ts` treats `AGENTFLOW_LOAD_DIST=1` as production-style file loading even when Electron is not packaged.
+  - `package.json` build script now uses `tsc --noEmit -p tsconfig.node.json` after Vite.
+  - `vite.config.ts` forces preload output to CommonJS and inline dynamic imports.
+  - Added `scripts/electron-auth-bridge-smoke.js` and `npm.cmd run test:electron-auth-bridge`.
+- Verification:
+  - `npm.cmd run typecheck`: PASS.
+  - `npm.cmd test`: PASS, 24 files / 177 tests.
+  - `npm.cmd run build`: PASS, with non-fatal Vite chunk/dynamic-import warnings.
+  - `npm.cmd run lint`: PASS, 0 errors / 25 warnings.
+  - `npm.cmd run verify`: PASS, 100/100 build checks and 184/184 smoke checks.
+  - `npm.cmd run test:electron-startup`: PASS.
+  - `npm.cmd run test:electron-auth-bridge`: PASS, built renderer loaded from `file://` and exposed `window.agentflow.auth.login`.
+- Remaining issues:
+  - Existing Vite chunk-size warnings remain non-fatal.
+  - Historical mojibake outside touched paths remains.
+  - `npm audit` dependency vulnerabilities remain for a dependency maintenance pass.

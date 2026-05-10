@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "vite",
     "dev:web": "vite --mode web --host 127.0.0.1 --port 5173",
-    "build": "vite build && tsc -p tsconfig.node.json",
+    "build": "vite build && tsc --noEmit -p tsconfig.node.json",
     "build:web": "vite build --mode web",
     "fallback:web": "npm run dev:web",
     "fallback:static": "node scripts/static-server.js static-app 4173",
@@ -21,6 +21,7 @@
     "test:watch": "vitest --config vite.config.ts",
     "test:e2e": "node scripts/run-playwright-e2e.js",
     "test:electron-startup": "node scripts/electron-startup-smoke.js",
+    "test:electron-auth-bridge": "node scripts/electron-auth-bridge-smoke.js",
     "test:launch-static": "node scripts/launch-static-test.js",
     "test:static-browser": "node scripts/static-browser-smoke.js",
     "test:long-run": "node scripts/long-run-stability-test.js",

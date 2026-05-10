@@ -1,5 +1,35 @@
 # AgentFlow Studio - Test Report
 
+## Electron Launcher/Auth Bridge Recovery - 2026-05-10
+
+Resume session: `019e109c-7293-7e81-9c09-976bf9125f93`
+
+### Fix Verified
+
+- Desktop shortcut target remains `D:\AgentFlowStudio\start-agentflow.bat`.
+- `start-agentflow.bat` now starts the built Electron shell directly instead of relying on a dev/Vite launcher path.
+- `npm.cmd run build` no longer lets `tsc` overwrite `dist-electron/main/preload.js`; TypeScript uses `--noEmit`.
+- Electron preload is bundled as CommonJS with inline dynamic imports.
+- New smoke command: `npm.cmd run test:electron-auth-bridge`.
+
+### Latest Verified Results
+
+| Check | Status | Details |
+|---|---:|---|
+| `npm.cmd run typecheck` | PASS | TypeScript renderer/main checks passed. |
+| `npm.cmd test` | PASS | Vitest: 24 files / 177 tests passed. |
+| `npm.cmd run build` | PASS | Renderer and Electron builds passed; non-fatal Vite chunk/dynamic-import warnings remain. |
+| `npm.cmd run lint` | PASS | 0 errors, 25 existing warnings under the configured threshold. |
+| `npm.cmd run verify` | PASS | 100/100 build checks and 184/184 smoke checks passed. |
+| `npm.cmd run test:electron-startup` | PASS | Real Electron startup reached ready marker using project-local userData. |
+| `npm.cmd run test:electron-auth-bridge` | PASS | Built Electron renderer loaded from `file://` and exposed `window.agentflow.auth.login`. |
+
+### Notes
+
+- Test logs stay under `D:\AgentFlowStudio\.codex-parallel\logs`.
+- Existing Vite chunk-size and dynamic-import warnings are non-fatal.
+- Existing npm audit dependency vulnerabilities remain for a separate dependency maintenance pass.
+
 ## Mainline Workflow Rebuild Pass - 2026-05-10
 
 ### What Changed

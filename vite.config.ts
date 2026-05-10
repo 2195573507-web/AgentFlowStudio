@@ -41,11 +41,18 @@ export default defineConfig(({ mode }) => {
                   },
                   vite: {
                     build: {
+                      lib: {
+                        entry: 'src/main/preload.ts',
+                        formats: ['cjs'],
+                        fileName: () => '[name].js',
+                      },
                       outDir: 'dist-electron',
                       rollupOptions: {
                         external: ['electron'],
                         output: {
                           entryFileNames: 'main/[name].js',
+                          format: 'cjs',
+                          inlineDynamicImports: true,
                         },
                       },
                     },
