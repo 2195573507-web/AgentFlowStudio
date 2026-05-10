@@ -146,3 +146,48 @@ In progress. The rebuild study will be written to `docs/COMPETITOR_MAINLINE_REBU
 
 - Final rebuild implementation commit: pending at the time of this validation entry.
 - Pushed: pending at the time of this validation entry.
+
+## 11. Login Recovery Fix - 2026-05-10
+
+- User-reported symptom: desktop shortcut opens the rebuilt app, but the user cannot get past login / first-login password change.
+- Confirmed desktop shortcut target from the previous pass: `C:\Users\至亲\Desktop\AgentFlow Studio.lnk` -> `D:\AgentFlowStudio\start-agentflow.bat`.
+- Confirmed local default admin state in Electron user data:
+  - Email: `123@admin.com`
+  - Password: `123456`
+  - Role: `admin`
+  - Status: `active`
+  - `mustChangePassword`: `true`
+  - `failedLoginCount`: `0`
+  - `lockedUntil`: none
+  - Stored password hash matches `123456`.
+- Root cause found: renderer calls `api.auth.session(sessionId)`, but preload dropped the `sessionId` before invoking `AUTH_SESSION`. After restart/refresh, session restoration could fail or feel like a login loop.
+- Secondary root cause found: `sessionState(sessionId)` restored the secure active token but only reused it when both `sessionId` and `token` were absent. Passing only `sessionId` from renderer left `token` empty for validation.
+- UX issue found: login and first-login password-change screens did not clearly tell beginners that the default password is `123456`, and the change-password form did not explain the next fix when the current password or new password was wrong.
+- Files changed:
+  - `src/main/preload.ts`
+  - `src/main/session.ts`
+  - `src/renderer/App.tsx`
+  - `src/renderer/routes/Login.tsx`
+  - `BUILD_JOURNEY.md`
+  - `PROJECT_PROGRESS.md`
+  - `handoff/TEST_REPORT.md`
+  - `handoff/FULL_REBUILD_HANDOFF.md`
+- Why: unblock the real first-run path from shortcut -> login -> forced password change -> Dashboard, while keeping raw session tokens out of renderer storage.
+- Fixes:
+  - Preload now forwards `sessionId` to `AUTH_SESSION`.
+  - Main session recovery now uses the main-process active token when renderer supplies the matching `sessionId`.
+  - Login page now shows the default admin email/password and explains the first-login password change.
+  - Forced password-change page now uses Chinese-first guidance, validates missing/short passwords, and translates common auth errors into concrete next steps.
+- Verification:
+  - `npm.cmd run typecheck`: PASS.
+  - `npm.cmd test`: PASS, 24 files / 177 tests.
+  - `npm.cmd run build`: PASS, with non-fatal Vite chunk/dynamic-import warnings.
+  - `npm.cmd run test:e2e`: PASS, 16/16.
+  - Direct `npx.cmd playwright test tests/e2e/auth.spec.ts`: blocked by occupied port `127.0.0.1:5173`; project wrapper selected `5174` and passed.
+- Remaining issues:
+  - Historical mojibake remains outside the touched login path.
+  - Existing Vite chunk-size warnings remain non-fatal.
+  - `npm audit` dependency vulnerabilities remain for a dependency maintenance pass.
+- Commit hash: pending.
+- Pushed: pending.
+- Next recommendation: add a dedicated Electron smoke test for first-launch default admin login and forced password change using project-local userData.

@@ -36,7 +36,9 @@ export default function Login() {
             <Lock className="h-6 w-6" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">AgentFlow Studio</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Sign in to unlock the local Agent IDE workspace.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            登录本地优先的 Agent 工作流工作台。默认管理员邮箱已为你填好。
+          </p>
         </div>
 
         <GlassCard>
@@ -72,8 +74,8 @@ export default function Login() {
           <div className="flex gap-3 text-sm text-amber-800 dark:text-amber-200">
             <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
             <p>
-              Default admin starts as <strong>123@admin.com</strong>. The password is stored only as a hash,
-              and the first login requires changing the weak bootstrap password.
+              默认管理员：<strong>123@admin.com</strong>，初始密码：<strong>123456</strong>。
+              首次登录后会要求修改密码；如果看到改密页，当前密码仍填写 123456，新密码至少 6 位。
             </p>
           </div>
         </GlassCard>

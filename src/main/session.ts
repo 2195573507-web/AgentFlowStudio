@@ -250,10 +250,12 @@ export async function validateSession(sessionId?: string, token?: string): Promi
 
 export async function sessionState(sessionId?: string, token?: string) {
   await restoreActiveSessionFromSecureStore(sessionId);
-  if (!sessionId && !token) {
+  if (!token) {
     const active = getActiveRendererSession();
-    sessionId = active.sessionId;
-    token = active.sessionToken;
+    if (!sessionId || active.sessionId === sessionId) {
+      sessionId = sessionId ?? active.sessionId;
+      token = active.sessionToken;
+    }
   }
   const ctx = await validateSession(sessionId, token);
   if (!ctx) return { authenticated: false };

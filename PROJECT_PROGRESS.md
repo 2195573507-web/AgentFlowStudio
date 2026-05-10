@@ -20,3 +20,17 @@
 - Final `npm.cmd run lint` PASS: 0 errors / 25 warnings under threshold.
 - Final `npm.cmd run test:e2e` PASS: 16/16.
 - `npm.cmd run test:unit` and `npm.cmd run test:integration` are not defined in `package.json`.
+
+## 2026-05-10 Login Recovery Follow-up
+
+- Verified the desktop shortcut already opens `D:\AgentFlowStudio\start-agentflow.bat`.
+- Verified the local default admin is active and unlocked in `C:\Users\至亲\AppData\Roaming\AgentFlow Studio\agentflow-data\users.json`.
+- Default credentials are valid: `123@admin.com / 123456`.
+- Fixed the preload session bridge so `api.auth.session(sessionId)` forwards `sessionId` to the main process.
+- Fixed main-process session recovery so a renderer-held `sessionId` can be matched with the main-process secure active token.
+- Updated login and forced password-change screens with Chinese-first guidance, default password hints, and concrete error recovery instructions.
+- Verification after this follow-up:
+  - `npm.cmd run typecheck`: PASS.
+  - `npm.cmd test`: PASS, 24 files / 177 tests.
+  - `npm.cmd run build`: PASS, non-fatal Vite chunk/dynamic-import warnings only.
+  - `npm.cmd run test:e2e`: PASS, 16/16.

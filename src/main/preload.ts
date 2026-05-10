@@ -161,7 +161,7 @@ const api: AgentFlowAPI = {
     bootstrap: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH_BOOTSTRAP),
     login: (request: LoginRequest) => ipcRenderer.invoke(IPC_CHANNELS.AUTH_LOGIN, request),
     logout: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH_LOGOUT, buildAuthEnvelope()),
-    session: () => ipcRenderer.invoke(IPC_CHANNELS.AUTH_SESSION),
+    session: (sessionId?: string) => ipcRenderer.invoke(IPC_CHANNELS.AUTH_SESSION, sessionId),
     changePassword: (request: ChangePasswordRequest) =>
       ipcRenderer.invoke(IPC_CHANNELS.AUTH_CHANGE_PASSWORD, buildAuthEnvelope(), request),
   },

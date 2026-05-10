@@ -44,6 +44,32 @@
 
 Final note: workflow E2E coverage is no longer pending; `tests/e2e/app.spec.ts` now includes project/workflow/template/run/trace coverage.
 
+## Login Recovery Follow-up - 2026-05-10
+
+### What Changed
+
+- Fixed the preload auth bridge so `auth.session(sessionId)` forwards the renderer-held `sessionId` to the main process.
+- Fixed main-process session recovery so the secure active token is reused when the renderer supplies only the matching `sessionId`.
+- Updated the login screen to show the default admin credentials clearly: `123@admin.com / 123456`.
+- Updated the forced password-change screen with Chinese-first instructions, default current-password guidance, loading state, and concrete recovery errors for wrong current password, short new password, and expired sessions.
+
+### Results
+
+| Check | Status | Details |
+|---|---:|---|
+| Local admin data check | PASS | `123@admin.com` is active/unlocked and `123456` matches the stored hash. |
+| `npm.cmd run typecheck` | PASS | TypeScript passed after preload/session/UI changes. |
+| `npm.cmd test` | PASS | Vitest: 24 files / 177 tests passed. |
+| `npm.cmd run build` | PASS | Renderer and Electron builds passed; existing non-fatal chunk/dynamic-import warnings remain. |
+| `npm.cmd run test:e2e` | PASS | Playwright wrapper selected free port `5174`; 16/16 tests passed. |
+| `npx.cmd playwright test tests/e2e/auth.spec.ts` | BLOCKED | Direct Playwright run could not bind `127.0.0.1:5173`; use `npm.cmd run test:e2e` on this machine. |
+
+### Login Notes For Operators
+
+- Default admin email: `123@admin.com`.
+- Default admin password: `123456`.
+- On the first-login password-change page, current password is still `123456`; new password must be at least 6 characters.
+
 ## Auth, Admin, RBAC, And Audit Pass - 2026-05-10
 
 ### What Changed

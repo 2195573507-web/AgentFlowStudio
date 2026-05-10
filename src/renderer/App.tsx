@@ -1,7 +1,10 @@
 import React, { Suspense, lazy } from 'react'
 import { Navigate, Routes, Route, useLocation } from 'react-router-dom'
+import { KeyRound, ShieldCheck } from 'lucide-react'
 import Layout from './components/Layout'
 import ErrorBoundary from './components/ErrorBoundary'
+import Button from './components/Button'
+import Input from './components/Input'
 import { AuthProvider, useAuth } from './lib/auth'
 import { hasPermission, type Permission } from './lib/permissions'
 
@@ -58,32 +61,92 @@ function RequirePermission({ permission, children }: { permission: Permission; c
   return <>{children}</>
 }
 
+function passwordChangeMessage(message: string) {
+  if (message.includes('Current password is incorrect')) {
+    return '当前密码不正确。默认管理员首次登录时，当前密码请填写 123456。'
+  }
+  if (message.includes('Password must be at least 6 characters')) {
+    return '新密码至少需要 6 位。请设置一个只有你知道的新密码。'
+  }
+  if (message.includes('Authentication required')) {
+    return '登录会话已过期。请回到登录页重新登录后再修改密码。'
+  }
+  return message
+}
+
 function ForcePasswordChange({ children }: { children: React.ReactNode }) {
   const { user, setUser } = useAuth()
   const [currentPassword, setCurrentPassword] = React.useState('')
   const [newPassword, setNewPassword] = React.useState('')
   const [error, setError] = React.useState('')
+  const [changing, setChanging] = React.useState(false)
   if (!user?.mustChangePassword) return <>{children}</>
   const change = async (event: React.FormEvent) => {
     event.preventDefault()
     setError('')
-    const { api } = await import('./lib/api')
-    const result = await api.auth.changePassword({ currentPassword, newPassword })
-    if (result && typeof result === 'object' && 'error' in result) {
-      setError(String(result.error))
+    if (!currentPassword.trim()) {
+      setError('请输入当前密码。默认管理员首次登录时，当前密码是 123456。')
       return
     }
-    setUser(result)
+    if (newPassword.length < 6) {
+      setError('新密码至少需要 6 位。')
+      return
+    }
+    setChanging(true)
+    try {
+      const { api } = await import('./lib/api')
+      const result = await api.auth.changePassword({ currentPassword, newPassword })
+      if (result && typeof result === 'object' && 'error' in result) {
+        setError(passwordChangeMessage(String(result.error)))
+        return
+      }
+      setUser(result)
+    } finally {
+      setChanging(false)
+    }
   }
   return (
     <div className="min-h-screen w-screen p-6 flex items-center justify-center">
       <form onSubmit={change} className="liquid-glass-card w-full max-w-md p-5 space-y-4">
-        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Change default password</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400">The bootstrap admin password is intentionally weak and must be replaced before using the workspace.</p>
-        <input aria-label="Current password" type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-surface)] px-3 py-2 text-sm" />
-        <input aria-label="New password" type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-surface)] px-3 py-2 text-sm" />
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        <button className="w-full rounded-xl bg-accent-600 px-4 py-2 text-sm font-semibold text-white">Update password</button>
+        <div className="flex items-start gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-accent-500/15 text-accent-600 dark:text-accent-300">
+            <ShieldCheck className="h-5 w-5" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">请先修改默认管理员密码</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              你已经登录默认管理员账号。为保护本地工作区，请先把初始密码 123456 改成你自己的密码。
+            </p>
+          </div>
+        </div>
+        <Input
+          aria-label="Current password"
+          label="当前密码"
+          type="password"
+          value={currentPassword}
+          onChange={(event) => setCurrentPassword(event.target.value)}
+          placeholder="首次登录填写 123456"
+          autoComplete="current-password"
+          icon={<KeyRound className="h-4 w-4" />}
+        />
+        <Input
+          aria-label="New password"
+          label="新密码"
+          type="password"
+          value={newPassword}
+          onChange={(event) => setNewPassword(event.target.value)}
+          placeholder="至少 6 位"
+          autoComplete="new-password"
+          icon={<KeyRound className="h-4 w-4" />}
+        />
+        {error && (
+          <div className="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-300">
+            {error}
+          </div>
+        )}
+        <Button type="submit" fullWidth loading={changing}>
+          修改密码并进入
+        </Button>
       </form>
     </div>
   )

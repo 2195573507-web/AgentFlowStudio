@@ -19,6 +19,14 @@ Set-Location D:\AgentFlowStudio
 npm.cmd run dev
 ```
 
+## Login Notes
+
+- Desktop shortcut should open `D:\AgentFlowStudio\start-agentflow.bat`.
+- Default admin account: `123@admin.com`.
+- Default admin password: `123456`.
+- First login intentionally opens a password-change screen. Use current password `123456`, then set a new password of at least 6 characters.
+- The renderer stores only `sessionId`; the main process owns the active session token and validates all privileged IPC.
+
 ## Quality Gates
 
 Use `npm.cmd` on this machine:
@@ -38,6 +46,14 @@ Final validation on 2026-05-10:
 - `npm.cmd run test:e2e`: PASS, 16/16.
 - `npm.cmd run test:unit`: script missing.
 - `npm.cmd run test:integration`: script missing.
+
+Login recovery validation on 2026-05-10:
+
+- `npm.cmd run typecheck`: PASS.
+- `npm.cmd test`: PASS, 24 files / 177 tests.
+- `npm.cmd run build`: PASS, with non-fatal Vite chunk/dynamic-import warnings.
+- `npm.cmd run test:e2e`: PASS, 16/16.
+- Local admin data check: PASS, `123456` matches the stored default admin hash and the account is not locked.
 
 ## Known Remaining Work
 
