@@ -41,6 +41,8 @@ export interface Project {
   uiStyle: string
   difficulty: Difficulty
   status: ProjectStatus
+  defaultProviderRef?: string
+  defaultModel?: string
   createdAt: string
   updatedAt: string
 }
@@ -102,10 +104,12 @@ export interface Run {
 export interface RunEvent {
   id: string
   runId?: string
+  agentId?: string
+  executionId?: string
   projectId?: string
   workflowId?: string
   auditEventId?: string
-  type: 'run.created' | 'run.updated' | 'permission.denied' | 'audit.recorded' | 'mcp.denied' | 'mcp.allowed'
+  type: 'run.created' | 'run.updated' | 'permission.denied' | 'audit.recorded' | 'mcp.denied' | 'mcp.allowed' | 'provider.test' | 'provider.switch' | 'agent.execution' | 'feedback.created'
   status: 'success' | 'failure' | 'denied' | 'info'
   actorUserId?: string
   title: string
@@ -122,6 +126,77 @@ export interface McpAllowlistEntry {
   enabled: boolean
   riskLevel: WorkflowTemplateRisk
   description?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface SkillRegistryEntry {
+  id: string
+  name: string
+  description: string
+  category: string
+  enabled: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export type AgentStatus = 'enabled' | 'disabled' | 'archived'
+export type AgentType = 'assistant' | 'reviewer' | 'workflow' | 'demo' | 'custom'
+export type AgentHealthStatus = 'unknown' | 'healthy' | 'warning' | 'error'
+
+export interface AgentRecord {
+  id: string
+  name: string
+  description: string
+  type: AgentType
+  status: AgentStatus
+  ownerUserId?: string
+  projectId?: string
+  workflowId?: string
+  providerRef?: string
+  model?: string
+  systemPrompt?: string
+  toolsAllowlistRef?: string
+  skillsRefs: string[]
+  createdAt: string
+  updatedAt: string
+  lastRunAt?: string
+  lastHealthStatus: AgentHealthStatus
+  deletedAt?: string
+}
+
+export type AgentExecutionStatus = 'queued' | 'running' | 'success' | 'failed' | 'cancelled' | 'demo'
+
+export interface AgentExecutionRecord {
+  id: string
+  agentId: string
+  runId?: string
+  workflowId?: string
+  projectId?: string
+  status: AgentExecutionStatus
+  startedAt: string
+  finishedAt?: string
+  durationMs?: number
+  inputSummary: string
+  outputSummary: string
+  errorSummary?: string
+  customData?: Record<string, unknown>
+  createdAt: string
+}
+
+export type AgentFeedbackStatus = 'open' | 'triaged' | 'resolved' | 'archived'
+
+export interface AgentFeedbackRecord {
+  id: string
+  agentId?: string
+  executionId?: string
+  runId?: string
+  projectId?: string
+  rating: 'positive' | 'neutral' | 'negative'
+  title: string
+  message: string
+  status: AgentFeedbackStatus
+  createdByUserId?: string
   createdAt: string
   updatedAt: string
 }
@@ -228,10 +303,23 @@ export interface MemoryLink {
 
 export interface ProviderSetting {
   id: string
+  providerId?: string
   providerName: string
+  displayName?: string
   baseUrl: string
   apiKey: string
   modelName: string
+  recommendedModels?: string[]
+  authType?: 'apiKey' | 'none' | 'bearer' | 'custom'
+  docsHint?: string
+  networkHint?: string
+  needsApiKey?: boolean
+  supportsStreaming?: boolean
+  supportsVision?: boolean
+  defaultTimeout?: number
+  lastTestStatus?: 'untested' | 'success' | 'failure'
+  lastTestMessage?: string
+  lastTestedAt?: string
   enabled: boolean
   memoryEnabled: boolean
   memoryInjectionMode: MemoryInjectionMode
@@ -249,6 +337,50 @@ export interface AppSettings {
   version?: string
   appVersion?: string
   techStack?: string[]
+  activeProviderRef?: string
+  activeModel?: string
+  agentDefaultProviderRef?: string
+}
+
+export interface ProviderPreset {
+  providerId: string
+  displayName: string
+  baseUrl: string
+  recommendedModels: string[]
+  authType: 'apiKey' | 'none' | 'bearer' | 'custom'
+  docsHint: string
+  networkHint: string
+  needsApiKey: boolean
+  supportsStreaming: boolean
+  supportsVision: boolean
+  defaultTimeout: number
+}
+
+export interface ActiveProviderConfig {
+  providerRef: string
+  model: string
+  scope: 'workspace' | 'project' | 'agent'
+  projectId?: string
+  agentId?: string
+}
+
+export interface ConfigExportManifest {
+  version: 1
+  exportedAt: string
+  hash: string
+  redaction: 'secrets-omitted'
+  counts: Record<string, number>
+}
+
+export interface ConfigBundle {
+  manifest: ConfigExportManifest
+  providerPresets: ProviderPreset[]
+  providers: Array<Record<string, unknown>>
+  projectDefaults: Array<{ projectId: string; defaultProviderRef?: string; defaultModel?: string }>
+  agents: Array<Record<string, unknown>>
+  templates: Array<Record<string, unknown>>
+  mcpAllowlist: Array<Record<string, unknown>>
+  skillsRegistry: SkillRegistryEntry[]
 }
 
 // ── Skill types ──
@@ -394,6 +526,15 @@ export const IPC_CHANNELS = {
   RUN_CREATE: 'run:create',
   RUN_EVENTS_LIST: 'runEvents:list',
 
+  // Workflows
+  WORKFLOW_TEMPLATE_LIST: 'workflow:templates:list',
+  WORKFLOW_LIST: 'workflow:list',
+  WORKFLOW_GET: 'workflow:get',
+  WORKFLOW_CREATE_FROM_TEMPLATE: 'workflow:createFromTemplate',
+  WORKFLOW_SAVE: 'workflow:save',
+  WORKFLOW_RUN: 'workflow:run',
+  WORKFLOW_VERSION_LIST: 'workflow:versions:list',
+
   // MCP
   MCP_ALLOWLIST_LIST: 'mcp:allowlist:list',
   MCP_ALLOWLIST_CHECK: 'mcp:allowlist:check',
@@ -424,6 +565,38 @@ export const IPC_CHANNELS = {
   PROVIDER_CREATE: 'provider:create',
   PROVIDER_UPDATE: 'provider:update',
   PROVIDER_DELETE: 'provider:delete',
+  PROVIDER_PRESETS: 'provider:presets',
+  PROVIDER_TEST: 'provider:test',
+  PROVIDER_ACTIVE_GET: 'provider:active:get',
+  PROVIDER_ACTIVE_SET: 'provider:active:set',
+
+  // Agents
+  AGENT_LIST: 'agent:list',
+  AGENT_GET: 'agent:get',
+  AGENT_CREATE: 'agent:create',
+  AGENT_UPDATE: 'agent:update',
+  AGENT_SOFT_DELETE: 'agent:softDelete',
+  AGENT_ENABLE: 'agent:enable',
+  AGENT_DISABLE: 'agent:disable',
+  AGENT_HEALTH: 'agent:health',
+  AGENT_EXECUTIONS_LIST: 'agent:executions:list',
+  AGENT_TIMELINE_LIST: 'agent:timeline:list',
+  AGENT_FEEDBACK_CREATE: 'agentFeedback:create',
+  AGENT_FEEDBACK_LIST: 'agentFeedback:list',
+  AGENT_FEEDBACK_GET: 'agentFeedback:get',
+  AGENT_FEEDBACK_UPDATE_STATUS: 'agentFeedback:updateStatus',
+  AGENT_FEEDBACK_EXPORT: 'agentFeedback:export',
+  AGENT_FEEDBACK_SYNTHETIC: 'agentFeedback:createSyntheticFromExecution',
+
+  // Config portability
+  CONFIG_EXPORT: 'config:export',
+  CONFIG_IMPORT_PREVIEW: 'config:importPreview',
+  CONFIG_IMPORT_APPLY: 'config:importApply',
+
+  // Skills registry
+  SKILLS_REGISTRY_LIST: 'skillsRegistry:list',
+  SKILLS_REGISTRY_UPSERT: 'skillsRegistry:upsert',
+  SKILLS_REGISTRY_TOGGLE: 'skillsRegistry:toggle',
 
   // Export
   EXPORT_MARKDOWN: 'export:markdown',

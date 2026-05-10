@@ -20,7 +20,14 @@ type CollectionName =
   | 'sessions'
   | 'auditLogs'
   | 'runEvents'
-  | 'mcpAllowlist';
+  | 'workflows'
+  | 'workflowVersions'
+  | 'diagnosticReports'
+  | 'mcpAllowlist'
+  | 'agents'
+  | 'agentExecutions'
+  | 'agentFeedback'
+  | 'skillsRegistry';
 
 type Identifiable = { id: string };
 type DataRecord = Identifiable;

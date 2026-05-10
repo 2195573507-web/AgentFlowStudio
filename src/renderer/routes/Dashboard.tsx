@@ -218,24 +218,45 @@ export default function Dashboard() {
   const beginnerSteps = [
     {
       title: '1. 创建项目',
-      description: '写下想法，生成 PRD、任务和可交给 AI 的开发提示词。',
+      description: '写下目标、约束和技术栈，建立本地项目边界。',
       icon: FolderKanban,
       route: '/projects',
-      action: '进入项目',
+      action: '创建项目',
     },
     {
-      title: '2. 配置工具',
-      description: '设置默认路径、AI 提供商和共享记忆注入方式。',
+      title: '2. 使用模板',
+      description: '从 Start / Prompt / LLM / Tool / Condition / Human Approval / Output 模板开始。',
+      icon: PlayCircle,
+      route: '/workflows',
+      action: '使用模板',
+    },
+    {
+      title: '3. 配置 Provider',
+      description: '保存 Provider 与 API Key；密钥只进入主进程安全存储。',
       icon: Settings,
       route: '/settings',
-      action: '打开设置',
+      action: '配置 Provider',
     },
     {
-      title: '3. 开始闭环',
-      description: '用 Prompt Lab、日志分析和安全检查把问题跑到可验证结果。',
+      title: '4. 运行示例',
+      description: '运行示例 Workflow，确认 Timeline / Trace 能显示节点事件。',
       icon: PlayCircle,
-      route: '/prompts',
-      action: '生成 Prompt',
+      route: '/workflows',
+      action: '运行示例',
+    },
+    {
+      title: '5. 查看最近运行',
+      description: '回到项目详情或 Workflow 页查看 Run 记录和错误恢复建议。',
+      icon: FileText,
+      route: '/workflows',
+      action: '查看最近运行',
+    },
+    {
+      title: '6. 查看诊断',
+      description: '打开设置、审计和安全检查，确认环境、权限和常见问题。',
+      icon: Shield,
+      route: '/settings',
+      action: '查看诊断',
     },
   ];
 
@@ -467,12 +488,12 @@ export default function Dashboard() {
       <GlassCard className="p-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-base font-semibold text-slate-900 dark:text-zinc-100">新手启动路径</h2>
-            <p className="text-sm text-slate-600 dark:text-zinc-400 mt-1">第一次打开时，按这三步就能从想法进入可验证的 AI 开发流程。</p>
+            <h2 className="text-base font-semibold text-slate-900 dark:text-zinc-100">新手导航</h2>
+            <p className="text-sm text-slate-600 dark:text-zinc-400 mt-1">第一次打开时，按这六步就能从项目、模板、Provider、运行、Trace 到诊断形成闭环。</p>
           </div>
           <span className="text-xs text-slate-500 dark:text-zinc-500">本地优先 · 可恢复 · 可验证</span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-3 mt-4">
           {beginnerSteps.map((step) => (
             <button
               key={step.title}

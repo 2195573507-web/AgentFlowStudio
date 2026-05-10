@@ -3,9 +3,11 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import { randomUUID } from 'crypto';
 import { IPC_CHANNELS } from '../shared/types.js';
-import type { McpAllowlistEntry, McpGatewayRequest, MemoryType, Project, ReleaseStatus, ReleaseTestResult, ReleaseTestStatus } from '../shared/types.js';
+import type { AgentExecutionRecord, AgentFeedbackRecord, AgentRecord, McpAllowlistEntry, McpGatewayRequest, MemoryType, Project, ProviderSetting, ReleaseStatus, ReleaseTestResult, ReleaseTestStatus, SkillRegistryEntry } from '../shared/types.js';
 import { sanitizeObject } from '../shared/secretRedaction.js';
 import { buildAuditExportManifest } from '../shared/auditCore.js';
+import { PROVIDER_PRESETS } from '../shared/providerPresets.js';
+import { buildConfigBundle, previewConfigImport } from '../shared/configPortability.js';
 import storage from './storage.js';
 import { getGitLog, getGitStatus, getGitSummary } from './git.js';
 import { readSkillsFromDir, fileExists } from './filesystem.js';
@@ -29,8 +31,11 @@ import {
 } from './session.js';
 import { listAuditEvents, recordAudit } from './audit.js';
 import { verifyAuditIntegrity } from './audit.js';
-import { isProtectedSecret, maskSecret, protectSecret } from './secureStore.js';
+import { isProtectedSecret, maskSecret, protectSecret, unprotectSecret } from './secureStore.js';
 import { evaluateMcpGatewayRequest } from './mcpGateway.js';
+import { runWorkflow } from '../core/workflowRuntime.js';
+import { BEGINNER_WORKFLOW_TEMPLATES } from '../templates/workflowTemplates.js';
+import type { Workflow, WorkflowVersion } from '../shared/workflowTypes.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -73,6 +78,13 @@ const CHANNEL_PERMISSIONS: Partial<Record<string, Permission>> = {
   [IPC_CHANNELS.RUN_LIST]: 'project:read',
   [IPC_CHANNELS.RUN_CREATE]: 'run:write',
   [IPC_CHANNELS.RUN_EVENTS_LIST]: 'project:read',
+  [IPC_CHANNELS.WORKFLOW_TEMPLATE_LIST]: 'project:read',
+  [IPC_CHANNELS.WORKFLOW_LIST]: 'project:read',
+  [IPC_CHANNELS.WORKFLOW_GET]: 'project:read',
+  [IPC_CHANNELS.WORKFLOW_CREATE_FROM_TEMPLATE]: 'project:write',
+  [IPC_CHANNELS.WORKFLOW_SAVE]: 'project:write',
+  [IPC_CHANNELS.WORKFLOW_RUN]: 'run:write',
+  [IPC_CHANNELS.WORKFLOW_VERSION_LIST]: 'project:read',
   [IPC_CHANNELS.MCP_ALLOWLIST_LIST]: 'mcp:write',
   [IPC_CHANNELS.MCP_ALLOWLIST_CHECK]: 'mcp:write',
   [IPC_CHANNELS.MCP_ALLOWLIST_UPSERT]: 'mcp:write',
@@ -96,6 +108,32 @@ const CHANNEL_PERMISSIONS: Partial<Record<string, Permission>> = {
   [IPC_CHANNELS.PROVIDER_CREATE]: 'provider:write',
   [IPC_CHANNELS.PROVIDER_UPDATE]: 'provider:write',
   [IPC_CHANNELS.PROVIDER_DELETE]: 'provider:write',
+  [IPC_CHANNELS.PROVIDER_PRESETS]: 'provider:read',
+  [IPC_CHANNELS.PROVIDER_TEST]: 'provider:write',
+  [IPC_CHANNELS.PROVIDER_ACTIVE_GET]: 'provider:read',
+  [IPC_CHANNELS.PROVIDER_ACTIVE_SET]: 'provider:write',
+  [IPC_CHANNELS.AGENT_LIST]: 'project:read',
+  [IPC_CHANNELS.AGENT_GET]: 'project:read',
+  [IPC_CHANNELS.AGENT_CREATE]: 'project:write',
+  [IPC_CHANNELS.AGENT_UPDATE]: 'project:write',
+  [IPC_CHANNELS.AGENT_SOFT_DELETE]: 'project:write',
+  [IPC_CHANNELS.AGENT_ENABLE]: 'project:write',
+  [IPC_CHANNELS.AGENT_DISABLE]: 'project:write',
+  [IPC_CHANNELS.AGENT_HEALTH]: 'project:read',
+  [IPC_CHANNELS.AGENT_EXECUTIONS_LIST]: 'project:read',
+  [IPC_CHANNELS.AGENT_TIMELINE_LIST]: 'project:read',
+  [IPC_CHANNELS.AGENT_FEEDBACK_CREATE]: 'project:write',
+  [IPC_CHANNELS.AGENT_FEEDBACK_LIST]: 'project:read',
+  [IPC_CHANNELS.AGENT_FEEDBACK_GET]: 'project:read',
+  [IPC_CHANNELS.AGENT_FEEDBACK_UPDATE_STATUS]: 'project:write',
+  [IPC_CHANNELS.AGENT_FEEDBACK_EXPORT]: 'memory:export',
+  [IPC_CHANNELS.AGENT_FEEDBACK_SYNTHETIC]: 'project:write',
+  [IPC_CHANNELS.CONFIG_EXPORT]: 'export:write',
+  [IPC_CHANNELS.CONFIG_IMPORT_PREVIEW]: 'settings:read',
+  [IPC_CHANNELS.CONFIG_IMPORT_APPLY]: 'settings:write',
+  [IPC_CHANNELS.SKILLS_REGISTRY_LIST]: 'skill:read',
+  [IPC_CHANNELS.SKILLS_REGISTRY_UPSERT]: 'mcp:write',
+  [IPC_CHANNELS.SKILLS_REGISTRY_TOGGLE]: 'mcp:write',
   [IPC_CHANNELS.EXPORT_MARKDOWN]: 'export:write',
   [IPC_CHANNELS.EXPORT_JSON]: 'export:write',
   [IPC_CHANNELS.SKILLS_LIST]: 'skill:read',
@@ -296,6 +334,9 @@ const ALLOWED_STORAGE_COLLECTIONS = new Set([
   'tasks',
   'prompts',
   'runs',
+  'workflows',
+  'workflowVersions',
+  'diagnosticReports',
   'memories',
   'riskChecks',
   'settings',
@@ -519,6 +560,111 @@ async function mergeProviderUpdate(id: string, data: unknown): Promise<unknown> 
   return sanitizeProviderForStorage(data, existing?.apiKey);
 }
 
+function providerHasSecret(provider: ProviderRecord): boolean {
+  if (provider.needsApiKey === false) return true;
+  if (!provider.apiKey) return false;
+  if (isProtectedSecret(provider.apiKey)) return Boolean(unprotectSecret(provider.apiKey));
+  return typeof provider.apiKey === 'string' && !isMaskedApiKey(provider.apiKey);
+}
+
+function normalizeProviderUrl(baseUrl: unknown): string {
+  if (typeof baseUrl !== 'string' || !baseUrl.trim()) throw new Error('Provider base URL is required.');
+  const parsed = new URL(baseUrl.trim());
+  if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('Provider base URL must use http or https.');
+  return parsed.toString().replace(/\/$/, '');
+}
+
+async function testProviderConnection(providerId: string, context?: SessionContext) {
+  const started = Date.now();
+  const provider = await storage.getById<ProviderRecord>('providerSettings', providerId);
+  if (!provider) throw new Error('Provider not found.');
+  const checkedAt = new Date().toISOString();
+  let result: { ok: boolean; status: 'success' | 'failure'; latencyMs: number; checkedAt: string; message: string };
+  try {
+    const baseUrl = normalizeProviderUrl(provider.baseUrl);
+    if (!providerHasSecret(provider)) throw new Error('provider_secret_missing');
+    const localOnly = baseUrl.startsWith('http://127.0.0.1') || baseUrl.startsWith('http://localhost');
+    result = {
+      ok: true,
+      status: 'success',
+      latencyMs: Date.now() - started,
+      checkedAt,
+      message: localOnly ? '本地 Provider 地址格式正确。' : 'Provider 配置已通过本地安全检查。',
+    };
+  } catch (err) {
+    const raw = err instanceof Error ? err.message : String(err);
+    result = {
+      ok: false,
+      status: 'failure',
+      latencyMs: Date.now() - started,
+      checkedAt,
+      message: raw === 'provider_secret_missing' ? '缺少 API Key 或安全存储不可读取。' : raw,
+    };
+  }
+  await storage.update('providerSettings', providerId, {
+    lastTestStatus: result.status,
+    lastTestMessage: result.message,
+    lastTestedAt: checkedAt,
+  } as never);
+  await recordAudit({
+    type: 'provider.connection_test',
+    action: 'provider.test',
+    status: result.ok ? 'success' : 'failure',
+    severity: result.ok ? 'info' : 'warning',
+    actor: actorFor(context),
+    resource: { type: 'provider', id: providerId, label: String(provider.providerName ?? '') },
+    metadata: sanitizeObject({ status: result.status, latencyMs: result.latencyMs, message: result.message }),
+  });
+  await storage.create('runEvents', {
+    id: randomUUID(),
+    type: 'provider.test',
+    status: result.ok ? 'success' : 'failure',
+    actorUserId: context?.user.id,
+    title: `Provider test: ${String(provider.providerName ?? providerId)}`,
+    detail: result.message,
+    metadata: sanitizeObject({ providerId, status: result.status, latencyMs: result.latencyMs }),
+    createdAt: checkedAt,
+  } as never).catch(() => undefined);
+  return result;
+}
+
+async function setSettingValue(key: string, value: unknown) {
+  if (key === 'auth.activeSessionSecret') throw new Error('This setting is managed by the main process.');
+  const all = await storage.getAll<{ id: string; [key: string]: unknown }>('settings');
+  const existing = all.find((s) => s.id === key);
+  if (existing) return storage.update('settings', key, { ...existing, value } as never);
+  return storage.create('settings', { id: key, value } as never);
+}
+
+async function getSettingValue<T = unknown>(key: string): Promise<T | undefined> {
+  const all = await storage.getAll<{ id: string; value?: T }>('settings');
+  return all.find((s) => s.id === key)?.value;
+}
+
+async function filterAgentsForContext(context: SessionContext | undefined, agents: AgentRecord[]) {
+  if (!context) return [];
+  if (context.user.role === 'admin') return agents;
+  const visible: AgentRecord[] = [];
+  for (const agent of agents) {
+    if (!agent.projectId) {
+      if (agent.ownerUserId === context.user.id) visible.push(agent);
+      continue;
+    }
+    const project = await getProjectForAccess(agent.projectId);
+    if (canAccessProjectResource(context, project as never, 'read')) visible.push(agent);
+  }
+  return visible;
+}
+
+async function assertAgentAccess(context: SessionContext | undefined, id: string, action: ResourceAction) {
+  if (!context) throw new Error('Authentication required.');
+  const agent = await storage.getById<AgentRecord>('agents', id);
+  if (!agent || agent.deletedAt) throw new Error('Agent not found.');
+  if (agent.projectId) await assertProjectResourceAccess(context, agent.projectId, action);
+  else if (context.user.role !== 'admin' && agent.ownerUserId !== context.user.id) throw new Error('Permission denied: agent owner required.');
+  return agent;
+}
+
 // ---------------------------------------------------------------------------
 // Memory context generation
 // ---------------------------------------------------------------------------
@@ -526,16 +672,16 @@ async function mergeProviderUpdate(id: string, data: unknown): Promise<unknown> 
 async function generateMemoryContext(options: {
   projectId?: string;
   injectionMode?: string;
-}): Promise<string> {
+}, context?: SessionContext): Promise<string> {
   const allMemories = sanitizeObject(
     await storage.getAll<{ id: string; [key: string]: unknown }>('memories'),
-  );
-  let filtered = allMemories;
+  ) as Array<{ id: string; projectId?: string; status?: unknown; importance?: unknown; lastUsedAt?: unknown; type?: unknown; [key: string]: unknown }>;
+  let filtered = await filterProjectScoped(context, allMemories);
 
-  // Filter by project if requested
   if (options.projectId) {
+    await assertProjectResourceAccess(context, options.projectId, 'read');
     filtered = filtered.filter(
-      (m) => m.projectId === options.projectId || !m.projectId,
+      (m) => m.projectId === options.projectId,
     );
   }
 
@@ -1009,6 +1155,198 @@ export function registerIpcHandlers(): void {
     }
   });
 
+  ipcMain.handle(IPC_CHANNELS.WORKFLOW_TEMPLATE_LIST, async () => {
+    try {
+      return BEGINNER_WORKFLOW_TEMPLATES;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.WORKFLOW_LIST, async (_event, projectId: string, context?: SessionContext) => {
+    try {
+      await assertProjectResourceAccess(context, projectId, 'read');
+      const all = await storage.getAll<Workflow>('workflows');
+      return all.filter((workflow) => workflow.projectId === projectId).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.WORKFLOW_GET, async (_event, workflowId: string, context?: SessionContext) => {
+    try {
+      const workflow = await storage.getById<Workflow>('workflows', workflowId);
+      if (!workflow) throw new Error('Workflow not found.');
+      await assertProjectResourceAccess(context, workflow.projectId, 'read');
+      return workflow;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.WORKFLOW_CREATE_FROM_TEMPLATE, async (_event, payload: unknown, context?: SessionContext) => {
+    try {
+      if (!context) throw new Error('Authentication required.');
+      const data = payload && typeof payload === 'object' ? payload as { projectId?: unknown; templateId?: unknown; name?: unknown } : {};
+      const projectId = String(data.projectId ?? '');
+      await assertProjectResourceAccess(context, projectId, 'write');
+      const template = BEGINNER_WORKFLOW_TEMPLATES.find((item) => item.id === String(data.templateId)) ?? BEGINNER_WORKFLOW_TEMPLATES[0];
+      const now = new Date().toISOString();
+      const workflow = await storage.create<Workflow>('workflows', {
+        id: randomUUID(),
+        projectId,
+        ownerUserId: context.user.id,
+        name: String(data.name ?? template.name),
+        description: template.description,
+        status: 'draft',
+        templateId: template.id,
+        version: 1,
+        nodes: template.nodes,
+        edges: template.edges,
+        createdAt: now,
+        updatedAt: now,
+      });
+      await storage.create<WorkflowVersion>('workflowVersions', {
+        id: randomUUID(),
+        workflowId: workflow.id,
+        version: 1,
+        message: 'Created from template',
+        nodes: workflow.nodes,
+        edges: workflow.edges,
+        createdByUserId: context.user.id,
+        createdAt: now,
+      });
+      await recordAudit({
+        type: 'workflow.create',
+        action: 'workflow.create_from_template',
+        status: 'success',
+        severity: 'info',
+        actor: actorFor(context),
+        resource: { type: 'workflow', id: workflow.id, label: workflow.name },
+        metadata: { projectId, templateId: template.id },
+      });
+      return workflow;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.WORKFLOW_SAVE, async (_event, workflowId: string, updates: unknown, context?: SessionContext) => {
+    try {
+      if (!context) throw new Error('Authentication required.');
+      const workflow = await storage.getById<Workflow>('workflows', workflowId);
+      if (!workflow) throw new Error('Workflow not found.');
+      await assertProjectResourceAccess(context, workflow.projectId, 'write');
+      const patch = updates && typeof updates === 'object' ? updates as Partial<Workflow> & { versionMessage?: string } : {};
+      const nextVersion = workflow.version + 1;
+      const safePatch: Partial<Workflow> = {
+        name: patch.name ?? workflow.name,
+        description: patch.description ?? workflow.description,
+        status: patch.status ?? workflow.status,
+        nodes: Array.isArray(patch.nodes) ? patch.nodes : workflow.nodes,
+        edges: Array.isArray(patch.edges) ? patch.edges : workflow.edges,
+        version: nextVersion,
+        updatedAt: new Date().toISOString(),
+      };
+      const saved = await storage.update<Workflow>('workflows', workflowId, safePatch);
+      await storage.create<WorkflowVersion>('workflowVersions', {
+        id: randomUUID(),
+        workflowId,
+        version: nextVersion,
+        message: String(patch.versionMessage ?? 'Saved workflow changes'),
+        nodes: safePatch.nodes ?? workflow.nodes,
+        edges: safePatch.edges ?? workflow.edges,
+        createdByUserId: context.user.id,
+        createdAt: new Date().toISOString(),
+      });
+      await recordMutationAudit(context, 'workflow.save', { type: 'workflow', id: workflowId, label: saved?.name }, { projectId: workflow.projectId, version: nextVersion });
+      return saved;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.WORKFLOW_RUN, async (_event, payload: unknown, context?: SessionContext) => {
+    try {
+      if (!context) throw new Error('Authentication required.');
+      const data = payload && typeof payload === 'object' ? payload as { workflowId?: unknown; input?: unknown } : {};
+      const workflowId = String(data.workflowId ?? '');
+      const workflow = await storage.getById<Workflow>('workflows', workflowId);
+      if (!workflow) throw new Error('Workflow not found.');
+      await assertProjectResourceAccess(context, workflow.projectId, 'write');
+      const startedAt = new Date().toISOString();
+      const result = runWorkflow(workflow, String(data.input ?? ''));
+      const endedAt = new Date().toISOString();
+      const run = await storage.create('runs', {
+        id: randomUUID(),
+        projectId: workflow.projectId,
+        actorUserId: context.user.id,
+        workflowTemplateId: workflow.templateId,
+        versionId: String(workflow.version),
+        title: `Workflow: ${workflow.name}`,
+        tool: 'AgentFlow Workflow Runtime',
+        status: result.status,
+        log: result.nodeTrace.map((item) => `${item.nodeTitle} [${item.status}] ${item.outputSummary ?? item.failureReason ?? ''}`).join('\n'),
+        summary: result.summary,
+        startedAt,
+        endedAt,
+        durationMs: Math.max(1, new Date(endedAt).getTime() - new Date(startedAt).getTime()),
+        error: result.error,
+        nodeTrace: result.nodeTrace.map((item) => ({
+          id: item.id,
+          name: item.nodeTitle,
+          status: item.status === 'failure' ? 'failed' : item.status === 'blocked' ? 'blocked' : item.status === 'running' ? 'running' : 'success',
+          durationMs: item.durationMs,
+          inputSummary: item.inputSummary,
+          outputSummary: item.outputSummary,
+          failureReason: item.failureReason,
+          retryCount: 0,
+        })),
+        metadata: { workflowId, workflowVersion: workflow.version, output: result.output, nextStep: result.nextStep },
+        createdAt: startedAt,
+      } as never);
+      for (const event of result.nodeTrace) {
+        await storage.create('runEvents', {
+          id: randomUUID(),
+          runId: run.id,
+          projectId: workflow.projectId,
+          workflowId,
+          type: 'agent.execution',
+          status: event.status === 'failure' ? 'failure' : event.status === 'blocked' ? 'denied' : event.status === 'success' ? 'success' : 'info',
+          actorUserId: context.user.id,
+          title: `${event.nodeTitle} (${event.nodeType})`,
+          detail: event.failureReason ?? event.outputSummary ?? event.nextStep,
+          metadata: event,
+          createdAt: event.endedAt ?? event.startedAt,
+        } as never);
+      }
+      await recordAudit({
+        type: 'run.create',
+        action: 'workflow.run',
+        status: result.status === 'success' ? 'success' : result.status === 'blocked' ? 'denied' : 'failure',
+        severity: result.status === 'success' ? 'info' : 'warning',
+        actor: actorFor(context),
+        resource: { type: 'workflow', id: workflow.id, label: workflow.name },
+        metadata: { projectId: workflow.projectId, runId: run.id, status: result.status, error: result.error, nextStep: result.nextStep },
+      });
+      return { run, result };
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.WORKFLOW_VERSION_LIST, async (_event, workflowId: string, context?: SessionContext) => {
+    try {
+      const workflow = await storage.getById<Workflow>('workflows', workflowId);
+      if (!workflow) throw new Error('Workflow not found.');
+      await assertProjectResourceAccess(context, workflow.projectId, 'read');
+      const versions = await storage.getAll<WorkflowVersion>('workflowVersions');
+      return versions.filter((version) => version.workflowId === workflowId).sort((a, b) => b.version - a.version);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
   ipcMain.handle(IPC_CHANNELS.MCP_ALLOWLIST_LIST, async () => {
     try {
       return await storage.getAll('mcpAllowlist');
@@ -1235,8 +1573,7 @@ export function registerIpcHandlers(): void {
       context?: SessionContext,
     ) => {
       try {
-        if (options?.projectId) await assertProjectResourceAccess(context, options.projectId, 'read');
-        return await generateMemoryContext(options ?? {});
+        return await generateMemoryContext(options ?? {}, context);
       } catch (err) {
         return handleError(err);
       }
@@ -1258,13 +1595,7 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.SETTINGS_SET, async (_event, key: string, value: unknown) => {
     try {
-      if (key === 'auth.activeSessionSecret') throw new Error('This setting is managed by the main process.');
-      const all = await storage.getAll<{ id: string; [key: string]: unknown }>('settings');
-      const existing = all.find((s) => s.id === key);
-      if (existing) {
-        return await storage.update('settings', key, { ...existing, value } as never);
-      }
-      return await storage.create('settings', { id: key, value } as never);
+      return await setSettingValue(key, value);
     } catch (err) {
       return handleError(err);
     }
@@ -1290,6 +1621,14 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.PROVIDER_LIST, async () => {
     try {
       return await listProvidersForRenderer();
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.PROVIDER_PRESETS, async () => {
+    try {
+      return PROVIDER_PRESETS;
     } catch (err) {
       return handleError(err);
     }
@@ -1338,6 +1677,316 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.PROVIDER_DELETE, async (_event, id: string) => {
     try {
       return await storage.delete('providerSettings', id);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.PROVIDER_TEST, async (_event, providerId: string, context?: SessionContext) => {
+    try {
+      return await testProviderConnection(providerId, context);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.PROVIDER_ACTIVE_GET, async () => {
+    try {
+      return {
+        providerRef: await getSettingValue('activeProviderRef') ?? '',
+        model: await getSettingValue('activeModel') ?? '',
+        agentDefaultProviderRef: await getSettingValue('agentDefaultProviderRef') ?? '',
+      };
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.PROVIDER_ACTIVE_SET, async (_event, config: unknown, context?: SessionContext) => {
+    try {
+      const payload = config && typeof config === 'object' ? config as { providerRef?: unknown; model?: unknown; scope?: unknown; projectId?: unknown; agentId?: unknown } : {};
+      const providerRef = String(payload.providerRef ?? '').trim();
+      const model = String(payload.model ?? '').trim();
+      if (!providerRef || !model) throw new Error('Provider and model are required.');
+      const provider = await storage.getById<ProviderRecord>('providerSettings', providerRef);
+      if (!provider) throw new Error('Provider not found.');
+      if (!providerHasSecret(provider)) throw new Error('provider_secret_missing');
+      const scope = payload.scope === 'project' || payload.scope === 'agent' ? payload.scope : 'workspace';
+      if (scope === 'project') {
+        const projectId = String(payload.projectId ?? '');
+        await assertProjectResourceAccess(context, projectId, 'write');
+        await storage.update('projects', projectId, { defaultProviderRef: providerRef, defaultModel: model } as never);
+      } else if (scope === 'agent') {
+        const agentId = String(payload.agentId ?? '');
+        await assertAgentAccess(context, agentId, 'write');
+        await storage.update('agents', agentId, { providerRef, model, updatedAt: new Date().toISOString() } as never);
+      } else {
+        await setSettingValue('activeProviderRef', providerRef);
+        await setSettingValue('activeModel', model);
+        await setSettingValue('agentDefaultProviderRef', providerRef);
+      }
+      await recordAudit({
+        type: 'provider.active_switch',
+        action: 'provider.active.set',
+        status: 'success',
+        severity: 'info',
+        actor: actorFor(context),
+        resource: { type: 'provider', id: providerRef, label: String(provider.providerName ?? '') },
+        metadata: sanitizeObject({ scope, model, projectId: payload.projectId, agentId: payload.agentId }),
+      });
+      await storage.create('runEvents', {
+        id: randomUUID(),
+        type: 'provider.switch',
+        status: 'success',
+        actorUserId: context?.user.id,
+        projectId: scope === 'project' ? String(payload.projectId ?? '') : '',
+        agentId: scope === 'agent' ? String(payload.agentId ?? '') : '',
+        title: 'Provider / Model switched',
+        detail: `${provider.providerName ?? providerRef} -> ${model}`,
+        metadata: sanitizeObject({ providerRef, model, scope }),
+        createdAt: new Date().toISOString(),
+      } as never);
+      return { providerRef, model, scope };
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.AGENT_LIST, async (_event, filters?: { projectId?: string }, context?: SessionContext) => {
+    try {
+      const agents = (await storage.getAll<AgentRecord>('agents')).filter((agent) => !agent.deletedAt);
+      const scoped = filters?.projectId ? agents.filter((agent) => agent.projectId === filters.projectId) : agents;
+      return await filterAgentsForContext(context, scoped);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.AGENT_GET, async (_event, id: string, context?: SessionContext) => {
+    try {
+      return await assertAgentAccess(context, id, 'read');
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.AGENT_CREATE, async (_event, data: unknown, context?: SessionContext) => {
+    try {
+      if (!context) throw new Error('Authentication required.');
+      const now = new Date().toISOString();
+      const payload = data && typeof data === 'object' ? data as Partial<AgentRecord> : {};
+      if (payload.projectId) await assertProjectResourceAccess(context, payload.projectId, 'write');
+      const created = await storage.create('agents', {
+        id: payload.id ?? randomUUID(),
+        name: payload.name ?? 'New Agent',
+        description: payload.description ?? '',
+        type: payload.type ?? 'custom',
+        status: payload.status ?? 'enabled',
+        ownerUserId: context.user.id,
+        projectId: payload.projectId ?? '',
+        workflowId: payload.workflowId ?? '',
+        providerRef: payload.providerRef ?? await getSettingValue('agentDefaultProviderRef') ?? '',
+        model: payload.model ?? await getSettingValue('activeModel') ?? '',
+        systemPrompt: payload.systemPrompt ?? '',
+        toolsAllowlistRef: payload.toolsAllowlistRef ?? '',
+        skillsRefs: Array.isArray(payload.skillsRefs) ? payload.skillsRefs : [],
+        createdAt: now,
+        updatedAt: now,
+        lastHealthStatus: payload.lastHealthStatus ?? 'unknown',
+      } as never);
+      await recordMutationAudit(context, 'agent.create', { type: 'agent', id: created.id, label: String((created as AgentRecord).name) });
+      return created;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.AGENT_UPDATE, async (_event, id: string, data: unknown, context?: SessionContext) => {
+    try {
+      await assertAgentAccess(context, id, 'write');
+      const incoming = data && typeof data === 'object' ? data as Record<string, unknown> : {};
+      const { ownerUserId: _owner, deletedAt: _deletedAt, ...safeIncoming } = incoming;
+      const updated = await storage.update('agents', id, { ...safeIncoming, updatedAt: new Date().toISOString() } as never);
+      await recordMutationAudit(context, 'agent.update', { type: 'agent', id });
+      return updated;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.AGENT_SOFT_DELETE, async (_event, id: string, context?: SessionContext) => {
+    try {
+      await assertAgentAccess(context, id, 'write');
+      const updated = await storage.update('agents', id, { status: 'archived', deletedAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as never);
+      await recordMutationAudit(context, 'agent.softDelete', { type: 'agent', id });
+      return updated;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.AGENT_ENABLE, async (_event, id: string, context?: SessionContext) => {
+    try {
+      await assertAgentAccess(context, id, 'write');
+      return await storage.update('agents', id, { status: 'enabled', updatedAt: new Date().toISOString() } as never);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.AGENT_DISABLE, async (_event, id: string, context?: SessionContext) => {
+    try {
+      await assertAgentAccess(context, id, 'write');
+      return await storage.update('agents', id, { status: 'disabled', updatedAt: new Date().toISOString() } as never);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.AGENT_HEALTH, async (_event, id: string, context?: SessionContext) => {
+    try {
+      const agent = await assertAgentAccess(context, id, 'read');
+      return { agentId: id, status: agent.lastHealthStatus, checkedAt: new Date().toISOString() };
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.AGENT_EXECUTIONS_LIST, async (_event, agentId: string, context?: SessionContext) => {
+    try {
+      const agent = await assertAgentAccess(context, agentId, 'read');
+      const all = await storage.getAll<AgentExecutionRecord>('agentExecutions');
+      return all.filter((execution) => execution.agentId === agent.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.AGENT_TIMELINE_LIST, async (_event, agentId: string, context?: SessionContext) => {
+    try {
+      await assertAgentAccess(context, agentId, 'read');
+      const all = await storage.getAll<{ id: string; agentId?: string; createdAt: string; [key: string]: unknown }>('runEvents');
+      return all.filter((event) => event.agentId === agentId).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.AGENT_FEEDBACK_CREATE, async (_event, data: unknown, context?: SessionContext) => {
+    try {
+      if (!context) throw new Error('Authentication required.');
+      const now = new Date().toISOString();
+      const payload = sanitizeObject(data) as Partial<AgentFeedbackRecord>;
+      if (payload.projectId) await assertProjectResourceAccess(context, payload.projectId, 'write');
+      if (payload.agentId) await assertAgentAccess(context, payload.agentId, 'read');
+      const created = await storage.create('agentFeedback', {
+        id: payload.id ?? randomUUID(),
+        agentId: payload.agentId ?? '',
+        executionId: payload.executionId ?? '',
+        runId: payload.runId ?? '',
+        projectId: payload.projectId ?? '',
+        rating: payload.rating ?? 'neutral',
+        title: payload.title ?? 'Agent feedback',
+        message: payload.message ?? '',
+        status: payload.status ?? 'open',
+        createdByUserId: context.user.id,
+        createdAt: now,
+        updatedAt: now,
+      } as never);
+      await recordMutationAudit(context, 'agentFeedback.create', { type: 'agent_feedback', id: created.id }, { projectId: payload.projectId });
+      await storage.create('runEvents', {
+        id: randomUUID(),
+        agentId: payload.agentId ?? '',
+        executionId: payload.executionId ?? '',
+        runId: payload.runId ?? '',
+        projectId: payload.projectId ?? '',
+        type: 'feedback.created',
+        status: 'info',
+        actorUserId: context.user.id,
+        title: String(payload.title ?? 'Feedback created'),
+        detail: String(payload.message ?? ''),
+        createdAt: now,
+      } as never);
+      return created;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.AGENT_FEEDBACK_LIST, async (_event, filters?: { projectId?: string; agentId?: string }, context?: SessionContext) => {
+    try {
+      let all = await storage.getAll<AgentFeedbackRecord>('agentFeedback');
+      if (filters?.projectId) {
+        await assertProjectResourceAccess(context, filters.projectId, 'read');
+        all = all.filter((feedback) => feedback.projectId === filters.projectId);
+      } else if (filters?.agentId) {
+        await assertAgentAccess(context, filters.agentId, 'read');
+        all = all.filter((feedback) => feedback.agentId === filters.agentId);
+      } else {
+        all = await filterProjectScoped(context, all);
+      }
+      return sanitizeObject(all.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.AGENT_FEEDBACK_GET, async (_event, id: string, context?: SessionContext) => {
+    try {
+      const feedback = await storage.getById<AgentFeedbackRecord>('agentFeedback', id);
+      if (!feedback) throw new Error('Feedback not found.');
+      if (feedback.projectId) await assertProjectResourceAccess(context, feedback.projectId, 'read');
+      return sanitizeObject(feedback);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.AGENT_FEEDBACK_UPDATE_STATUS, async (_event, id: string, status: string, context?: SessionContext) => {
+    try {
+      const feedback = await storage.getById<AgentFeedbackRecord>('agentFeedback', id);
+      if (!feedback) throw new Error('Feedback not found.');
+      if (feedback.projectId) await assertProjectResourceAccess(context, feedback.projectId, 'write');
+      const updated = await storage.update('agentFeedback', id, { status, updatedAt: new Date().toISOString() } as never);
+      await recordMutationAudit(context, 'agentFeedback.updateStatus', { type: 'agent_feedback', id }, { status });
+      return sanitizeObject(updated);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.AGENT_FEEDBACK_EXPORT, async (_event, filters?: { projectId?: string }, context?: SessionContext) => {
+    try {
+      const all = await storage.getAll<AgentFeedbackRecord>('agentFeedback');
+      const scoped = filters?.projectId ? all.filter((feedback) => feedback.projectId === filters.projectId) : all;
+      if (filters?.projectId) await assertProjectResourceAccess(context, filters.projectId, 'read');
+      const visible = filters?.projectId ? scoped : await filterProjectScoped(context, scoped);
+      await recordMutationAudit(context, 'agentFeedback.export', { type: 'agent_feedback' }, { count: visible.length });
+      return { feedback: sanitizeObject(visible), exportedAt: new Date().toISOString() };
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.AGENT_FEEDBACK_SYNTHETIC, async (_event, executionId: string, context?: SessionContext) => {
+    try {
+      const execution = await storage.getById<AgentExecutionRecord>('agentExecutions', executionId);
+      if (!execution) throw new Error('Execution not found.');
+      if (execution.projectId) await assertProjectResourceAccess(context, execution.projectId, 'write');
+      return await storage.create('agentFeedback', {
+        id: randomUUID(),
+        agentId: execution.agentId,
+        executionId: execution.id,
+        runId: execution.runId ?? '',
+        projectId: execution.projectId ?? '',
+        rating: execution.status === 'success' || execution.status === 'demo' ? 'positive' : 'negative',
+        title: `Synthetic feedback for ${execution.status}`,
+        message: sanitizeObject(execution.errorSummary || execution.outputSummary || 'Synthetic feedback from execution record.'),
+        status: 'open',
+        createdByUserId: context?.user.id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as never);
     } catch (err) {
       return handleError(err);
     }
@@ -1399,6 +2048,89 @@ export function registerIpcHandlers(): void {
     },
   );
 
+  ipcMain.handle(IPC_CHANNELS.CONFIG_EXPORT, async (_event, context?: SessionContext) => {
+    try {
+      const [providers, projects, agents, templates, mcpAllowlist, skillsRegistry] = await Promise.all([
+        storage.getAll<ProviderSetting>('providerSettings'),
+        storage.getAll<Project>('projects'),
+        storage.getAll<{ id: string; [key: string]: unknown }>('agents'),
+        storage.getAll<{ id: string; [key: string]: unknown }>('prompts'),
+        storage.getAll<{ id: string; [key: string]: unknown }>('mcpAllowlist'),
+        storage.getAll<SkillRegistryEntry>('skillsRegistry'),
+      ]);
+      const visibleProjects = context?.user.role === 'admin'
+        ? projects
+        : projects.filter((project) => context && canAccessProjectResource(context, project, 'read'));
+      const visibleProjectIds = new Set(visibleProjects.map((project) => project.id));
+      const visibleAgents = context?.user.role === 'admin'
+        ? agents
+        : agents.filter((agent) => !agent.projectId || visibleProjectIds.has(String(agent.projectId)));
+      const visibleTemplates = context?.user.role === 'admin'
+        ? templates
+        : templates.filter((template) => !template.projectId || visibleProjectIds.has(String(template.projectId)));
+      const bundle = buildConfigBundle({
+        providers: context?.user.role === 'admin' ? providers : [],
+        projects: visibleProjects,
+        agents: visibleAgents,
+        templates: visibleTemplates,
+        mcpAllowlist: context?.user.role === 'admin' ? mcpAllowlist : [],
+        skillsRegistry: context?.user.role === 'admin' ? skillsRegistry : [],
+      });
+      await recordMutationAudit(context, 'config.export', { type: 'config_bundle' }, { hash: bundle.manifest.hash, counts: bundle.manifest.counts });
+      return bundle;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.CONFIG_IMPORT_PREVIEW, async (_event, raw: string) => {
+    try {
+      return previewConfigImport(raw);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.CONFIG_IMPORT_APPLY, async (_event, raw: string, context?: SessionContext) => {
+    try {
+      const preview = previewConfigImport(raw);
+      if (!preview.ok || !preview.bundle) return preview;
+      if (context?.user.role !== 'admin') {
+        const hasPrivilegedEntries = Boolean((preview.bundle.skillsRegistry?.length ?? 0) || (preview.bundle.mcpAllowlist?.length ?? 0));
+        if (hasPrivilegedEntries) {
+          await recordAudit({
+            type: 'permission.denied',
+            action: 'config.import.privileged',
+            status: 'denied',
+            severity: 'warning',
+            actor: actorFor(context),
+            metadata: { reason: 'mcp_or_skills_import_requires_admin' },
+          });
+          throw new Error('Only administrators can import MCP allowlists or skills registry entries.');
+        }
+      }
+      let imported = 0;
+      for (const skill of preview.bundle.skillsRegistry ?? []) {
+        const existing = await storage.getById('skillsRegistry', skill.id);
+        if (existing) await storage.update('skillsRegistry', skill.id, skill as never);
+        else await storage.create('skillsRegistry', skill as never);
+        imported += 1;
+      }
+      for (const entry of preview.bundle.mcpAllowlist ?? []) {
+        const id = String(entry.id ?? `${entry.serverName}:${entry.toolName}`);
+        const safeEntry = { ...entry, id };
+        const existing = await storage.getById('mcpAllowlist', id);
+        if (existing) await storage.update('mcpAllowlist', id, safeEntry as never);
+        else await storage.create('mcpAllowlist', safeEntry as never);
+        imported += 1;
+      }
+      await recordMutationAudit(context, 'config.import', { type: 'config_bundle' }, { imported, warnings: preview.warnings });
+      return { ok: true, imported, warnings: preview.warnings };
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
   // ── Skills ───────────────────────────────────────────────────────────
 
   ipcMain.handle(IPC_CHANNELS.SKILLS_LIST, async () => {
@@ -1417,6 +2149,52 @@ export function registerIpcHandlers(): void {
       if (!exists) return { error: `File not found: ${safePath}` };
       const content = await fs.readFile(safePath, 'utf-8');
       return { path: safePath, content };
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.SKILLS_REGISTRY_LIST, async () => {
+    try {
+      const registry = await storage.getAll<SkillRegistryEntry>('skillsRegistry');
+      if (registry.length > 0) return registry;
+      const now = new Date().toISOString();
+      return [
+        { id: 'planning-with-files', name: 'Planning with Files', description: '文件化任务规划和进度追踪。', category: 'planning', enabled: true, createdAt: now, updatedAt: now },
+        { id: 'test-runner', name: 'Test Runner', description: '测试运行、失败分析和报告更新。', category: 'testing', enabled: true, createdAt: now, updatedAt: now },
+        { id: 'safety-reviewer', name: 'Safety Reviewer', description: '命令和代码安全审查。', category: 'security', enabled: true, createdAt: now, updatedAt: now },
+      ];
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.SKILLS_REGISTRY_UPSERT, async (_event, entry: SkillRegistryEntry, context?: SessionContext) => {
+    try {
+      const now = new Date().toISOString();
+      const payload = sanitizeObject({
+        ...entry,
+        id: String(entry.id || randomUUID()),
+        enabled: Boolean(entry.enabled),
+        createdAt: entry.createdAt || now,
+        updatedAt: now,
+      }) as SkillRegistryEntry;
+      const existing = await storage.getById('skillsRegistry', payload.id);
+      const saved = existing
+        ? await storage.update('skillsRegistry', payload.id, payload as never)
+        : await storage.create('skillsRegistry', payload as never);
+      await recordMutationAudit(context, 'skillsRegistry.upsert', { type: 'skill', id: payload.id });
+      return saved;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.SKILLS_REGISTRY_TOGGLE, async (_event, id: string, enabled: boolean, context?: SessionContext) => {
+    try {
+      const updated = await storage.update('skillsRegistry', id, { enabled, updatedAt: new Date().toISOString() } as never);
+      await recordMutationAudit(context, 'skillsRegistry.toggle', { type: 'skill', id }, { enabled });
+      return updated;
     } catch (err) {
       return handleError(err);
     }

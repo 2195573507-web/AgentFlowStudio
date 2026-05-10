@@ -5,6 +5,10 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['KaiTi', 'STKaiti', '楷体', 'Kaiti SC', 'serif'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Cascadia Code', 'Consolas', 'monospace'],
+      },
       colors: {
         surface: {
           DEFAULT: 'rgba(255,255,255,0.72)',

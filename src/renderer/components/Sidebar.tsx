@@ -10,6 +10,7 @@ import {
   Brain,
   Puzzle,
   Settings,
+  Workflow,
   Users,
   ScrollText,
   ChevronLeft,
@@ -33,6 +34,7 @@ export interface NavItem {
 const navItems: NavItem[] = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', labelKey: 'nav.dashboard' },
   { to: '/projects', icon: FolderKanban, label: 'Projects', labelKey: 'nav.projects' },
+  { to: '/workflows', icon: Workflow, label: 'Workflows', labelKey: 'nav.workflows' },
   { to: '/prompts', icon: Wand2, label: 'Prompt Lab', labelKey: 'nav.promptLab' },
   { to: '/logs', icon: FileSearch, label: 'Log Analyzer', labelKey: 'nav.logAnalyzer' },
   { to: '/git', icon: GitBranch, label: 'Git Timeline', labelKey: 'nav.gitTimeline' },

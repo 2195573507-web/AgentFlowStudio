@@ -7,6 +7,7 @@ import { hasPermission, type Permission } from './lib/permissions'
 
 const Login = lazy(() => import('./routes/Login'))
 const Dashboard = lazy(() => import('./routes/Dashboard'))
+const Workflows = lazy(() => import('./routes/Workflows'))
 const Projects = lazy(() => import('./routes/Projects'))
 const ProjectDetail = lazy(() => import('./routes/ProjectDetail'))
 const PromptLab = lazy(() => import('./routes/PromptLab'))
@@ -95,6 +96,7 @@ function AppRoutes() {
         <Routes>
           <Route path="/login" element={routeElement('Login', <Login />)} />
           <Route path="/" element={routeElement('Dashboard', <Dashboard />)} />
+          <Route path="/workflows" element={routeElement('Workflows', <Workflows />)} />
           <Route path="/projects" element={routeElement('Projects', <Projects />)} />
           <Route path="/projects/:id" element={routeElement('Project Detail', <ProjectDetail />)} />
           <Route path="/prompts" element={routeElement('Prompt Lab', <PromptLab />)} />

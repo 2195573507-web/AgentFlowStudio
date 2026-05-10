@@ -1,39 +1,37 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Settings2,
-  Sun,
-  Moon,
-  Monitor,
-  FolderOpen,
+  AlertTriangle,
+  Check,
   Cpu,
   Database,
   Download,
-  Upload,
-  Trash2,
-  RotateCcw,
-  Plus,
-  Pencil,
   Eye,
   EyeOff,
   Globe,
-  Key,
   HardDrive,
-  Layers,
-  Info,
-  Check,
-  AlertTriangle,
+  Key,
+  Plus,
+  Puzzle,
   RefreshCw,
   Server,
-  ToggleLeft,
-  ToggleRight,
+  Settings2,
   Shield,
-  Sparkles,
-  ExternalLink,
+  SlidersHorizontal,
+  Trash2,
+  Upload,
 } from 'lucide-react';
 import { api } from '../lib/api';
-import { GlassCard, EmptyState, Button, Input, Badge, Modal } from '../components/';
-import type { ProviderSetting, AppSettings, ThemeMode, AITool, MemoryInjectionMode } from '../lib/types';
-import { generateId, classNames } from '../lib/utils';
+import { Badge, Button, EmptyState, GlassCard, Input, Modal } from '../components/';
+import type {
+  AppSettings,
+  MemoryInjectionMode,
+  ProviderPreset,
+  ProviderSetting,
+  SkillRegistryEntry,
+  ThemeMode,
+} from '../lib/types';
+import { PROVIDER_PRESETS, presetToProvider } from '../../shared/providerPresets';
+import { classNames, generateId } from '../lib/utils';
 
 const MASKED_API_KEY_PREFIX = 'Saved key ending in ';
 
@@ -41,705 +39,426 @@ function isMaskedApiKey(value: string): boolean {
   return value === '' || value === '[REDACTED]' || value.startsWith(MASKED_API_KEY_PREFIX);
 }
 
-// ── Demo data ──────────────────────────────────────────────────────────────
-const DEMO_SETTINGS: AppSettings = {
-  theme: 'dark',
-  defaultProjectPath: '/home/user/projects',
+const DEFAULT_SETTINGS: AppSettings = {
+  theme: 'system',
+  defaultProjectPath: '',
   defaultAITool: 'Claude Code',
-  dataPath: '/home/user/.agentflow-studio',
-  version: '1.0.0',
-  appVersion: '1.0.0',
-  techStack: ['Electron 28', 'React 18', 'TypeScript 5.3', 'Tailwind CSS 3.4', 'SQLite'],
+  dataPath: '',
+  appVersion: '1.1.1',
 };
 
-const DEMO_PROVIDERS: ProviderSetting[] = [
-  {
-    id: 'p1', providerName: 'OpenAI', baseUrl: 'https://api.openai.com/v1',
-    apiKey: 'sk-••••••••••••••••••••', modelName: 'gpt-4-turbo',
-    enabled: true, memoryEnabled: true,
-    memoryInjectionMode: 'balanced', maxMemoryItems: 10, maxMemoryChars: 8000,
-  },
-  {
-    id: 'p2', providerName: 'Anthropic', baseUrl: 'https://api.anthropic.com/v1',
-    apiKey: 'sk-ant-••••••••••••••••', modelName: 'claude-sonnet-4-20250514',
-    enabled: true, memoryEnabled: true,
-    memoryInjectionMode: 'full', maxMemoryItems: 20, maxMemoryChars: 12000,
-  },
-  {
-    id: 'p3', providerName: 'Local LLM', baseUrl: 'http://localhost:11434/v1',
-    apiKey: '', modelName: 'llama3',
-    enabled: false, memoryEnabled: false,
-    memoryInjectionMode: 'off', maxMemoryItems: 5, maxMemoryChars: 4000,
-  },
-];
+const emptyProviderForm = {
+  providerName: '',
+  baseUrl: '',
+  apiKey: '',
+  modelName: '',
+  enabled: true,
+  memoryEnabled: true,
+  memoryInjectionMode: 'balanced' as MemoryInjectionMode,
+  maxMemoryItems: 10,
+  maxMemoryChars: 8000,
+};
 
-// ── Component ──────────────────────────────────────────────────────────────
 export default function Settings() {
-  // General
-  const [settings, setSettings] = useState<AppSettings>(DEMO_SETTINGS);
+  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+  const [theme, setTheme] = useState<ThemeMode>('system');
+  const [providers, setProviders] = useState<ProviderSetting[]>([]);
+  const [presets, setPresets] = useState<ProviderPreset[]>(PROVIDER_PRESETS);
+  const [active, setActive] = useState({ providerRef: '', model: '', agentDefaultProviderRef: '' });
+  const [mcpAllowlist, setMcpAllowlist] = useState<Array<Record<string, unknown>>>([]);
+  const [skillsRegistry, setSkillsRegistry] = useState<SkillRegistryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [apiAvailable, setApiAvailable] = useState(true);
-
-  // Theme
-  const [theme, setTheme] = useState<ThemeMode>('dark');
-
-  // Providers
-  const [providers, setProviders] = useState<ProviderSetting[]>([]);
+  const [message, setMessage] = useState<string | null>(null);
   const [showProviderModal, setShowProviderModal] = useState(false);
   const [editingProvider, setEditingProvider] = useState<ProviderSetting | null>(null);
+  const [selectedPresetId, setSelectedPresetId] = useState('openai-compatible');
   const [showApiKey, setShowApiKey] = useState(false);
+  const [providerForm, setProviderForm] = useState(emptyProviderForm);
+  const [importText, setImportText] = useState('');
+  const [importPreview, setImportPreview] = useState<unknown>(null);
+  const [exportManifest, setExportManifest] = useState<string>('');
 
-  // Provider form
-  const [providerForm, setProviderForm] = useState({
-    providerName: '', baseUrl: '', apiKey: '', modelName: '',
-    enabled: true, memoryEnabled: true,
-    memoryInjectionMode: 'balanced' as MemoryInjectionMode,
-    maxMemoryItems: 10, maxMemoryChars: 8000,
-  });
+  const activeProvider = useMemo(
+    () => providers.find((provider) => provider.id === active.providerRef),
+    [active.providerRef, providers],
+  );
 
-  // Default injection mode for new providers
-  const [defaultInjectionMode, setDefaultInjectionMode] = useState<MemoryInjectionMode>('balanced');
+  const resetProviderForm = useCallback((presetId = selectedPresetId) => {
+    const preset = presets.find((item) => item.providerId === presetId) ?? presets[0];
+    const base = preset ? presetToProvider(preset) : null;
+    setProviderForm({
+      ...emptyProviderForm,
+      providerName: base?.providerName ?? '',
+      baseUrl: base?.baseUrl ?? '',
+      modelName: base?.modelName ?? '',
+      memoryInjectionMode: 'balanced',
+    });
+    setSelectedPresetId(presetId);
+    setShowApiKey(false);
+  }, [presets, selectedPresetId]);
 
-  // Confirmation modals
-  const [showClearDemo, setShowClearDemo] = useState(false);
-  const [showResetSettings, setShowResetSettings] = useState(false);
-
-  // ── Fetch settings ────────────────────────────────────────────────────
-  const fetchSettings = useCallback(async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
-      if (api && typeof api.settings?.get === 'function') {
-        const s = await api.settings.get();
-        if (s && typeof s === 'object') setSettings(s as AppSettings);
-      } else {
-        setApiAvailable(false);
+      const [settingsResult, providerList, presetList, activeConfig, mcpEntries, registry] = await Promise.all([
+        api.settings.getAll(),
+        api.providers.list(),
+        api.providers.presets(),
+        api.providers.getActive(),
+        api.mcp.allowlist().catch(() => []),
+        api.skills.registry().catch(() => []),
+      ]);
+      setSettings({ ...DEFAULT_SETTINGS, ...settingsResult });
+      setTheme((settingsResult.theme as ThemeMode) ?? 'system');
+      setProviders(Array.isArray(providerList) ? providerList : []);
+      if (Array.isArray(presetList) && presetList.length > 0) setPresets(presetList);
+      if (!('error' in activeConfig)) {
+        setActive({
+          providerRef: activeConfig.providerRef,
+          model: activeConfig.model,
+          agentDefaultProviderRef: activeConfig.agentDefaultProviderRef ?? '',
+        });
       }
-
-      if (api && typeof api.providers?.list === 'function') {
-        const p = await api.providers.list();
-        setProviders(Array.isArray(p) && p.length > 0 ? p : DEMO_PROVIDERS);
-      } else {
-        setProviders(DEMO_PROVIDERS);
-      }
-    } catch {
-      setApiAvailable(false);
-      setProviders(DEMO_PROVIDERS);
+      if (Array.isArray(mcpEntries)) setMcpAllowlist(mcpEntries as Array<Record<string, unknown>>);
+      if (Array.isArray(registry)) setSkillsRegistry(registry);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { fetchSettings(); }, [fetchSettings]);
+  useEffect(() => { void load(); }, [load]);
 
-  // Sync theme to HTML
   useEffect(() => {
     const root = document.documentElement;
     root.classList.remove('light', 'dark');
-    if (theme === 'system') {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      root.classList.add(prefersDark ? 'dark' : 'light');
-    } else {
-      root.classList.add(theme);
-    }
+    if (theme === 'system') root.classList.add(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    else root.classList.add(theme);
   }, [theme]);
 
-  // ── Save settings ─────────────────────────────────────────────────────
-  const handleSaveSettings = async () => {
+  const saveSettings = async () => {
     setSaving(true);
     try {
-      const updated = { ...settings, theme };
-      if (api && typeof api.settings?.update === 'function') {
-        await api.settings.update(updated);
-      }
-      setSettings(updated);
-      setSaveMessage('设置已保存');
-      setTimeout(() => setSaveMessage(null), 2000);
-    } catch { /* silently handle */ } finally {
+      await api.settings.update({ ...settings, theme });
+      setMessage('设置已保存。');
+    } finally {
       setSaving(false);
+      window.setTimeout(() => setMessage(null), 2200);
     }
   };
 
-  // ── Provider CRUD ─────────────────────────────────────────────────────
-  const resetProviderForm = () => {
-    setProviderForm({
-      providerName: '', baseUrl: '', apiKey: '', modelName: '',
-      enabled: true, memoryEnabled: true,
-      memoryInjectionMode: defaultInjectionMode,
-      maxMemoryItems: 10, maxMemoryChars: 8000,
-    });
-    setShowApiKey(false);
-  };
-
-  const handleAddProvider = async () => {
-    if (!providerForm.providerName.trim()) return;
-    try {
-      const provider: ProviderSetting = {
-        id: generateId(),
-        ...providerForm,
-      };
-
-      if (api && typeof api.providers?.create === 'function') {
-        await api.providers.create(provider);
-      }
-      setProviders((prev) => [...prev, provider]);
-      resetProviderForm();
-      setShowProviderModal(false);
-      setEditingProvider(null);
-    } catch {}
-  };
-
-  const handleUpdateProvider = async () => {
-    if (!editingProvider || !providerForm.providerName.trim()) return;
-    try {
-      const updated: ProviderSetting = {
-        ...editingProvider,
-        ...providerForm,
-      };
-      if (api && typeof api.providers?.update === 'function') {
-        await api.providers.update(updated);
-      }
-      setProviders((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
-      resetProviderForm();
-      setEditingProvider(null);
-    } catch {}
-  };
-
-  const handleDeleteProvider = async (id: string) => {
-    if (api && typeof api.providers?.delete === 'function') {
-      try { await api.providers.delete(id); } catch {}
+  const saveProvider = async () => {
+    if (!providerForm.providerName.trim() || !providerForm.modelName.trim()) return;
+    const preset = presets.find((item) => item.providerId === selectedPresetId) ?? presets[0];
+    const payload = {
+      ...(preset ? presetToProvider(preset, providerForm) : {}),
+      ...providerForm,
+      providerId: preset?.providerId ?? selectedPresetId,
+      id: editingProvider?.id ?? generateId(),
+    } as ProviderSetting;
+    const saved = editingProvider
+      ? await api.providers.update(editingProvider.id, payload)
+      : await api.providers.create(payload);
+    if (saved && typeof saved === 'object' && 'error' in saved) {
+      setMessage(`Provider 保存失败：${saved.error}`);
+      return;
     }
-    setProviders((prev) => prev.filter((p) => p.id !== id));
+    setShowProviderModal(false);
+    setEditingProvider(null);
+    resetProviderForm();
+    await load();
   };
 
-  const openEditProvider = (p: ProviderSetting) => {
-    setEditingProvider(p);
+  const editProvider = (provider: ProviderSetting) => {
+    setEditingProvider(provider);
+    setSelectedPresetId(provider.providerId ?? 'custom-provider');
     setProviderForm({
-      providerName: p.providerName,
-      baseUrl: p.baseUrl,
-      apiKey: isMaskedApiKey(p.apiKey) ? '' : p.apiKey,
-      modelName: p.modelName,
-      enabled: p.enabled,
-      memoryEnabled: p.memoryEnabled,
-      memoryInjectionMode: p.memoryInjectionMode,
-      maxMemoryItems: p.maxMemoryItems,
-      maxMemoryChars: p.maxMemoryChars,
+      providerName: provider.providerName,
+      baseUrl: provider.baseUrl,
+      apiKey: isMaskedApiKey(provider.apiKey) ? '' : provider.apiKey,
+      modelName: provider.modelName,
+      enabled: provider.enabled,
+      memoryEnabled: provider.memoryEnabled,
+      memoryInjectionMode: provider.memoryInjectionMode,
+      maxMemoryItems: provider.maxMemoryItems,
+      maxMemoryChars: provider.maxMemoryChars,
     });
-    setShowApiKey(false);
+    setShowProviderModal(true);
   };
 
-  // ── Data operations ───────────────────────────────────────────────────
-  const handleExportAll = async () => {
-    try {
-      if (api && typeof api.export?.exportAll === 'function') {
-        await api.export.exportAll();
-      } else {
-        alert('演示模式暂不支持导出');
-      }
-    } catch {}
+  const testProvider = async (provider: ProviderSetting) => {
+    const result = await api.providers.testConnection(provider.id);
+    setMessage('error' in result ? `测试失败：${result.error}` : `${result.ok ? '测试通过' : '测试失败'}：${result.message}`);
+    await load();
   };
 
-  const handleImportData = async () => {
-    try {
-      if (api && typeof api.dialog?.open === 'function') {
-        const result = await api.dialog.open({
-          properties: ['openFile'],
-          filters: [{ name: 'JSON', extensions: ['json'] }],
-        });
-        if (result && !result.canceled && result.filePaths?.[0]) {
-          if (api.import?.importAll) {
-            await api.import.importAll(result.filePaths[0]);
-          }
-        }
-      } else {
-        alert('演示模式暂不支持导入');
-      }
-    } catch {}
+  const switchProvider = async (provider: ProviderSetting) => {
+    const result = await api.providers.setActive({ providerRef: provider.id, model: provider.modelName, scope: 'workspace' });
+    if ('error' in result) {
+      setMessage(result.error === 'provider_secret_missing' ? '请先为该 Provider 配置 API Key。' : `切换失败：${result.error}`);
+      return;
+    }
+    setActive({ providerRef: result.providerRef, model: result.model, agentDefaultProviderRef: result.providerRef });
+    setMessage(`当前模型已切换到 ${provider.providerName} / ${provider.modelName}`);
   };
 
-  const handleClearDemo = async () => {
-    try {
-      if (api && typeof api.app?.clearDemoData === 'function') {
-        await api.app.clearDemoData();
-      }
-      setShowClearDemo(false);
-      fetchSettings();
-    } catch {}
+  const exportConfig = async () => {
+    const bundle = await api.config.exportAll();
+    if (bundle && typeof bundle === 'object' && 'error' in bundle) {
+      setMessage(`导出失败：${bundle.error}`);
+      return;
+    }
+    await api.export.json(bundle, `agentflow-config-${Date.now()}.json`);
+    setExportManifest(JSON.stringify((bundle as { manifest?: unknown }).manifest ?? {}, null, 2));
   };
 
-  const handleResetSettings = async () => {
-    try {
-      if (api && typeof api.settings?.reset === 'function') {
-        await api.settings.reset();
-      }
-      setShowResetSettings(false);
-      fetchSettings();
-    } catch {}
+  const previewImport = async () => {
+    const preview = await api.config.importPreview(importText);
+    setImportPreview(preview);
   };
 
-  // ── Provider form component ───────────────────────────────────────────
-  const renderProviderForm = () => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">接口名称</label>
-          <Input
-            value={providerForm.providerName}
-            onChange={(e) => setProviderForm((f) => ({ ...f, providerName: e.target.value }))}
-            placeholder="如: OpenAI"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">模型名称</label>
-          <Input
-            value={providerForm.modelName}
-            onChange={(e) => setProviderForm((f) => ({ ...f, modelName: e.target.value }))}
-            placeholder="如: gpt-4-turbo"
-          />
-        </div>
-      </div>
+  const applyImport = async () => {
+    const result = await api.config.importApply(importText);
+    setImportPreview(result);
+    await load();
+  };
 
-      <div>
-        <label className="block text-xs font-medium text-zinc-400 mb-1.5">Base URL</label>
-        <Input
-          value={providerForm.baseUrl}
-          onChange={(e) => setProviderForm((f) => ({ ...f, baseUrl: e.target.value }))}
-          placeholder="https://api.openai.com/v1"
-        />
-      </div>
-
-      <div>
-        <label className="block text-xs font-medium text-zinc-400 mb-1.5">API 密钥</label>
-        <div className="relative">
-          <Input
-            type={showApiKey ? 'text' : 'password'}
-            value={providerForm.apiKey}
-            onChange={(e) => setProviderForm((f) => ({ ...f, apiKey: e.target.value }))}
-            placeholder="sk-..."
-          />
-          <button
-            type="button"
-            onClick={() => setShowApiKey(!showApiKey)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
-          >
-            {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">记忆注入模式</label>
-          <select
-            value={providerForm.memoryInjectionMode}
-            onChange={(e) =>
-              setProviderForm((f) => ({
-                ...f,
-                memoryInjectionMode: e.target.value as MemoryInjectionMode,
-              }))
-            }
-            className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-zinc-200 text-sm
-                       focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-          >
-            <option value="off" className="bg-zinc-900">关闭 (Off)</option>
-            <option value="minimal" className="bg-zinc-900">最少 (Minimal)</option>
-            <option value="balanced" className="bg-zinc-900">均衡 (Balanced)</option>
-            <option value="full" className="bg-zinc-900">完整 (Full)</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">最大记忆条数</label>
-          <Input
-            type="number"
-            value={String(providerForm.maxMemoryItems)}
-            onChange={(e) =>
-              setProviderForm((f) => ({ ...f, maxMemoryItems: Number(e.target.value) || 10 }))
-            }
-            min={1}
-            max={100}
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-xs font-medium text-zinc-400 mb-1.5">最大记忆字符数</label>
-        <Input
-          type="number"
-          value={String(providerForm.maxMemoryChars)}
-          onChange={(e) =>
-            setProviderForm((f) => ({ ...f, maxMemoryChars: Number(e.target.value) || 8000 }))
-          }
-          min={100}
-          max={100000}
-        />
-      </div>
-
-      <div className="flex items-center gap-6 pt-2">
-        <label className="flex items-center gap-2 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={providerForm.enabled}
-            onChange={(e) => setProviderForm((f) => ({ ...f, enabled: e.target.checked }))}
-            className="rounded bg-white/10 border-white/20 text-emerald-500 focus:ring-emerald-500/50"
-          />
-          <span className="text-sm text-zinc-300">启用</span>
-        </label>
-        <label className="flex items-center gap-2 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={providerForm.memoryEnabled}
-            onChange={(e) => setProviderForm((f) => ({ ...f, memoryEnabled: e.target.checked }))}
-            className="rounded bg-white/10 border-white/20 text-pink-500 focus:ring-pink-500/50"
-          />
-          <span className="text-sm text-zinc-300">启用记忆注入</span>
-        </label>
-      </div>
-    </div>
-  );
-
-  // ── Loading state ─────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-6 py-8 space-y-6 animate-pulse">
-        <div className="h-10 w-32 rounded-xl bg-white/5" />
-        <div className="h-64 rounded-2xl bg-white/5 border border-white/10" />
-        <div className="h-48 rounded-2xl bg-white/5 border border-white/10" />
-        <div className="h-32 rounded-2xl bg-white/5 border border-white/10" />
+      <div className="max-w-6xl mx-auto px-6 py-8 space-y-6 animate-pulse">
+        <div className="h-10 w-40 rounded-lg bg-white/10" />
+        <div className="h-52 rounded-lg bg-white/10" />
+        <div className="h-52 rounded-lg bg-white/10" />
       </div>
     );
   }
 
-  // ── Render ──────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
-      {/* Header */}
+    <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-zinc-100 tracking-tight">设置</h1>
-        <p className="text-zinc-400 text-sm mt-1">配置 AgentFlow Studio</p>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-zinc-100">设置</h1>
+        <p className="mt-1 text-sm text-slate-600 dark:text-zinc-400">
+          管理主题、Provider、当前模型、MCP allowlist、Skills registry 和安全导入导出。
+        </p>
       </div>
 
-      {/* ── Section 1: General ─────────────────────────────────────────── */}
+      {message && (
+        <div className="rounded-lg border border-blue-400/30 bg-blue-500/10 px-4 py-3 text-sm text-blue-700 dark:text-blue-200">
+          {message}
+        </div>
+      )}
+
       <GlassCard className="p-6 space-y-5">
-        <h2 className="text-base font-semibold text-zinc-200 flex items-center gap-2">
-          <Settings2 className="w-5 h-5 text-blue-400" /> 通用
+        <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-zinc-100">
+          <Settings2 className="h-5 w-5 text-blue-500" /> 通用设置
         </h2>
-
-        {/* Theme */}
-        <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-2">主题</label>
-          <div className="flex gap-2">
-            {([
-              { value: 'light' as ThemeMode, label: '浅色', icon: Sun },
-              { value: 'dark' as ThemeMode, label: '深色', icon: Moon },
-              { value: 'system' as ThemeMode, label: '跟随系统', icon: Monitor },
-            ]).map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => setTheme(opt.value)}
-                className={classNames(
-                  'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all border',
-                  theme === opt.value
-                    ? 'bg-white/10 border-white/20 text-zinc-200'
-                    : 'bg-transparent border-transparent text-zinc-500 hover:text-zinc-300 hover:bg-white/5'
-                )}
-              >
-                <opt.icon className="w-4 h-4" />
-                {opt.label}
-              </button>
-            ))}
-          </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="space-y-1.5 text-xs font-medium text-slate-500 dark:text-zinc-400">
+            主题
+            <select value={theme} onChange={(event) => setTheme(event.target.value as ThemeMode)} className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-surface)] px-3 py-2 text-sm text-slate-900 dark:text-zinc-100">
+              <option value="system">跟随系统</option>
+              <option value="light">浅色</option>
+              <option value="dark">深色</option>
+            </select>
+          </label>
+          <label className="space-y-1.5 text-xs font-medium text-slate-500 dark:text-zinc-400">
+            默认项目路径
+            <Input value={settings.defaultProjectPath} onChange={(event) => setSettings((prev) => ({ ...prev, defaultProjectPath: event.target.value }))} />
+          </label>
+          <label className="space-y-1.5 text-xs font-medium text-slate-500 dark:text-zinc-400">
+            数据目录
+            <Input value={settings.dataPath} readOnly className="font-mono opacity-70" />
+          </label>
+          <label className="space-y-1.5 text-xs font-medium text-slate-500 dark:text-zinc-400">
+            版本
+            <Input value={settings.appVersion ?? settings.version ?? ''} readOnly className="font-mono tabular-nums opacity-70" />
+          </label>
         </div>
-
-        {/* Default project path */}
-        <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">默认项目路径</label>
-          <div className="flex gap-2">
-            <Input
-              value={settings.defaultProjectPath}
-              onChange={(e) => setSettings((s) => ({ ...s, defaultProjectPath: e.target.value }))}
-              placeholder="/home/user/projects"
-              className="flex-1"
-            />
-            <Button variant="ghost" onClick={async () => {
-              if (api && typeof api.dialog?.open === 'function') {
-                const r = await api.dialog.open({ properties: ['openDirectory'] });
-                if (r && !r.canceled && r.filePaths?.length) {
-                  setSettings((s) => ({ ...s, defaultProjectPath: r.filePaths![0] }));
-                }
-              }
-            }} icon={<FolderOpen className="w-4 h-4" />}>
-              浏览
-            </Button>
-          </div>
-        </div>
-
-        {/* Default AI tool */}
-        <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">默认 AI 工具</label>
-          <select
-            value={settings.defaultAITool}
-            onChange={(e) => setSettings((s) => ({ ...s, defaultAITool: e.target.value as AITool }))}
-            className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-zinc-200 text-sm
-                       focus:outline-none focus:ring-2 focus:ring-blue-500/50 w-56"
-          >
-            <option value="Claude Code" className="bg-zinc-900">Claude Code</option>
-            <option value="Codex" className="bg-zinc-900">Codex</option>
-            <option value="Cursor" className="bg-zinc-900">Cursor</option>
-            <option value="Other" className="bg-zinc-900">Other</option>
-          </select>
-        </div>
-
-        {/* Read-only paths */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1.5">数据路径</label>
-            <Input value={settings.dataPath} readOnly className="opacity-60 cursor-not-allowed" />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1.5">应用版本</label>
-            <Input value={settings.appVersion} readOnly className="opacity-60 cursor-not-allowed" />
-          </div>
-        </div>
-
-        {/* Save button */}
-        <div className="flex items-center gap-3 pt-2">
-          <Button onClick={handleSaveSettings} loading={saving} icon={<Check className="w-4 h-4" />}>
-            保存设置
-          </Button>
-          {saveMessage && (
-            <span className="text-xs text-emerald-400 animate-in fade-in">{saveMessage}</span>
-          )}
-        </div>
+        <Button onClick={saveSettings} loading={saving} icon={<Check className="h-4 w-4" />}>保存设置</Button>
       </GlassCard>
 
-      {/* ── Section 2: AI Provider Configuration ────────────────────────── */}
       <GlassCard className="p-6 space-y-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-zinc-200 flex items-center gap-2">
-            <Server className="w-5 h-5 text-purple-400" /> AI 接口配置
-          </h2>
-          <Button
-            size="sm"
-            onClick={() => { resetProviderForm(); setEditingProvider(null); setShowProviderModal(true); }}
-            icon={<Plus className="w-4 h-4" />}
-          >
-            添加接口
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-zinc-100">
+              <SlidersHorizontal className="h-5 w-5 text-purple-500" /> 当前模型配置
+            </h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-zinc-400">
+              当前：{activeProvider ? `${activeProvider.providerName} / ${active.model || activeProvider.modelName}` : '尚未选择 Provider'}
+            </p>
+          </div>
+          <Button onClick={() => { setEditingProvider(null); resetProviderForm(); setShowProviderModal(true); }} icon={<Plus className="h-4 w-4" />}>
+            配置真实模型
           </Button>
         </div>
 
-        {providers.length > 0 ? (
-          <div className="space-y-3">
-            {providers.map((p) => (
-              <div
-                key={p.id}
-                className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 transition-colors"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h4 className="text-sm font-medium text-zinc-200">{p.providerName}</h4>
-                    {p.enabled ? (
-                      <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30">已启用</Badge>
-                    ) : (
-                      <Badge className="bg-zinc-500/20 text-zinc-500 border-zinc-500/20">已禁用</Badge>
-                    )}
-                    {p.memoryEnabled && (
-                      <Badge className="bg-pink-500/20 text-pink-300 border-pink-500/30">记忆注入</Badge>
-                    )}
+        <div className="grid gap-3 md:grid-cols-2">
+          {providers.map((provider) => (
+            <div key={provider.id} className="rounded-lg border border-white/10 bg-white/5 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="font-semibold text-slate-900 dark:text-zinc-100">{provider.providerName}</h3>
+                    {active.providerRef === provider.id && <Badge className="border-emerald-500/30 bg-emerald-500/15 text-emerald-500">当前</Badge>}
+                    {provider.lastTestStatus === 'failure' && <Badge className="border-red-500/30 bg-red-500/15 text-red-400">测试失败</Badge>}
+                    {provider.apiKey === '' && provider.needsApiKey !== false && <Badge className="border-amber-500/30 bg-amber-500/15 text-amber-500">缺少密钥</Badge>}
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-zinc-500">
-                    <span className="flex items-center gap-1">
-                      <Globe className="w-3 h-3" /> {p.baseUrl}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Cpu className="w-3 h-3" /> {p.modelName}
-                    </span>
-                    <span>
-                      记忆: {p.memoryInjectionMode} ({p.maxMemoryItems} 条 / {p.maxMemoryChars} 字符)
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 ml-3">
-                  <button
-                    onClick={() => openEditProvider(p)}
-                    className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-500 hover:text-zinc-300"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteProvider(p.id)}
-                    className="p-1.5 rounded-lg hover:bg-red-500/20 text-zinc-500 hover:text-red-400"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  <p className="mt-2 flex items-center gap-1 truncate text-xs text-slate-500 dark:text-zinc-500">
+                    <Globe className="h-3 w-3" /> <span className="font-mono">{provider.baseUrl}</span>
+                  </p>
+                  <p className="mt-1 flex items-center gap-1 text-xs text-slate-500 dark:text-zinc-500">
+                    <Cpu className="h-3 w-3" /> <span>{provider.modelName}</span>
+                  </p>
+                  {provider.lastTestMessage && <p className="mt-2 text-xs text-slate-500 dark:text-zinc-500">{provider.lastTestMessage}</p>}
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            icon={Server}
-            title="暂无接口"
-            description="添加 AI 接口以配置 API 连接"
-            actionLabel="添加接口"
-            onAction={() => { resetProviderForm(); setShowProviderModal(true); }}
-          />
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button size="sm" variant="ghost" onClick={() => void switchProvider(provider)}>一键切换</Button>
+                <Button size="sm" variant="ghost" onClick={() => void testProvider(provider)}>测试连接</Button>
+                <Button size="sm" variant="ghost" onClick={() => editProvider(provider)}>编辑</Button>
+                <Button size="sm" variant="ghost" onClick={() => void api.providers.delete(provider.id).then(load)} className="text-red-500">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+        {providers.length === 0 && (
+          <EmptyState icon={Server} title="暂无 Provider" description="可以先体验 Demo Agent，或选择一个 preset 配置真实模型。" actionLabel="添加 Provider" onAction={() => setShowProviderModal(true)} />
         )}
       </GlassCard>
 
-      {/* ── Section 3: Shared Memory Config ─────────────────────────────── */}
-      <GlassCard className="p-6 space-y-4">
-        <h2 className="text-base font-semibold text-zinc-200 flex items-center gap-2">
-          <Database className="w-5 h-5 text-pink-400" /> 共享记忆配置
+      <GlassCard className="p-6 space-y-5">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-zinc-100">
+          <Server className="h-5 w-5 text-purple-500" /> Provider Preset Center
         </h2>
-        <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-2">
-            新 Provider 默认记忆注入模式
-          </label>
-          <div className="flex gap-1">
-            {(['off', 'minimal', 'balanced', 'full'] as MemoryInjectionMode[]).map((mode) => (
-              <button
-                key={mode}
-                onClick={() => setDefaultInjectionMode(mode)}
-                className={classNames(
-                  'px-4 py-2 rounded-xl text-sm font-medium transition-all border',
-                  defaultInjectionMode === mode
-                    ? 'bg-white/10 border-white/20 text-zinc-200'
-                    : 'bg-transparent border-transparent text-zinc-500 hover:text-zinc-300 hover:bg-white/5'
-                )}
-              >
-                {{ off: '关闭', minimal: '最少', balanced: '均衡', full: '完整' }[mode]}
-              </button>
-            ))}
-          </div>
-          <p className="text-xs text-zinc-600 mt-2">
-            此设置决定新添加的 Provider 默认使用哪种记忆注入模式。
-          </p>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {presets.map((preset) => (
+            <button
+              key={preset.providerId}
+              type="button"
+              onClick={() => { setEditingProvider(null); resetProviderForm(preset.providerId); setShowProviderModal(true); }}
+              className="rounded-lg border border-white/10 bg-white/5 p-4 text-left transition-colors hover:bg-white/10"
+            >
+              <div className="font-semibold text-slate-900 dark:text-zinc-100">{preset.displayName}</div>
+              <div className="mt-2 text-xs text-slate-500 dark:text-zinc-500">{preset.docsHint}</div>
+              <div className="mt-3 flex flex-wrap gap-1">
+                {preset.needsApiKey ? <Badge>API Key</Badge> : <Badge>本地无密钥</Badge>}
+                {preset.supportsStreaming && <Badge>Streaming</Badge>}
+                {preset.supportsVision && <Badge>Vision</Badge>}
+              </div>
+            </button>
+          ))}
         </div>
       </GlassCard>
 
-      {/* ── Section 4: Data Management ──────────────────────────────────── */}
-      <GlassCard className="p-6 space-y-4">
-        <h2 className="text-base font-semibold text-zinc-200 flex items-center gap-2">
-          <HardDrive className="w-5 h-5 text-amber-400" /> 数据管理
+      <GlassCard className="p-6 space-y-5">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-zinc-100">
+          <Shield className="h-5 w-5 text-emerald-500" /> MCP & Skills 管理
         </h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+            <h3 className="font-semibold text-slate-900 dark:text-zinc-100">MCP allowlist</h3>
+            <p className="mt-1 text-xs text-slate-500 dark:text-zinc-500">当前只管理 allow/deny 规则和沙箱元数据，不直接执行外部工具。</p>
+            <div className="mt-3 space-y-2">
+              {mcpAllowlist.slice(0, 5).map((entry) => (
+                <div key={String(entry.id)} className="flex items-center justify-between rounded-lg bg-black/5 px-3 py-2 text-xs dark:bg-white/5">
+                  <span className="font-mono">{String(entry.serverName)}:{String(entry.toolName)}</span>
+                  <Badge>{entry.enabled ? 'enabled' : 'disabled'}</Badge>
+                </div>
+              ))}
+              {mcpAllowlist.length === 0 && <p className="text-sm text-slate-500 dark:text-zinc-500">暂无规则。MCP 调用默认由网关拒绝。</p>}
+            </div>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+            <h3 className="flex items-center gap-2 font-semibold text-slate-900 dark:text-zinc-100">
+              <Puzzle className="h-4 w-4" /> Skills registry
+            </h3>
+            <p className="mt-1 text-xs text-slate-500 dark:text-zinc-500">本轮是本地管理骨架，不自动执行外部 skill。</p>
+            <div className="mt-3 space-y-2">
+              {skillsRegistry.map((skill) => (
+                <div key={skill.id} className="flex items-center justify-between gap-2 rounded-lg bg-black/5 px-3 py-2 text-xs dark:bg-white/5">
+                  <span>{skill.name}</span>
+                  <button
+                    type="button"
+                    className={classNames('rounded-md px-2 py-1', skill.enabled ? 'bg-emerald-500/15 text-emerald-500' : 'bg-zinc-500/15 text-zinc-500')}
+                    onClick={() => void api.skills.toggleRegistry(skill.id, !skill.enabled).then(load)}
+                  >
+                    {skill.enabled ? '启用' : '禁用'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </GlassCard>
+
+      <GlassCard className="p-6 space-y-5">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-zinc-100">
+          <HardDrive className="h-5 w-5 text-amber-500" /> 配置导入 / 导出
+        </h2>
+        <p className="text-sm text-slate-600 dark:text-zinc-400">
+          导出包含 provider metadata、项目默认 provider 引用、Agent metadata、模板、MCP allowlist 和 skills registry；API Key 只会省略或脱敏。
+        </p>
         <div className="flex flex-wrap gap-3">
-          <Button variant="ghost" onClick={handleExportAll} icon={<Download className="w-4 h-4" />}>
-            导出全部数据
-          </Button>
-          <Button variant="ghost" onClick={handleImportData} icon={<Upload className="w-4 h-4" />}>
-            导入数据
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => setShowClearDemo(true)}
-            icon={<Trash2 className="w-4 h-4" />}
-            className="text-red-400 hover:text-red-300"
-          >
-            清空演示数据
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => setShowResetSettings(true)}
-            icon={<RotateCcw className="w-4 h-4" />}
-            className="text-amber-400 hover:text-amber-300"
-          >
-            重置设置
-          </Button>
+          <Button variant="ghost" onClick={exportConfig} icon={<Download className="h-4 w-4" />}>导出安全配置</Button>
+          <Button variant="ghost" onClick={previewImport} icon={<AlertTriangle className="h-4 w-4" />}>预览导入风险</Button>
+          <Button variant="ghost" onClick={applyImport} icon={<Upload className="h-4 w-4" />}>应用导入</Button>
         </div>
+        <textarea
+          value={importText}
+          onChange={(event) => setImportText(event.target.value)}
+          placeholder="粘贴 AgentFlow 配置 JSON，导入前会校验 schema、大小、字段白名单和风险。"
+          className="min-h-[120px] w-full rounded-lg border border-white/10 bg-white/5 p-3 font-mono text-sm text-slate-900 dark:text-zinc-100"
+        />
+        {(exportManifest || importPreview !== null) && (
+          <pre className="max-h-56 overflow-auto rounded-lg bg-black/80 p-3 text-xs text-zinc-100">
+            {exportManifest || JSON.stringify(importPreview, null, 2)}
+          </pre>
+        )}
       </GlassCard>
 
-      {/* ── Section 5: About ────────────────────────────────────────────── */}
-      <GlassCard className="p-6 space-y-4">
-        <h2 className="text-base font-semibold text-zinc-200 flex items-center gap-2">
-          <Info className="w-5 h-5 text-cyan-400" /> 关于
-        </h2>
-        <div className="space-y-2 text-sm text-zinc-400">
-          <div className="flex justify-between py-2 border-b border-white/5">
-            <span className="text-zinc-500">版本</span>
-            <span className="text-zinc-300 font-mono">{settings.appVersion}</span>
-          </div>
-          <div className="flex justify-between py-2 border-b border-white/5">
-            <span className="text-zinc-500">技术栈</span>
-            <span className="text-zinc-300">
-              {settings.techStack?.join(', ') || 'Electron, React, TypeScript'}
-            </span>
-          </div>
-          <div className="flex justify-between py-2 border-b border-white/5">
-            <span className="text-zinc-500">数据存储路径</span>
-            <span className="text-zinc-300 font-mono text-xs">{settings.dataPath}</span>
-          </div>
-          <div className="flex justify-between py-2 border-b border-white/5">
-            <span className="text-zinc-500">默认 AI 工具</span>
-            <span className="text-zinc-300">{settings.defaultAITool}</span>
-          </div>
-          <div className="flex justify-between py-2">
-            <span className="text-zinc-500">AI 接口</span>
-            <span className="text-zinc-300">{providers.filter((p) => p.enabled).length} 已启用 / {providers.length} 总计</span>
-          </div>
-        </div>
-
-        <div className="pt-4 flex items-center gap-4 text-xs text-zinc-600">
-          <Sparkles className="w-3.5 h-3.5" />
-          AgentFlow Studio - AI 项目规划与开发管理工作台
-        </div>
-      </GlassCard>
-
-      {/* ── Provider add/edit modal ─────────────────────────────────────── */}
       <Modal
-        open={showProviderModal || !!editingProvider}
+        open={showProviderModal}
         onClose={() => { setShowProviderModal(false); setEditingProvider(null); resetProviderForm(); }}
-        title={editingProvider ? '编辑接口' : '添加接口'}
+        title={editingProvider ? '编辑 Provider' : '添加 Provider'}
         size="lg"
       >
-        {renderProviderForm()}
-        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-white/10">
-          <Button
-            variant="ghost"
-            onClick={() => { setShowProviderModal(false); setEditingProvider(null); resetProviderForm(); }}
-          >
-            取消
-          </Button>
-          <Button
-            onClick={editingProvider ? handleUpdateProvider : handleAddProvider}
-            icon={editingProvider ? <Pencil className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-          >
-            {editingProvider ? '保存修改' : '添加'}
-          </Button>
+        <div className="space-y-4">
+          {!editingProvider && (
+            <label className="block text-xs font-medium text-zinc-400">
+              Provider preset
+              <select
+                value={selectedPresetId}
+                onChange={(event) => resetProviderForm(event.target.value)}
+                className="mt-1.5 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-100"
+              >
+                {presets.map((preset) => <option key={preset.providerId} value={preset.providerId} className="bg-zinc-900">{preset.displayName}</option>)}
+              </select>
+            </label>
+          )}
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="block text-xs font-medium text-zinc-400">名称<Input value={providerForm.providerName} onChange={(event) => setProviderForm((prev) => ({ ...prev, providerName: event.target.value }))} /></label>
+            <label className="block text-xs font-medium text-zinc-400">模型<Input value={providerForm.modelName} onChange={(event) => setProviderForm((prev) => ({ ...prev, modelName: event.target.value }))} /></label>
+          </div>
+          <label className="block text-xs font-medium text-zinc-400">Base URL<Input value={providerForm.baseUrl} onChange={(event) => setProviderForm((prev) => ({ ...prev, baseUrl: event.target.value }))} className="font-mono" /></label>
+          <label className="block text-xs font-medium text-zinc-400">
+            API Key
+            <div className="relative mt-1.5">
+              <Input type={showApiKey ? 'text' : 'password'} value={providerForm.apiKey} onChange={(event) => setProviderForm((prev) => ({ ...prev, apiKey: event.target.value }))} placeholder="保存后只显示末四位，日志和导出不会包含明文。" className="font-mono pr-10" />
+              <button type="button" onClick={() => setShowApiKey((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500">
+                {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </label>
+          <div className="flex items-center gap-6">
+            <label className="flex items-center gap-2 text-sm text-zinc-300"><input type="checkbox" checked={providerForm.enabled} onChange={(event) => setProviderForm((prev) => ({ ...prev, enabled: event.target.checked }))} /> 启用</label>
+            <label className="flex items-center gap-2 text-sm text-zinc-300"><input type="checkbox" checked={providerForm.memoryEnabled} onChange={(event) => setProviderForm((prev) => ({ ...prev, memoryEnabled: event.target.checked }))} /> 记忆注入</label>
+          </div>
         </div>
-      </Modal>
-
-      {/* ── Clear demo data confirmation ────────────────────────────────── */}
-      <Modal open={showClearDemo} onClose={() => setShowClearDemo(false)} title="确认清空演示数据" size="sm">
-        <div className="text-center py-4">
-          <Trash2 className="w-12 h-12 text-red-400 mx-auto mb-3" />
-          <p className="text-zinc-200 font-medium mb-1">清空所有演示数据？</p>
-          <p className="text-sm text-zinc-500">
-            此操作将删除所有演示项目、任务、Prompt 和记忆数据，不可撤销。
-          </p>
-        </div>
-        <div className="flex justify-center gap-3 mt-4 pt-4 border-t border-white/10">
-          <Button variant="ghost" onClick={() => setShowClearDemo(false)}>取消</Button>
-          <Button variant="danger" onClick={handleClearDemo} icon={<Trash2 className="w-4 h-4" />}>
-            确认清空
-          </Button>
-        </div>
-      </Modal>
-
-      {/* ── Reset settings confirmation ─────────────────────────────────── */}
-      <Modal open={showResetSettings} onClose={() => setShowResetSettings(false)} title="确认重置设置" size="sm">
-        <div className="text-center py-4">
-          <RotateCcw className="w-12 h-12 text-amber-400 mx-auto mb-3" />
-          <p className="text-zinc-200 font-medium mb-1">重置所有设置？</p>
-          <p className="text-sm text-zinc-500">
-            设置将恢复为默认值。项目数据不会被删除。
-          </p>
-        </div>
-        <div className="flex justify-center gap-3 mt-4 pt-4 border-t border-white/10">
-          <Button variant="ghost" onClick={() => setShowResetSettings(false)}>取消</Button>
-          <Button variant="danger" onClick={handleResetSettings} icon={<RotateCcw className="w-4 h-4" />}>
-            确认重置
-          </Button>
+        <div className="mt-6 flex justify-end gap-3 border-t border-white/10 pt-4">
+          <Button variant="ghost" onClick={() => setShowProviderModal(false)}>取消</Button>
+          <Button onClick={saveProvider} icon={<Key className="h-4 w-4" />}>保存 Provider</Button>
         </div>
       </Modal>
     </div>

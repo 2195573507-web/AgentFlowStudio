@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../../src/renderer/lib/api'
 import type { ReleaseStatus, Run } from '../../src/shared/types'
+import type { AgentRecord } from '../../src/shared/types'
 import type { ResourceAcl } from '../../src/shared/authTypes'
 
 const originalWindow = globalThis.window
@@ -223,5 +224,48 @@ describe('api.projects ACL helpers', () => {
     await expect(api.projects.updateAcl('project-1', acl)).resolves.toEqual({ id: 'project-1', acl })
     expect(getAcl).toHaveBeenCalledWith('project-1')
     expect(updateAcl).toHaveBeenCalledWith('project-1', acl)
+  })
+})
+
+describe('api provider, agent, feedback, and config bridges', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    Object.defineProperty(globalThis, 'window', {
+      value: originalWindow,
+      configurable: true,
+      writable: true,
+    })
+  })
+
+  it('bridges provider preset, test, and quick switch calls', async () => {
+    const presets = vi.fn(async () => [{ providerId: 'openai-compatible', displayName: 'OpenAI-compatible' }])
+    const testConnection = vi.fn(async () => ({ ok: true, status: 'success', message: 'ok', checkedAt: 'now' }))
+    const setActive = vi.fn(async (config) => config)
+    setAgentflowBridge({ providers: { presets, testConnection, setActive } })
+
+    await expect(api.providers.presets()).resolves.toHaveLength(1)
+    await expect(api.providers.testConnection('p1')).resolves.toMatchObject({ ok: true })
+    await expect(api.providers.setActive({ providerRef: 'p1', model: 'm1', scope: 'workspace' })).resolves.toMatchObject({ providerRef: 'p1' })
+  })
+
+  it('bridges agents and feedback without exposing secrets', async () => {
+    const agent: AgentRecord = { id: 'a1', name: 'Demo', description: '', type: 'demo', status: 'enabled', skillsRefs: [], createdAt: '', updatedAt: '', lastHealthStatus: 'healthy' }
+    const list = vi.fn(async () => [agent])
+    const create = vi.fn(async () => agent)
+    const createFeedback = vi.fn(async () => ({ id: 'f1', title: 'ok', message: '[REDACTED]' }))
+    setAgentflowBridge({ agents: { list, create }, agentFeedback: { create: createFeedback } })
+
+    await expect(api.agents.list()).resolves.toEqual([agent])
+    await expect(api.agents.create(agent)).resolves.toEqual(agent)
+    await expect(api.agentFeedback.create({ message: 'token=sk-secret' })).resolves.toMatchObject({ id: 'f1' })
+  })
+
+  it('bridges config import/export helpers', async () => {
+    const exportAll = vi.fn(async () => ({ manifest: { hash: 'fnv1a-test' }, providers: [] }))
+    const importPreview = vi.fn(async () => ({ ok: true }))
+    setAgentflowBridge({ config: { exportAll, importPreview } })
+
+    await expect(api.config.exportAll()).resolves.toMatchObject({ manifest: { hash: 'fnv1a-test' } })
+    await expect(api.config.importPreview('{}')).resolves.toMatchObject({ ok: true })
   })
 })

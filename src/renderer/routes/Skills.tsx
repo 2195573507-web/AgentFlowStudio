@@ -1,339 +1,205 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  FolderOpen,
-  FileCode,
-  RefreshCw,
-  CheckCircle,
-  AlertTriangle,
-  XCircle,
-  Search,
-  Code2,
-  Package,
-  Clock,
-  Info,
-} from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Bot, CheckCircle2, FileCode, HelpCircle, PlayCircle, Plus, Puzzle, RefreshCw, Shield, Star, ToggleLeft, ToggleRight } from 'lucide-react';
 import { api } from '../lib/api';
-import { GlassCard, EmptyState, Button, Badge, Input } from '../components/';
-import type { SkillMeta } from '../lib/types';
-import { classNames, formatRelativeDate } from '../lib/utils';
+import { Badge, Button, EmptyState, GlassCard, Input } from '../components/';
+import type { AgentRecord, SkillMeta, SkillRegistryEntry } from '../lib/types';
+import { AGENT_TEMPLATES, createDemoAgent } from '../../shared/agentCore';
 
-// ── Demo data (used when api is unavailable) ───────────────────────────────
-const DEMO_SKILLS: SkillMeta[] = [
-  {
-    name: 'react-component-builder',
-    description: '生成符合可访问性要求的 React、TypeScript 和 Tailwind CSS 组件。',
-    filePath: '.agents/skills/react-component-builder.md',
-    valid: true,
-    missingFields: [],
-    lastModified: new Date(Date.now() - 3 * 864e5).toISOString(),
-  },
-  {
-    name: 'api-integration',
-    description: '创建类型安全的 API 集成层，包含错误处理和重试逻辑。',
-    filePath: '.agents/skills/api-integration.md',
-    valid: true,
-    missingFields: [],
-    lastModified: new Date(Date.now() - 7 * 864e5).toISOString(),
-  },
-  {
-    name: 'database-migration',
-    description: '生成数据库迁移脚本，并提供回滚支持。',
-    filePath: '.agents/skills/database-migration.md',
-    valid: false,
-    missingFields: ['version', 'dependencies'],
-    lastModified: new Date(Date.now() - 14 * 864e5).toISOString(),
-  },
-  {
-    name: 'testing-strategy',
-    description: '',
-    filePath: '.agents/skills/testing-strategy.md',
-    valid: false,
-    missingFields: ['description', 'category'],
-    lastModified: new Date(Date.now() - 21 * 864e5).toISOString(),
-  },
-  {
-    name: 'security-audit',
-    description: '审查代码库中的常见漏洞和 OWASP Top 10 风险。',
-    filePath: '.agents/skills/security-audit.md',
-    valid: true,
-    missingFields: [],
-    lastModified: new Date(Date.now() - 5 * 864e5).toISOString(),
-  },
-  {
-    name: 'documentation-generator',
-    description: '根据 JSDoc/TSDoc 注释生成 API 和代码文档。',
-    filePath: '.agents/skills/documentation-generator.md',
-    valid: true,
-    missingFields: [],
-    lastModified: new Date(Date.now() - 10 * 864e5).toISOString(),
-  },
-];
-
-// ── Component ──────────────────────────────────────────────────────────────
 export default function Skills() {
   const [skills, setSkills] = useState<SkillMeta[]>([]);
+  const [registry, setRegistry] = useState<SkillRegistryEntry[]>([]);
+  const [agents, setAgents] = useState<AgentRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
-  const [apiAvailable, setApiAvailable] = useState(true);
+  const [message, setMessage] = useState<string | null>(null);
 
-  // ── Fetch skills ──────────────────────────────────────────────────────
-  const fetchSkills = useCallback(async (showRefreshIndicator = false) => {
-    if (showRefreshIndicator) setRefreshing(true);
-    else setLoading(true);
-    setError(null);
-
+  const load = useCallback(async () => {
+    setLoading(true);
     try {
-      if (api && typeof api.skills?.list === 'function') {
-        const data = await api.skills.list();
-        if (Array.isArray(data) && data.length > 0) {
-          setSkills(data);
-        } else {
-          setSkills(DEMO_SKILLS);
-          setApiAvailable(false);
-        }
-      } else {
-        setApiAvailable(false);
-        await new Promise((r) => setTimeout(r, 600));
-        setSkills(DEMO_SKILLS);
-      }
-    } catch (err: any) {
-      console.error('Skills fetch error:', err);
-      setError(err?.message || '无法扫描 skills 目录');
-      setSkills(DEMO_SKILLS);
-      setApiAvailable(false);
+      const [skillList, registryList, agentList] = await Promise.all([
+        api.skills.list().catch(() => []),
+        api.skills.registry().catch(() => []),
+        api.agents.list().catch(() => []),
+      ]);
+      if (Array.isArray(skillList)) setSkills(skillList);
+      if (Array.isArray(registryList)) setRegistry(registryList);
+      if (Array.isArray(agentList)) setAgents(agentList);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   }, []);
 
-  useEffect(() => { fetchSkills(); }, [fetchSkills]);
+  useEffect(() => { void load(); }, [load]);
 
-  // ── Filtered skills ───────────────────────────────────────────────────
-  const filteredSkills = React.useMemo(() => {
-    if (!search) return skills;
-    const q = search.toLowerCase();
-    return skills.filter(
-      (s) =>
-        s.name.toLowerCase().includes(q) ||
-        s.description.toLowerCase().includes(q) ||
-        (s.filePath ?? s.path ?? '').toLowerCase().includes(q)
-    );
-  }, [skills, search]);
+  const createTemplateAgent = async (templateId: string) => {
+    const template = AGENT_TEMPLATES.find((item) => item.id === templateId);
+    if (!template) return;
+    const created = await api.agents.create({
+      name: template.name,
+      description: template.description,
+      type: template.type,
+      status: 'enabled',
+      skillsRefs: [],
+      lastHealthStatus: template.type === 'demo' ? 'healthy' : 'unknown',
+    });
+    if ('error' in created) setMessage(`创建失败：${created.error}`);
+    else {
+      setMessage(`已创建 Agent：${created.name}`);
+      await load();
+    }
+  };
 
-  // ── Skill counts ──────────────────────────────────────────────────────
-  const stats = React.useMemo(() => {
-    const valid = skills.filter((s) => s.valid).length;
-    const invalid = skills.filter((s) => !s.valid).length;
-    return { total: skills.length, valid, invalid };
-  }, [skills]);
+  const createLocalDemoAgent = async () => {
+    const demo = createDemoAgent();
+    const created = await api.agents.create(demo);
+    if ('error' in created) setMessage(`Demo Agent 创建失败：${created.error}`);
+    else {
+      setMessage('Demo Agent 已创建，可在项目详情中记录本地模拟执行和反馈。');
+      await load();
+    }
+  };
 
-  // ── Loading state ─────────────────────────────────────────────────────
+  const filteredSkills = skills.filter((skill) => {
+    const value = `${skill.name} ${skill.description} ${skill.filePath ?? skill.path ?? ''}`.toLowerCase();
+    return value.includes(search.toLowerCase());
+  });
+
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto px-6 py-8 space-y-6 animate-pulse">
-        <div className="h-10 w-48 rounded-xl bg-white/5" />
-        <div className="flex gap-3">
-          <div className="h-10 w-64 rounded-xl bg-white/5" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-36 rounded-2xl bg-white/5 border border-white/10" />
-          ))}
-        </div>
+      <div className="max-w-6xl mx-auto px-6 py-8 space-y-5 animate-pulse">
+        <div className="h-10 w-56 rounded-lg bg-white/10" />
+        <div className="h-44 rounded-lg bg-white/10" />
+        <div className="h-44 rounded-lg bg-white/10" />
       </div>
     );
   }
 
-  // ── Error state ───────────────────────────────────────────────────────
-  if (error && skills.length === 0) {
-    return (
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <GlassCard className="p-12 text-center">
-          <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-zinc-100 mb-2">无法扫描 Skills 目录</h2>
-          <p className="text-zinc-400 mb-4 max-w-md mx-auto">{error}</p>
-          <Button onClick={() => fetchSkills(true)} icon={<RefreshCw className="w-4 h-4" />}>
-            重试
-          </Button>
-        </GlassCard>
-      </div>
-    );
-  }
-
-  // ── Empty state ───────────────────────────────────────────────────────
-  if (skills.length === 0) {
-    return (
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <GlassCard className="p-12">
-          <EmptyState
-            icon={FolderOpen}
-            title="未找到 Skills"
-            description="在项目根目录创建 .agents/skills/ 目录并添加技能定义文件（.md 格式）"
-            actionLabel="刷新扫描"
-            onAction={() => fetchSkills(true)}
-          />
-        </GlassCard>
-      </div>
-    );
-  }
-
-  // ── Render ──────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-zinc-100 tracking-tight">技能管理</h1>
-          <p className="text-zinc-400 text-sm mt-1">
-            .agents/skills 目录中的 AI 技能定义
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-zinc-100">Agent 与 Skills 中心</h1>
+          <p className="mt-1 text-sm text-slate-600 dark:text-zinc-400">
+            统一查看 Agent、模板、Skills registry、MCP 关联边界和中文帮助。Skills 本轮只做本地管理骨架，不自动执行外部代码。
           </p>
         </div>
-        <Button
-          onClick={() => fetchSkills(true)}
-          loading={refreshing}
-          icon={<RefreshCw className="w-4 h-4" />}
-        >
-          刷新
-        </Button>
+        <Button onClick={load} icon={<RefreshCw className="h-4 w-4" />}>刷新</Button>
       </div>
 
-      {/* Stats bar */}
-      <GlassCard className="p-4">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <Package className="w-4 h-4 text-blue-400" />
-            <span className="text-sm text-zinc-300">{stats.total} 个技能</span>
+      {message && <div data-testid="skills-action-message" className="rounded-lg border border-blue-400/30 bg-blue-500/10 px-4 py-3 text-sm text-blue-700 dark:text-blue-200">{message}</div>}
+
+      <GlassCard className="p-6 space-y-5">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-zinc-100">
+              <Bot className="h-5 w-5 text-blue-500" /> Agent 管理
+            </h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-zinc-400">
+              支持 list/get/create/update/softDelete/enable/disable/health，以及 execution/timeline/feedback 链路。
+            </p>
           </div>
-          <div className="flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-emerald-400" />
-            <span className="text-sm text-zinc-300">{stats.valid} 有效</span>
+          <Button onClick={createLocalDemoAgent} icon={<PlayCircle className="h-4 w-4" />}>一键体验 Demo Agent</Button>
+        </div>
+
+        {agents.length > 0 ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            {agents.map((agent) => (
+              <div key={agent.id} className="rounded-lg border border-white/10 bg-white/5 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="font-semibold text-slate-900 dark:text-zinc-100">{agent.name}</h3>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-zinc-400">{agent.description || '暂无描述。'}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Badge>{agent.type}</Badge>
+                      <Badge>{agent.status}</Badge>
+                      <Badge>{agent.lastHealthStatus}</Badge>
+                      {agent.providerRef && <Badge>{agent.model || agent.providerRef}</Badge>}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="rounded-lg p-2 text-slate-500 hover:bg-white/10"
+                    onClick={() => void (agent.status === 'enabled' ? api.agents.disable(agent.id) : api.agents.enable(agent.id)).then(load)}
+                    title={agent.status === 'enabled' ? '禁用 Agent' : '启用 Agent'}
+                  >
+                    {agent.status === 'enabled' ? <ToggleRight className="h-5 w-5 text-emerald-500" /> : <ToggleLeft className="h-5 w-5" />}
+                  </button>
+                </div>
+                <div className="mt-4 text-xs text-slate-500 dark:text-zinc-500">
+                  MCP allowlist: <span className="font-mono">{agent.toolsAllowlistRef || '未绑定'}</span> / Skills: {agent.skillsRefs.length ? agent.skillsRefs.join(', ') : '未绑定'}
+                </div>
+              </div>
+            ))}
           </div>
-          {stats.invalid > 0 && (
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-400" />
-              <span className="text-sm text-zinc-300">{stats.invalid} 无效</span>
-            </div>
-          )}
-          {!apiAvailable && (
-            <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30 ml-auto">
-              演示数据
-            </Badge>
-          )}
+        ) : (
+          <EmptyState icon={Bot} title="还没有 Agent" description="从模板创建一个 Agent，或先用 Demo Agent 体验本地执行、日志、时间线和反馈。" actionLabel="创建 Demo Agent" onAction={createLocalDemoAgent} />
+        )}
+      </GlassCard>
+
+      <GlassCard className="p-6 space-y-5">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-zinc-100">
+          <Star className="h-5 w-5 text-amber-500" /> Template Gallery
+        </h2>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {AGENT_TEMPLATES.map((template) => (
+            <button key={template.id} type="button" onClick={() => void createTemplateAgent(template.id)} className="rounded-lg border border-white/10 bg-white/5 p-4 text-left hover:bg-white/10">
+              <div className="font-semibold text-slate-900 dark:text-zinc-100">{template.name}</div>
+              <p className="mt-2 text-sm text-slate-600 dark:text-zinc-400">{template.description}</p>
+              <div className="mt-3 inline-flex items-center gap-1 text-xs text-blue-500"><Plus className="h-3 w-3" /> 从模板创建</div>
+            </button>
+          ))}
         </div>
       </GlassCard>
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="搜索技能名称或描述..."
-          className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-200 text-sm
-                     placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-        />
-      </div>
-
-      {/* Skills grid */}
-      {filteredSkills.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredSkills.map((skill) => (
-            <GlassCard key={skill.name} className="p-5 flex flex-col">
-              {/* Icon + Name + Status */}
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2.5">
-                  <div
-                    className={classNames(
-                      'w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0',
-                      skill.valid
-                        ? 'bg-emerald-500/10 border border-emerald-500/20'
-                        : 'bg-amber-500/10 border border-amber-500/20'
-                    )}
-                  >
-                    <Code2
-                      className={classNames(
-                        'w-4 h-4',
-                        skill.valid ? 'text-emerald-400' : 'text-amber-400'
-                      )}
-                    />
-                  </div>
-                  <h3 className="font-semibold text-zinc-200 text-sm truncate">{skill.name}</h3>
-                </div>
-                <Badge
-                  className={
-                    skill.valid
-                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                      : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                  }
-                >
-                  {skill.valid ? '有效' : '无效'}
-                </Badge>
+      <GlassCard className="p-6 space-y-5">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-zinc-100">
+          <Puzzle className="h-5 w-5 text-purple-500" /> Skills registry
+        </h2>
+        <div className="grid gap-3 md:grid-cols-2">
+          {registry.map((skill) => (
+            <div key={skill.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/5 p-4">
+              <div>
+                <div className="font-semibold text-slate-900 dark:text-zinc-100">{skill.name}</div>
+                <p className="mt-1 text-sm text-slate-600 dark:text-zinc-400">{skill.description}</p>
               </div>
-
-              {/* Description */}
-              <p className="text-xs text-zinc-400 mb-3 line-clamp-2 leading-relaxed flex-1">
-                {skill.description || (
-                  <span className="text-zinc-600 italic">暂无描述</span>
-                )}
-              </p>
-
-              {/* File path */}
-              <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 mb-2">
-                <FileCode className="w-3 h-3 flex-shrink-0" />
-                <code className="truncate font-mono">{skill.filePath ?? skill.path ?? '未知路径'}</code>
-              </div>
-
-              {/* Missing fields warning */}
-              {skill.missingFields && skill.missingFields.length > 0 && (
-                <div className="flex items-start gap-1.5 mt-2 p-2 rounded-lg bg-amber-500/5 border border-amber-500/10">
-                  <Info className="w-3 h-3 text-amber-400 flex-shrink-0 mt-0.5" />
-                  <div className="text-[10px] text-amber-300">
-                    缺少字段：{skill.missingFields.join(', ')}
-                  </div>
-                </div>
-              )}
-
-              {/* Last modified */}
-              <div className="flex items-center gap-1 mt-2 text-[10px] text-zinc-600">
-                <Clock className="w-3 h-3" />
-                {formatRelativeDate(skill.lastModified)}
-              </div>
-            </GlassCard>
+              <button type="button" onClick={() => void api.skills.toggleRegistry(skill.id, !skill.enabled).then(load)} className="rounded-lg border border-white/10 px-3 py-1.5 text-sm">
+                {skill.enabled ? '启用' : '禁用'}
+              </button>
+            </div>
           ))}
         </div>
-      ) : (
-        <GlassCard className="p-8">
-          <EmptyState
-            icon={Search}
-            title="没有匹配的技能"
-            description={search ? '尝试更改搜索词' : 'Skills 目录中无可显示的技能'}
-            actionLabel="清除搜索"
-            onAction={() => setSearch('')}
-          />
-        </GlassCard>
-      )}
+      </GlassCard>
 
-      {/* Info card about skills */}
-      <GlassCard className="p-5">
-        <h3 className="text-sm font-semibold text-zinc-300 mb-3 flex items-center gap-2">
-          <Info className="w-4 h-4 text-cyan-400" /> 关于 Skills
-        </h3>
-        <div className="text-xs text-zinc-500 space-y-2">
-          <p>Skills 是存储在 <code className="px-1.5 py-0.5 rounded bg-white/5 text-zinc-400">.agents/skills/</code> 目录下的 Markdown 文件，定义了 AI Agent 可执行的专业技能。</p>
-          <p>每个 Skill 必须包含 YAML frontmatter 元数据：</p>
-          <pre className="p-3 rounded-lg bg-zinc-900/30 text-zinc-400 font-mono text-[11px] overflow-x-auto">
-{`---
-name: skill-name
-description: 说明这个技能的用途
-category: development
-version: 1.0.0
-dependencies: []
----`}
-          </pre>
-          <p>Skill 内容应包含：触发场景、执行步骤、检查清单、完成标准。</p>
+      <GlassCard className="p-6 space-y-5">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-zinc-100">
+          <FileCode className="h-5 w-5 text-cyan-500" /> 本地 Skill 文件
+        </h2>
+        <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索 skill 名称、描述或路径" />
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {filteredSkills.map((skill) => (
+            <div key={skill.name} className="rounded-lg border border-white/10 bg-white/5 p-4">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="truncate font-semibold text-slate-900 dark:text-zinc-100">{skill.name}</h3>
+                {skill.valid ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <Shield className="h-4 w-4 text-amber-500" />}
+              </div>
+              <p className="mt-2 line-clamp-3 text-sm text-slate-600 dark:text-zinc-400">{skill.description || '暂无描述。'}</p>
+              <code className="mt-3 block truncate rounded bg-black/10 px-2 py-1 font-mono text-xs dark:bg-white/10">{skill.filePath ?? skill.path ?? '未知路径'}</code>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+
+      <GlassCard className="p-6 space-y-4">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-zinc-100">
+          <HelpCircle className="h-5 w-5 text-emerald-500" /> Help / Guide
+        </h2>
+        <div className="grid gap-3 text-sm text-slate-600 dark:text-zinc-400 md:grid-cols-2">
+          <p><strong>Agent</strong> 是可配置的本地执行主体，绑定 Provider、模型、系统提示词、MCP allowlist 和 Skills。</p>
+          <p><strong>Provider/API Key</strong> 通过 Settings 保存，密钥只进 Electron safeStorage envelope，界面和日志只显示脱敏结果。</p>
+          <p><strong>MCP</strong> 先经过 allowlist 和 sandbox metadata 检查；未允许的 server/tool 会被拒绝并写入 audit/timeline。</p>
+          <p><strong>Feedback</strong> 用来记录运行结果好坏、错误复盘和后续修复建议，可从执行记录生成 synthetic feedback。</p>
+          <p><strong>Demo Agent</strong> 不需要 API Key，不调用真实外部工具，只用于体验 execution/logs/timeline/feedback 流程。</p>
+          <p><strong>权限不足</strong> 时请查看当前角色。Admin 可管理用户和 audit；Owner/Editor 可写项目；Viewer 只能查看。</p>
         </div>
       </GlassCard>
     </div>

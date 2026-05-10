@@ -1,5 +1,49 @@
 # AgentFlow Studio - Test Report
 
+## Mainline Workflow Rebuild Pass - 2026-05-10
+
+### What Changed
+
+- Added first-class Workflow models, templates, versions, run input/result, node trace, and diagnostics types.
+- Added pure `src/core/workflowRuntime.ts` for Start, Prompt, LLM, Tool, Condition, Human Approval, and Output nodes.
+- Added beginner workflow templates in `src/templates/workflowTemplates.ts`.
+- Added main-process workflow IPC for template list, list/get, create from template, save version, run, and version history.
+- Added preload and renderer API wrappers plus `/workflows` UI route.
+- Added security fixes for memory context ACL and config import/export privilege filtering.
+- Added rebuild docs, security review, and human simulation report.
+
+### Current Results
+
+| Check | Status | Details |
+|---|---:|---|
+| `npm.cmd install` | PASS | Dependencies were already up to date; npm audit reports 17 dependency vulnerabilities. |
+| `npm.cmd test` baseline | PASS | Before edits: 23 files, 174 tests. |
+| `npm.cmd run build` baseline | PASS | Before edits: build passed with non-fatal Vite chunk warnings. |
+| `npm.cmd run typecheck` | PASS | Passed after Workflow/API/IPC types were fixed. |
+| `npm.cmd test -- tests/unit/workflowRuntime.test.ts` | PENDING | To run in final validation batch. |
+| `npm.cmd test` | PENDING | To run in final validation batch. |
+| `npm.cmd run build` | PENDING | To run in final validation batch. |
+
+### Known Notes
+
+- Use `npm.cmd` instead of `npm` in this PowerShell environment because `npm.ps1` is blocked by execution policy.
+- `rg.exe` is blocked by the local environment, so PowerShell search was used.
+- E2E workflow coverage still needs a dedicated Playwright scenario in the next pass.
+
+### Final Rebuild Validation Update
+
+| Check | Status | Details |
+|---|---:|---|
+| `npm.cmd run typecheck` | PASS | TypeScript passed. |
+| `npm.cmd test` | PASS | Vitest: 24 files / 177 tests passed. |
+| `npm.cmd run build` | PASS | Renderer and Electron builds passed; only non-fatal Vite chunk/dynamic-import warnings. |
+| `npm.cmd run lint` | PASS | 0 errors / 25 warnings, below configured threshold. |
+| `npm.cmd run test:e2e` | PASS | Playwright: 16/16 passed. Covers auth/admin, Dashboard, provider settings, Skills, core routes, Prompt Lab, project creation/error handling, Workflow template run, Timeline / Trace, and redacted run export. |
+| `npm.cmd run test:unit` | N/A | Script missing from `package.json`. |
+| `npm.cmd run test:integration` | N/A | Script missing from `package.json`. |
+
+Final note: workflow E2E coverage is no longer pending; `tests/e2e/app.spec.ts` now includes project/workflow/template/run/trace coverage.
+
 ## Auth, Admin, RBAC, And Audit Pass - 2026-05-10
 
 ### What Changed

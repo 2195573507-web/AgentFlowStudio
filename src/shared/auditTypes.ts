@@ -24,6 +24,8 @@ export interface AuditEvent {
     | 'mcp.denied'
     | 'mcp.allowed'
     | 'run.create'
+    | 'workflow.create'
+    | 'workflow.save'
     | 'security.exception'
     | 'export'
     | 'admin.operation'
@@ -31,6 +33,8 @@ export interface AuditEvent {
     | 'provider.secret_stored'
     | 'provider.secret_migrated'
     | 'provider.secret_unreadable'
+    | 'provider.connection_test'
+    | 'provider.active_switch'
     | 'auth.session_restored'
     | 'auth.session_restore_unavailable'
   action: string

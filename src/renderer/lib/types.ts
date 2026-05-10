@@ -19,12 +19,18 @@ export type {
   SavedPrompt,
   Run,
   RunNodeTrace,
-  WorkflowTemplate,
   WorkflowTemplateNode,
   RiskCheck,
   Memory,
   MemoryLink,
   ProviderSetting,
+  ProviderPreset,
+  ActiveProviderConfig,
+  AgentRecord,
+  AgentExecutionRecord,
+  AgentFeedbackRecord,
+  SkillRegistryEntry,
+  ConfigBundle,
   AppSettings,
   SkillMeta,
   LogAnalysisResult,
@@ -39,6 +45,19 @@ export type {
 } from '../../shared/types';
 
 export { IPC_CHANNELS } from '../../shared/types';
+export type {
+  DiagnosticReport,
+  Workflow,
+  WorkflowEdge,
+  WorkflowNode,
+  WorkflowNodeTrace,
+  WorkflowNodeType,
+  WorkflowRunInput,
+  WorkflowRunResult,
+  WorkflowRunStatus,
+  AgentWorkflowTemplate,
+  WorkflowVersion,
+} from '../../shared/workflowTypes';
 import type { MemoryStatus, MemoryType } from '../../shared/types';
 
 // ── Renderer-specific types ──

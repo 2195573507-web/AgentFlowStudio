@@ -1,9 +1,9 @@
 :root {
   color-scheme: light dark;
   --radius: 8px;
-  font-family:
-    Inter, "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", system-ui,
-    -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans-cn: KaiTi, STKaiti, "楷体", "Kaiti SC", serif;
+  --font-mono: ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace;
+  font-family: var(--font-sans-cn);
 }
 
 :root,
@@ -117,6 +117,16 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+code,
+pre,
+kbd,
+samp,
+.mono-data,
+.mono-time {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 button {
@@ -654,7 +664,7 @@ button {
   white-space: pre-wrap;
   overflow: auto;
   line-height: 1.6;
-  font-family: "Cascadia Code", Consolas, "Microsoft YaHei UI", monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
 }
 
@@ -748,7 +758,7 @@ button {
   background: rgba(12, 17, 27, 0.86);
   color: #e8f0ff;
   white-space: pre-wrap;
-  font-family: "Cascadia Code", Consolas, "Microsoft YaHei UI", monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.55;
 }

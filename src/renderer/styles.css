@@ -31,6 +31,8 @@
     --danger: #ef4444;
     --success: #22c55e;
     --warning: #f59e0b;
+    --font-sans-cn: KaiTi, STKaiti, "楷体", "Kaiti SC", serif;
+    --font-mono: ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace;
   }
 
   .dark {
@@ -69,8 +71,7 @@
       radial-gradient(circle at 50% 92%, rgba(244, 114, 182, 0.1), transparent 30rem),
       linear-gradient(145deg, var(--bg-primary), #eaf0fb 48%, #f8fbff);
     color: var(--text-primary);
-    font-family: 'Inter', 'Segoe UI Variable', 'Segoe UI', 'Microsoft YaHei UI',
-      'Microsoft YaHei', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: var(--font-sans-cn);
     line-height: 1.5;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
@@ -99,6 +100,20 @@
   textarea,
   select {
     font: inherit;
+  }
+
+  code,
+  pre,
+  kbd,
+  samp,
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+
+  .tabular-nums,
+  time,
+  [data-mono="number"] {
+    font-variant-numeric: tabular-nums;
   }
 
   ::-webkit-scrollbar {

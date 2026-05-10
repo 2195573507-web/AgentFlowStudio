@@ -9,6 +9,13 @@ import type {
   Run,
   Memory,
   ProviderSetting,
+  ProviderPreset,
+  ActiveProviderConfig,
+  AgentRecord,
+  AgentExecutionRecord,
+  AgentFeedbackRecord,
+  SkillRegistryEntry,
+  ConfigBundle,
   AppSettings,
   SkillMeta,
   SafetyCheckResult,
@@ -18,6 +25,12 @@ import type {
   McpGatewayDecision,
   McpGatewayRequest,
 } from '../../shared/types';
+import type {
+  Workflow,
+  WorkflowRunResult,
+  AgentWorkflowTemplate,
+  WorkflowVersion,
+} from '../../shared/workflowTypes';
 import type { AuditEvent, AuditExportManifest, AuditIntegrityReport, AuditQuery } from '../../shared/auditTypes';
 import type {
   AuthSessionState,
@@ -86,6 +99,15 @@ interface AgentFlowPreloadAPI {
     create(run: Omit<Run, 'id'>): Promise<Run>;
     events(projectId?: string): Promise<unknown[]>;
   };
+  workflows?: {
+    templates(): Promise<AgentWorkflowTemplate[] | { error: string }>;
+    list(projectId: string): Promise<Workflow[] | { error: string }>;
+    get(workflowId: string): Promise<Workflow | { error: string }>;
+    createFromTemplate(data: { projectId: string; templateId: string; name?: string }): Promise<Workflow | { error: string }>;
+    save(workflowId: string, data: Partial<Workflow> & { versionMessage?: string }): Promise<Workflow | { error: string }>;
+    run(data: { workflowId: string; input?: string }): Promise<{ run: Run; result: WorkflowRunResult } | { error: string }>;
+    versions(workflowId: string): Promise<WorkflowVersion[] | { error: string }>;
+  };
   mcp?: {
     allowlist(): Promise<unknown[]>;
     check(request: { serverName: string; toolName: string }): Promise<{ allowed: boolean } | { error: string }>;
@@ -125,6 +147,35 @@ interface AgentFlowPreloadAPI {
     create(provider: Omit<ProviderSetting, 'id' | 'createdAt' | 'updatedAt'> | ProviderSetting): Promise<ProviderSetting>;
     update(id: string, updates: Partial<ProviderSetting>): Promise<ProviderSetting | null>;
     delete(id: string): Promise<boolean>;
+    presets?(): Promise<ProviderPreset[]>;
+    testConnection?(providerId: string): Promise<{ ok: boolean; status: string; message: string; checkedAt: string } | { error: string }>;
+    getActive?(): Promise<{ providerRef: string; model: string; agentDefaultProviderRef?: string } | { error: string }>;
+    setActive?(config: ActiveProviderConfig): Promise<ActiveProviderConfig | { error: string }>;
+  };
+  agents?: {
+    list(filters?: { projectId?: string }): Promise<AgentRecord[] | { error: string }>;
+    get(id: string): Promise<AgentRecord | { error: string }>;
+    create(data: Partial<AgentRecord>): Promise<AgentRecord | { error: string }>;
+    update(id: string, data: Partial<AgentRecord>): Promise<AgentRecord | { error: string }>;
+    softDelete(id: string): Promise<AgentRecord | { error: string }>;
+    enable(id: string): Promise<AgentRecord | { error: string }>;
+    disable(id: string): Promise<AgentRecord | { error: string }>;
+    health(id: string): Promise<unknown>;
+    executions(agentId: string): Promise<AgentExecutionRecord[] | { error: string }>;
+    timeline(agentId: string): Promise<unknown[] | { error: string }>;
+  };
+  agentFeedback?: {
+    create(data: Partial<AgentFeedbackRecord>): Promise<AgentFeedbackRecord | { error: string }>;
+    list(filters?: { projectId?: string; agentId?: string }): Promise<AgentFeedbackRecord[] | { error: string }>;
+    get(id: string): Promise<AgentFeedbackRecord | { error: string }>;
+    updateStatus(id: string, status: string): Promise<AgentFeedbackRecord | { error: string }>;
+    export(filters?: { projectId?: string }): Promise<{ feedback: AgentFeedbackRecord[]; exportedAt: string } | { error: string }>;
+    createSyntheticFromExecution(executionId: string): Promise<AgentFeedbackRecord | { error: string }>;
+  };
+  config?: {
+    exportAll(): Promise<ConfigBundle | { error: string }>;
+    importPreview(raw: string): Promise<unknown>;
+    importApply(raw: string): Promise<unknown>;
   };
   export?: {
     markdown(content: string, filename: string): Promise<string>;
@@ -133,6 +184,9 @@ interface AgentFlowPreloadAPI {
   skills?: {
     list(): Promise<SkillMeta[]>;
     read(path: string): Promise<string>;
+    registry?(): Promise<SkillRegistryEntry[] | { error: string }>;
+    upsertRegistry?(entry: SkillRegistryEntry): Promise<SkillRegistryEntry | { error: string }>;
+    toggleRegistry?(id: string, enabled: boolean): Promise<SkillRegistryEntry | { error: string }>;
   };
   app?: {
     info(): Promise<{
@@ -525,6 +579,51 @@ export const api = {
       apiCall<unknown[]>('listRunEvents', (a) => a.runs?.events?.(projectId) ?? Promise.resolve([]), []),
   },
 
+  workflows: {
+    templates: () =>
+      apiCall<AgentWorkflowTemplate[] | { error: string }>(
+        'workflows.templates',
+        (a) => a.workflows?.templates() ?? Promise.resolve([]),
+        [],
+      ),
+    list: (projectId: string) =>
+      apiCall<Workflow[] | { error: string }>(
+        'workflows.list',
+        (a) => a.workflows?.list(projectId) ?? Promise.resolve([]),
+        [],
+      ),
+    get: (workflowId: string) =>
+      apiCall<Workflow | { error: string }>(
+        'workflows.get',
+        (a) => a.workflows?.get(workflowId) ?? Promise.resolve({ error: 'Workflow bridge unavailable.' }),
+        { error: 'Workflow bridge unavailable.' },
+      ),
+    createFromTemplate: (data: { projectId: string; templateId: string; name?: string }) =>
+      apiCall<Workflow | { error: string }>(
+        'workflows.createFromTemplate',
+        (a) => a.workflows?.createFromTemplate(data) ?? Promise.resolve({ error: 'Workflow bridge unavailable.' }),
+        { error: 'Workflow bridge unavailable.' },
+      ),
+    save: (workflowId: string, data: Partial<Workflow> & { versionMessage?: string }) =>
+      apiCall<Workflow | { error: string }>(
+        'workflows.save',
+        (a) => a.workflows?.save(workflowId, data) ?? Promise.resolve({ error: 'Workflow bridge unavailable.' }),
+        { error: 'Workflow bridge unavailable.' },
+      ),
+    run: (data: { workflowId: string; input?: string }) =>
+      apiCall<{ run: Run; result: WorkflowRunResult } | { error: string }>(
+        'workflows.run',
+        (a) => a.workflows?.run(data) ?? Promise.resolve({ error: 'Workflow bridge unavailable.' }),
+        { error: 'Workflow bridge unavailable.' },
+      ),
+    versions: (workflowId: string) =>
+      apiCall<WorkflowVersion[] | { error: string }>(
+        'workflows.versions',
+        (a) => a.workflows?.versions(workflowId) ?? Promise.resolve([]),
+        [],
+      ),
+  },
+
   mcp: {
     allowlist: () => apiCall<unknown[]>('mcp.allowlist', (a) => a.mcp?.allowlist() ?? Promise.resolve([]), []),
     check: (request: { serverName: string; toolName: string }) =>
@@ -795,6 +894,30 @@ export const api = {
           (a) => a.providers?.delete(id) ?? a.deleteProvider(id),
           false,
         ),
+      presets: () =>
+        apiCall<ProviderPreset[]>(
+          'providers.presets',
+          (a) => a.providers?.presets?.() ?? Promise.resolve([]),
+          [],
+        ),
+      testConnection: (providerId: string) =>
+        apiCall<{ ok: boolean; status: string; message: string; checkedAt: string } | { error: string }>(
+          'providers.testConnection',
+          (a) => a.providers?.testConnection?.(providerId) ?? Promise.resolve({ error: 'Provider test bridge unavailable.' }),
+          { error: 'Provider test bridge unavailable.' },
+        ),
+      getActive: () =>
+        apiCall<{ providerRef: string; model: string; agentDefaultProviderRef?: string } | { error: string }>(
+          'providers.getActive',
+          (a) => a.providers?.getActive?.() ?? Promise.resolve({ providerRef: '', model: '' }),
+          { providerRef: '', model: '' },
+        ),
+      setActive: (config: ActiveProviderConfig) =>
+        apiCall<ActiveProviderConfig | { error: string }>(
+          'providers.setActive',
+          (a) => a.providers?.setActive?.(config) ?? Promise.resolve({ error: 'Provider switch bridge unavailable.' }),
+          { error: 'Provider switch bridge unavailable.' },
+        ),
     },
   },
 
@@ -811,6 +934,57 @@ export const api = {
     update: (idOrProvider: string | ProviderSetting, updates?: Partial<ProviderSetting>) =>
       api.settings.providers.update(idOrProvider as ProviderSetting, updates),
     delete: (id: string) => api.settings.providers.delete(id),
+    presets: () => api.settings.providers.presets(),
+    testConnection: (providerId: string) => api.settings.providers.testConnection(providerId),
+    getActive: () => api.settings.providers.getActive(),
+    setActive: (config: ActiveProviderConfig) => api.settings.providers.setActive(config),
+  },
+
+  agents: {
+    list: (filters?: { projectId?: string }) =>
+      apiCall<AgentRecord[] | { error: string }>('agents.list', (a) => a.agents?.list(filters) ?? Promise.resolve([]), []),
+    get: (id: string) =>
+      apiCall<AgentRecord | { error: string }>('agents.get', (a) => a.agents?.get(id) ?? Promise.resolve({ error: 'Agent bridge unavailable.' }), { error: 'Agent bridge unavailable.' }),
+    create: (data: Partial<AgentRecord>) =>
+      apiCall<AgentRecord | { error: string }>('agents.create', (a) => a.agents?.create(data) ?? Promise.resolve({ error: 'Agent bridge unavailable.' }), { error: 'Agent bridge unavailable.' }),
+    update: (id: string, data: Partial<AgentRecord>) =>
+      apiCall<AgentRecord | { error: string }>('agents.update', (a) => a.agents?.update(id, data) ?? Promise.resolve({ error: 'Agent bridge unavailable.' }), { error: 'Agent bridge unavailable.' }),
+    softDelete: (id: string) =>
+      apiCall<AgentRecord | { error: string }>('agents.softDelete', (a) => a.agents?.softDelete(id) ?? Promise.resolve({ error: 'Agent bridge unavailable.' }), { error: 'Agent bridge unavailable.' }),
+    enable: (id: string) =>
+      apiCall<AgentRecord | { error: string }>('agents.enable', (a) => a.agents?.enable(id) ?? Promise.resolve({ error: 'Agent bridge unavailable.' }), { error: 'Agent bridge unavailable.' }),
+    disable: (id: string) =>
+      apiCall<AgentRecord | { error: string }>('agents.disable', (a) => a.agents?.disable(id) ?? Promise.resolve({ error: 'Agent bridge unavailable.' }), { error: 'Agent bridge unavailable.' }),
+    health: (id: string) =>
+      apiCall<unknown>('agents.health', (a) => a.agents?.health(id) ?? Promise.resolve({ error: 'Agent bridge unavailable.' }), { error: 'Agent bridge unavailable.' }),
+    executions: (agentId: string) =>
+      apiCall<AgentExecutionRecord[] | { error: string }>('agents.executions', (a) => a.agents?.executions(agentId) ?? Promise.resolve([]), []),
+    timeline: (agentId: string) =>
+      apiCall<unknown[] | { error: string }>('agents.timeline', (a) => a.agents?.timeline(agentId) ?? Promise.resolve([]), []),
+  },
+
+  agentFeedback: {
+    create: (data: Partial<AgentFeedbackRecord>) =>
+      apiCall<AgentFeedbackRecord | { error: string }>('agentFeedback.create', (a) => a.agentFeedback?.create(data) ?? Promise.resolve({ error: 'Feedback bridge unavailable.' }), { error: 'Feedback bridge unavailable.' }),
+    list: (filters?: { projectId?: string; agentId?: string }) =>
+      apiCall<AgentFeedbackRecord[] | { error: string }>('agentFeedback.list', (a) => a.agentFeedback?.list(filters) ?? Promise.resolve([]), []),
+    get: (id: string) =>
+      apiCall<AgentFeedbackRecord | { error: string }>('agentFeedback.get', (a) => a.agentFeedback?.get(id) ?? Promise.resolve({ error: 'Feedback bridge unavailable.' }), { error: 'Feedback bridge unavailable.' }),
+    updateStatus: (id: string, status: string) =>
+      apiCall<AgentFeedbackRecord | { error: string }>('agentFeedback.updateStatus', (a) => a.agentFeedback?.updateStatus(id, status) ?? Promise.resolve({ error: 'Feedback bridge unavailable.' }), { error: 'Feedback bridge unavailable.' }),
+    export: (filters?: { projectId?: string }) =>
+      apiCall<{ feedback: AgentFeedbackRecord[]; exportedAt: string } | { error: string }>('agentFeedback.export', (a) => a.agentFeedback?.export(filters) ?? Promise.resolve({ feedback: [], exportedAt: new Date().toISOString() }), { feedback: [], exportedAt: new Date().toISOString() }),
+    createSyntheticFromExecution: (executionId: string) =>
+      apiCall<AgentFeedbackRecord | { error: string }>('agentFeedback.createSyntheticFromExecution', (a) => a.agentFeedback?.createSyntheticFromExecution(executionId) ?? Promise.resolve({ error: 'Feedback bridge unavailable.' }), { error: 'Feedback bridge unavailable.' }),
+  },
+
+  config: {
+    exportAll: () =>
+      apiCall<ConfigBundle | { error: string }>('config.exportAll', (a) => a.config?.exportAll() ?? Promise.resolve({ error: 'Config bridge unavailable.' }), { error: 'Config bridge unavailable.' }),
+    importPreview: (raw: string) =>
+      apiCall<unknown>('config.importPreview', (a) => a.config?.importPreview(raw) ?? Promise.resolve({ ok: false, errors: ['Config bridge unavailable.'] }), { ok: false, errors: ['Config bridge unavailable.'] }),
+    importApply: (raw: string) =>
+      apiCall<unknown>('config.importApply', (a) => a.config?.importApply(raw) ?? Promise.resolve({ ok: false, errors: ['Config bridge unavailable.'] }), { ok: false, errors: ['Config bridge unavailable.'] }),
   },
 
   export: {
@@ -854,6 +1028,12 @@ export const api = {
       ),
     read: (name: string) =>
       apiCall<string>('readSkill', (a) => a.skills?.read(name) ?? a.readSkill(name), ''),
+    registry: () =>
+      apiCall<SkillRegistryEntry[] | { error: string }>('skills.registry', (a) => a.skills?.registry?.() ?? Promise.resolve([]), []),
+    upsertRegistry: (entry: SkillRegistryEntry) =>
+      apiCall<SkillRegistryEntry | { error: string }>('skills.upsertRegistry', (a) => a.skills?.upsertRegistry?.(entry) ?? Promise.resolve({ error: 'Skills registry bridge unavailable.' }), { error: 'Skills registry bridge unavailable.' }),
+    toggleRegistry: (id: string, enabled: boolean) =>
+      apiCall<SkillRegistryEntry | { error: string }>('skills.toggleRegistry', (a) => a.skills?.toggleRegistry?.(id, enabled) ?? Promise.resolve({ error: 'Skills registry bridge unavailable.' }), { error: 'Skills registry bridge unavailable.' }),
   },
 
   // ── App ──
