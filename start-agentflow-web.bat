@@ -1,6 +1,6 @@
 @echo off
 cd /d "%~dp0"
-echo Starting AgentFlow Studio Web fallback...
+echo Starting LocalAI Nexus Web fallback...
 echo URL: http://127.0.0.1:5173
 echo.
 start "" "http://127.0.0.1:5173"

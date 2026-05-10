@@ -208,7 +208,7 @@ export default function Settings() {
       setMessage(`导出失败：${bundle.error}`);
       return;
     }
-    await api.export.json(bundle, `agentflow-config-${Date.now()}.json`);
+    await api.export.json(bundle, `localai-nexus-config-${Date.now()}.json`);
     setExportManifest(JSON.stringify((bundle as { manifest?: unknown }).manifest ?? {}, null, 2));
   };
 
@@ -408,7 +408,7 @@ export default function Settings() {
         <textarea
           value={importText}
           onChange={(event) => setImportText(event.target.value)}
-          placeholder="粘贴 AgentFlow 配置 JSON，导入前会校验 schema、大小、字段白名单和风险。"
+          placeholder="粘贴 LocalAI Nexus 配置 JSON，导入前会校验 schema、大小、字段白名单和风险。"
           className="min-h-[120px] w-full rounded-lg border border-white/10 bg-white/5 p-3 font-mono text-sm text-slate-900 dark:text-zinc-100"
         />
         {(exportManifest || importPreview !== null) && (

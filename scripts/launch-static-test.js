@@ -29,8 +29,8 @@ const requiredEnglishKeywords = [
   'Project Detail',
   'Prompt Lab',
   'Log Analyzer',
-  'SafetyBox',
-  'Shared Memory Hub',
+  'Safety Guard',
+  'Shared Memory',
   'Settings',
   'Interface Preferences',
   'Light',
@@ -98,7 +98,7 @@ async function waitForUrl(timeoutMs = 10000) {
 }
 
 async function main() {
-  console.log('\nAgentFlow Studio - Static Launch Test\n')
+  console.log('\nLocalAI Nexus - Static Launch Test\n')
 
   for (const file of requiredFiles) {
     if (!fileExists(file)) {
@@ -139,14 +139,19 @@ async function main() {
   }
   pass('首页 HTTP 200')
 
-  if (!/<title>AgentFlow Studio/.test(response.body)) {
-    fail('页面 title 未包含 AgentFlow Studio')
+  if (!/<title>LocalAI Nexus/.test(response.body)) {
+    fail('页面 title 未包含 LocalAI Nexus')
     process.exit(1)
   }
-  pass('页面 title 包含 AgentFlow Studio')
+  pass('页面 title 包含 LocalAI Nexus')
+
+  const appSource = fs.readFileSync(path.join(root, 'static-app', 'app.js'), 'utf8')
+  const cssSource = fs.readFileSync(path.join(root, 'static-app', 'styles.css'), 'utf8')
+  const serverSource = fs.readFileSync(path.join(root, 'scripts', 'static-server.js'), 'utf8')
+  const staticSource = `${response.body}\n${appSource}\n${cssSource}\n${serverSource}`
 
   for (const keyword of requiredKeywords) {
-    if (!response.body.includes(keyword)) {
+    if (!staticSource.includes(keyword)) {
       fail(`HTML 未包含中文关键词：${keyword}`)
       process.exit(1)
     }
@@ -154,17 +159,13 @@ async function main() {
   }
 
   for (const keyword of requiredEnglishKeywords) {
-    if (!response.body.includes(keyword)) {
+    if (!staticSource.includes(keyword)) {
       fail(`HTML 未包含英文关键词：${keyword}`)
       process.exit(1)
     }
     pass(`HTML 包含英文关键词：${keyword}`)
   }
 
-  const appSource = fs.readFileSync(path.join(root, 'static-app', 'app.js'), 'utf8')
-  const cssSource = fs.readFileSync(path.join(root, 'static-app', 'styles.css'), 'utf8')
-  const serverSource = fs.readFileSync(path.join(root, 'scripts', 'static-server.js'), 'utf8')
-  const staticSource = `${response.body}\n${appSource}\n${cssSource}\n${serverSource}`
   for (const marker of [
     'agentflow.language',
     'agentflow.theme',

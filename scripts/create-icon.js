@@ -5,6 +5,7 @@ import { deflateSync } from 'zlib'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const assetsDir = resolve(__dirname, '..', 'assets')
+const staticAssetsDir = resolve(__dirname, '..', 'static-app', 'assets')
 
 const CANVAS_SIZE = 512
 const ICO_SIZES = [16, 24, 32, 48, 64, 128, 256]
@@ -13,9 +14,13 @@ if (!existsSync(assetsDir)) {
   mkdirSync(assetsDir, { recursive: true })
 }
 
+if (!existsSync(staticAssetsDir)) {
+  mkdirSync(staticAssetsDir, { recursive: true })
+}
+
 const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="title desc">
-  <title id="title">AgentFlow Studio icon</title>
-  <desc id="desc">A glassy AgentFlow Studio monogram with connected workflow nodes.</desc>
+  <title id="title">LocalAI Nexus icon</title>
+  <desc id="desc">A glassy LocalAI Nexus mark with connected local AI workflow nodes.</desc>
   <defs>
     <linearGradient id="bg" x1="74" y1="62" x2="438" y2="450" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#12d8b4"/>
@@ -45,19 +50,14 @@ const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512
     <circle cx="178" cy="209" r="42" fill="#f8fffd"/>
     <circle cx="334" cy="209" r="42" fill="#f8fffd"/>
     <circle cx="256" cy="320" r="42" fill="#f8fffd"/>
+    <circle cx="178" cy="209" r="16" fill="#155e75"/>
+    <circle cx="334" cy="209" r="16" fill="#4338ca"/>
+    <circle cx="256" cy="320" r="16" fill="#2563eb"/>
   </g>
-  <path d="M166 224l22-52h20l22 52h-18l-3-9h-23l-3 9h-17Zm24-22h15l-7-20h-1l-7 20Z" fill="#155e75"/>
-  <path d="M306 224v-52h40v15h-23v8h21v14h-21v15h-17Z" fill="#4338ca"/>
-  <path d="M235 343v-51h16v37h25v14h-41Z" fill="#2563eb"/>
 </svg>`
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value))
 const lerp = (a, b, t) => a + (b - a) * t
-const smoothstep = (edge0, edge1, x) => {
-  const t = clamp((x - edge0) / (edge1 - edge0), 0, 1)
-  return t * t * (3 - 2 * t)
-}
-
 const mix = (a, b, t) => [
   Math.round(lerp(a[0], b[0], t)),
   Math.round(lerp(a[1], b[1], t)),
@@ -100,39 +100,6 @@ const segmentCoverage = (x, y, x1, y1, x2, y2, width) => {
   return clamp(width / 2 + 0.5 - Math.hypot(x - px, y - py), 0, 1)
 }
 
-const polygonCoverage = (x, y, points) => {
-  let inside = false
-
-  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-    const [xi, yi] = points[i]
-    const [xj, yj] = points[j]
-    const intersects = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi
-    if (intersects) inside = !inside
-  }
-
-  if (!inside) {
-    return 0
-  }
-
-  let minDistance = Infinity
-  for (let i = 0; i < points.length; i++) {
-    const [x1, y1] = points[i]
-    const [x2, y2] = points[(i + 1) % points.length]
-    const vx = x2 - x1
-    const vy = y2 - y1
-    const lenSq = vx * vx + vy * vy
-    const t = lenSq === 0 ? 0 : clamp(((x - x1) * vx + (y - y1) * vy) / lenSq, 0, 1)
-    minDistance = Math.min(minDistance, Math.hypot(x - (x1 + vx * t), y - (y1 + vy * t)))
-  }
-
-  return smoothstep(0, 1.2, minDistance)
-}
-
-const drawPolygon = (base, x, y, points, color, opacity = 1) => {
-  const coverage = polygonCoverage(x, y, points)
-  return coverage > 0 ? blendOver(base, color, coverage * opacity) : base
-}
-
 const drawSegment = (base, x, y, x1, y1, x2, y2, width, color, opacity = 1) => {
   const coverage = segmentCoverage(x, y, x1, y1, x2, y2, width)
   return coverage > 0 ? blendOver(base, color, coverage * opacity) : base
@@ -142,8 +109,6 @@ const drawCircle = (base, x, y, cx, cy, radius, color, opacity = 1) => {
   const coverage = circleCoverage(x, y, cx, cy, radius)
   return coverage > 0 ? blendOver(base, color, coverage * opacity) : base
 }
-
-const scalePoints = (points, scale) => points.map(([x, y]) => [x * scale, y * scale])
 
 const renderIcon = (size) => {
   const scale = size / CANVAS_SIZE
@@ -173,54 +138,6 @@ const renderIcon = (size) => {
     height: 262 * scale,
     radius: 54 * scale,
   }
-
-  const aLeft = scalePoints(
-    [
-      [163, 224],
-      [186, 172],
-      [209, 172],
-      [232, 224],
-      [212, 224],
-      [208, 214],
-      [187, 214],
-      [183, 224],
-    ],
-    scale,
-  )
-  const aCut = scalePoints(
-    [
-      [192, 201],
-      [203, 201],
-      [198, 184],
-    ],
-    scale,
-  )
-  const fTop = scalePoints(
-    [
-      [306, 172],
-      [348, 172],
-      [348, 187],
-      [324, 187],
-      [324, 195],
-      [345, 195],
-      [345, 209],
-      [324, 209],
-      [324, 224],
-      [306, 224],
-    ],
-    scale,
-  )
-  const lBottom = scalePoints(
-    [
-      [235, 292],
-      [252, 292],
-      [252, 329],
-      [277, 329],
-      [277, 343],
-      [235, 343],
-    ],
-    scale,
-  )
 
   for (let py = 0; py < size; py++) {
     for (let px = 0; px < size; px++) {
@@ -294,10 +211,9 @@ const renderIcon = (size) => {
       color = drawCircle(color, x, y, 334 * scale, 209 * scale, 42 * scale, [248, 255, 253, 255])
       color = drawCircle(color, x, y, 256 * scale, 320 * scale, 42 * scale, [248, 255, 253, 255])
 
-      color = drawPolygon(color, x, y, aLeft, [21, 94, 117, 255])
-      color = drawPolygon(color, x, y, aCut, [248, 255, 253, 255])
-      color = drawPolygon(color, x, y, fTop, [67, 56, 202, 255])
-      color = drawPolygon(color, x, y, lBottom, [37, 99, 235, 255])
+      color = drawCircle(color, x, y, 178 * scale, 209 * scale, 16 * scale, [21, 94, 117, 255])
+      color = drawCircle(color, x, y, 334 * scale, 209 * scale, 16 * scale, [67, 56, 202, 255])
+      color = drawCircle(color, x, y, 256 * scale, 320 * scale, 16 * scale, [37, 99, 235, 255])
 
       pixels[index] = color[0]
       pixels[index + 1] = color[1]
@@ -390,17 +306,28 @@ const writeAssets = () => {
   const svgPath = resolve(assetsDir, 'icon.svg')
   writeFileSync(svgPath, svgContent, 'utf-8')
   console.log('[icon] Created assets/icon.svg')
+  writeFileSync(resolve(assetsDir, 'localai-nexus.svg'), svgContent, 'utf-8')
+  console.log('[icon] Created assets/localai-nexus.svg')
+  writeFileSync(resolve(staticAssetsDir, 'icon.svg'), svgContent, 'utf-8')
+  console.log('[icon] Created static-app/assets/icon.svg')
+  writeFileSync(resolve(staticAssetsDir, 'localai-nexus.svg'), svgContent, 'utf-8')
+  console.log('[icon] Created static-app/assets/localai-nexus.svg')
 
   const png512 = encodePng(CANVAS_SIZE, CANVAS_SIZE, renderIcon(CANVAS_SIZE))
   writeFileSync(resolve(assetsDir, 'icon.png'), png512)
   console.log('[icon] Created assets/icon.png (512x512 PNG)')
+  writeFileSync(resolve(assetsDir, 'localai-nexus.png'), png512)
+  console.log('[icon] Created assets/localai-nexus.png (512x512 PNG)')
 
   const icoImages = ICO_SIZES.map((size) => ({
     size,
     png: size === CANVAS_SIZE ? png512 : encodePng(size, size, renderIcon(size)),
   }))
-  writeFileSync(resolve(assetsDir, 'icon.ico'), encodeIco(icoImages))
+  const ico = encodeIco(icoImages)
+  writeFileSync(resolve(assetsDir, 'icon.ico'), ico)
   console.log(`[icon] Created assets/icon.ico (${ICO_SIZES.join(', ')}px)`)
+  writeFileSync(resolve(assetsDir, 'localai-nexus.ico'), ico)
+  console.log(`[icon] Created assets/localai-nexus.ico (${ICO_SIZES.join(', ')}px)`)
 
   console.log('[icon] Icon generation complete.')
 }

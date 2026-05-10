@@ -26,7 +26,7 @@ function fileExists(path) {
   return existsSync(resolve(root, path))
 }
 
-console.log('\nAgentFlow Studio - Smoke Test\n')
+console.log('\nLocalAI Nexus - Smoke Test\n')
 console.log('='.repeat(50))
 
 console.log('\n[Package Scripts]')
@@ -140,7 +140,7 @@ check('electron smoke uses separate port range', electronStartupSmoke.includes('
 for (const keyword of ['仪表盘', '项目管理', '项目详情', '提示词实验室', '日志分析', '安全检查', '共享记忆中心', '技能管理', 'Git 时间线', '设置', '界面偏好', '浅色', '深色', '跟随系统']) {
   check(`static-app localized/${keyword}`, staticText.includes(keyword))
 }
-for (const keyword of ['Dashboard', 'Projects', 'Project Detail', 'Prompt Lab', 'Log Analyzer', 'SafetyBox', 'Shared Memory Hub', 'Skills', 'Git Timeline', 'Settings', 'Interface Preferences', 'Light', 'Dark', 'System']) {
+for (const keyword of ['Dashboard', 'Projects', 'Project Detail', 'Prompt Lab', 'Log Analyzer', 'Safety Guard', 'Shared Memory', 'Skills', 'Git Timeline', 'Settings', 'Interface Preferences', 'Light', 'Dark', 'System']) {
   check(`static-app english/${keyword}`, staticText.includes(keyword))
 }
 check('static translations object exists', staticApp.includes('const translations'))
@@ -235,8 +235,8 @@ const tailwindConfig = readText('tailwind.config.ts')
 check('renderer Liquid Glass token set exists', ['--glass-surface', '--glass-surface-hover', '--glass-border', '--glass-highlight', '--glass-inner', '--focus-ring'].every((keyword) => rendererStyles.includes(keyword)))
 check('renderer GlassCard uses shared liquid primitive', glassCard.includes('liquid-glass-card') && glassCard.includes('liquid-focus'))
 check('Tailwind accent palette supports used shades', ['400', '500', '600', '700'].every((shade) => tailwindConfig.includes(`${shade}:`)))
-check('Dashboard workflow lifecycle rail exists', ['Idea', 'Plan', 'Tasks', 'Prompt', 'Safety', 'Logs', 'Memory', 'Handoff'].every((keyword) => dashboard.includes(keyword)))
-check('Dashboard next-step copy exists', dashboard.includes('下一步') && dashboard.includes('继续到'))
+check('Dashboard Nexus first-run path exists', ['Provider', 'Gateway', 'Workflow', 'Prompt', 'Guard', 'Memory'].every((keyword) => dashboard.includes(keyword)))
+check('Dashboard next-step copy exists', dashboard.includes('First-run checklist') && dashboard.includes('Continue:'))
 
 const promptLab = readText('src/renderer/routes/PromptLab.tsx')
 const templates = readText('src/renderer/lib/templates.ts')

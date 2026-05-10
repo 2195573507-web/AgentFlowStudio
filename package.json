@@ -1,9 +1,9 @@
 {
-  "name": "agentflow-studio",
+  "name": "localai-nexus",
   "version": "1.1.1",
-  "description": "Local AI project orchestration hub for Claude Code, Codex, Cursor and more",
+  "description": "Local AI orchestration hub for projects, prompts, safety checks, logs, and shared memory",
   "main": "dist-electron/main/index.js",
-  "author": "AgentFlow Studio",
+  "author": "LocalAI Nexus",
   "type": "module",
   "license": "MIT",
   "scripts": {
@@ -37,8 +37,8 @@
     "release": "npm run verify && npm run build && npm run dist"
   },
   "build": {
-    "appId": "studio.agentflow.app",
-    "productName": "AgentFlow Studio",
+    "appId": "app.localai.nexus",
+    "productName": "LocalAI Nexus",
     "directories": {
       "output": "release"
     },
@@ -49,7 +49,7 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "assets/icon.ico"
+      "icon": "assets/localai-nexus.ico"
     },
     "nsis": {
       "oneClick": false,

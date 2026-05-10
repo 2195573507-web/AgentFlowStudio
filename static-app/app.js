@@ -1,4 +1,5 @@
 const STORAGE_KEY = 'agentflow.static.v1';
+const APP_NAME = 'LocalAI Nexus';
 const LANGUAGE_KEY = 'agentflow.language';
 const THEME_KEY = 'agentflow.theme';
 const REDACTED = '[REDACTED]';
@@ -53,8 +54,8 @@ const translations = {
     projectDetail: 'Project Detail',
     promptLab: 'Prompt Lab',
     logAnalyzer: 'Log Analyzer',
-    safetyBox: 'SafetyBox',
-    sharedMemory: 'Shared Memory Hub',
+    safetyBox: 'Safety Guard',
+    sharedMemory: 'Shared Memory',
     skills: 'Skills',
     gitTimeline: 'Git Timeline',
     settings: 'Settings',
@@ -219,7 +220,7 @@ const promptTemplates = [
     id: 'handoff',
     name: '跨模型交接 Prompt',
     template:
-      '请接手 AgentFlow Studio 项目。\n\n当前目标：{{task}}\n\n请先读取项目上下文，再继续执行，不要重建项目，不要删除 Shared Memory Hub。',
+      '请接手 LocalAI Nexus 项目。\n\n当前目标：{{task}}\n\n请先读取项目上下文，再继续执行，不要重建项目，不要删除 Shared Memory。',
   },
 ];
 
@@ -252,7 +253,7 @@ function defaultState() {
     projects: [
       {
         id: 'project-agentflow',
-        name: 'AgentFlow Studio 本地交付修复',
+        name: 'LocalAI Nexus desktop launch polish',
         idea: '修复双击启动闪退，提供静态可交付模式，并完成中文界面。',
         platform: 'Windows Desktop / Static Web',
         techStack: 'Node.js, 静态 HTML, CSS, JavaScript, localStorage',
@@ -315,7 +316,7 @@ function defaultState() {
         type: 'knowledge',
         title: '用户要求界面汉化',
         content:
-          '用户明确要求网站 / 应用界面不能继续大面积英文。保留 AgentFlow Studio、Codex、Claude Code、Cursor、API、Prompt、Git 等专有名词，但要放在中文上下文中。',
+          '用户明确要求网站 / 应用界面不能继续大面积英文。保留 LocalAI Nexus、Codex、Claude Code、Cursor、API、Prompt、Git 等专有名词，但要放在中文上下文中。',
         tags: ['localization', 'zh-CN'],
         importance: 5,
         status: 'active',
@@ -490,9 +491,9 @@ function shell(content) {
     <div class="layout">
       <aside class="sidebar">
         <div class="brand">
-          <img src="/assets/icon.svg" alt="AgentFlow Studio 图标" />
+          <img src="/assets/localai-nexus.svg" alt="LocalAI Nexus icon" />
           <div>
-            <p class="brand-title">AgentFlow Studio</p>
+            <p class="brand-title">${APP_NAME}</p>
             <p class="brand-subtitle">${escapeHtml(t('brandSubtitle'))}</p>
           </div>
         </div>
@@ -660,7 +661,7 @@ function renderProjects() {
       <div class="panel">
         <div class="section-title"><h2>新建项目</h2><span class="tag">保存到 localStorage</span></div>
         <form class="grid" data-form="project">
-          ${field('name', '项目名称', '', 'text', '例如：AgentFlow Studio 修复任务')}
+          ${field('name', '项目名称', '', 'text', '例如：LocalAI Nexus 修复任务')}
           ${textarea('idea', '项目想法', '', '描述目标、约束和交付物')}
           <div class="grid three-col">
             ${field('platform', '平台', 'Static Web')}
@@ -828,19 +829,19 @@ function renderProjectDetail() {
 }
 
 function projectPrompt(project) {
-  return redactText(`# AgentFlow Studio 项目详情 Prompt
+  return redactText(`# LocalAI Nexus 项目详情 Prompt
 
 项目：${project.name}
 目标：${project.idea}
 平台：${project.platform}
 技术栈：${project.techStack}
 
-请继续完成该项目，遵循本地优先、中文界面、Shared Memory Hub 不可移除的约束。`);
+请继续完成该项目，遵循本地优先、中文界面、Shared Memory 不可移除的约束。`);
 }
 
 function fillPrompt(template, values) {
   return template
-    .replaceAll('{{project}}', values.project || 'AgentFlow Studio')
+    .replaceAll('{{project}}', values.project || APP_NAME)
     .replaceAll('{{task}}', values.task || '继续完成当前修复任务');
 }
 
@@ -893,7 +894,7 @@ function renderPromptLab() {
             'feature',
             promptTemplates.map((template) => ({ value: template.id, label: template.name })),
           )}
-          ${field('project', '变量：项目', project?.name || 'AgentFlow Studio')}
+          ${field('project', '变量：项目', project?.name || APP_NAME)}
           ${textarea('task', '变量：任务', '修复静态启动链路并完成中文界面', '填写本次要交给 AI 的任务')}
           ${select('memoryMode', `${t('injectMemory')} / Inject Shared Memory`, state.settings.memoryInjectionMode, [
             { value: 'off', label: t('off') },
@@ -1043,7 +1044,7 @@ function renderSafetyBox() {
   return shell(`
     <section class="grid two-col">
       <div class="panel">
-        <div class="section-title"><h2>安全检查</h2><span class="tag">SafetyBox</span></div>
+        <div class="section-title"><h2>安全检查</h2><span class="tag">Safety Guard</span></div>
         <form class="grid" data-form="risk">
           ${textarea('command', '待检查命令', state.lastCommand || 'npm.cmd run test:launch-static', '粘贴将要执行的 shell 命令')}
           <button class="btn primary" type="submit">检查风险</button>
@@ -1108,9 +1109,9 @@ function renderGitTimeline() {
 
 function recoveryPrompt() {
   const project = selectedProject();
-  return redactText(`# AgentFlow Studio 跨模型恢复上下文 Prompt
+  return redactText(`# LocalAI Nexus 跨模型恢复上下文 Prompt
 
-项目名：${project?.name || 'AgentFlow Studio'}
+项目名：${project?.name || APP_NAME}
 
 当前方案：Static fallback
 可用启动方式：D:\\AgentFlowStudio\\start-agentflow-static.bat
@@ -1121,7 +1122,7 @@ ${memoryContext()}
 
 请继续工作时遵守：
 1. 不要重建项目。
-2. 不要移除 Shared Memory Hub（共享记忆中心）。
+2. 不要移除 Shared Memory（共享记忆）。
 3. 用户界面保持中文优先。
 4. Electron / Vite 若受 esbuild EPERM 限制，先维护 Static fallback 可用性。`);
 }
@@ -1135,7 +1136,7 @@ function renderSharedMemory() {
   return shell(`
     <section class="grid two-col">
       <div class="panel">
-        <div class="section-title"><h2>新增记忆</h2><span class="tag">Shared Memory Hub</span></div>
+        <div class="section-title"><h2>新增记忆</h2><span class="tag">Shared Memory</span></div>
         <form class="grid" data-form="memory">
           ${select('type', '记忆类型', 'knowledge', Object.entries(memoryTypeLabels).map(([value, label]) => ({ value, label })))}
           ${field('title', '标题', '', 'text', '例如：静态入口已修复')}

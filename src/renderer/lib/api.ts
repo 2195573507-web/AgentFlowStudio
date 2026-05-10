@@ -24,6 +24,12 @@ import type {
   MemoryInjectionMode,
   McpGatewayDecision,
   McpGatewayRequest,
+  NexusGatewayStatus,
+  NexusHealthCheckResult,
+  NexusRuntimeProfile,
+  NexusSkillTestResult,
+  NexusUsageRecord,
+  NexusUsageSummary,
 } from '../../shared/types';
 import type {
   Workflow,
@@ -152,6 +158,22 @@ interface AgentFlowPreloadAPI {
     getActive?(): Promise<{ providerRef: string; model: string; agentDefaultProviderRef?: string } | { error: string }>;
     setActive?(config: ActiveProviderConfig): Promise<ActiveProviderConfig | { error: string }>;
   };
+  gateway?: {
+    status(): Promise<NexusGatewayStatus | { error: string }>;
+    start(): Promise<NexusGatewayStatus | { error: string }>;
+    stop(): Promise<NexusGatewayStatus | { error: string }>;
+  };
+  usage?: {
+    summary(): Promise<NexusUsageSummary | { error: string }>;
+    list(filters?: unknown): Promise<NexusUsageRecord[] | { error: string }>;
+  };
+  health?: {
+    summary(): Promise<{ latest: NexusHealthCheckResult[]; byStatus: Record<string, number> } | { error: string }>;
+    checkProvider(providerId: string): Promise<NexusHealthCheckResult | { error: string }>;
+  };
+  runtimeProfiles?: {
+    generate(): Promise<NexusRuntimeProfile[] | { error: string }>;
+  };
   agents?: {
     list(filters?: { projectId?: string }): Promise<AgentRecord[] | { error: string }>;
     get(id: string): Promise<AgentRecord | { error: string }>;
@@ -187,6 +209,8 @@ interface AgentFlowPreloadAPI {
     registry?(): Promise<SkillRegistryEntry[] | { error: string }>;
     upsertRegistry?(entry: SkillRegistryEntry): Promise<SkillRegistryEntry | { error: string }>;
     toggleRegistry?(id: string, enabled: boolean): Promise<SkillRegistryEntry | { error: string }>;
+    create?(entry: Partial<SkillRegistryEntry>): Promise<SkillRegistryEntry | { error: string }>;
+    test?(skillId: string, input?: Record<string, unknown>): Promise<NexusSkillTestResult | { error: string }>;
   };
   app?: {
     info(): Promise<{
@@ -336,7 +360,7 @@ function apiCall<T>(
   const bridge = window.agentflow;
   if (!bridge) {
     console.warn(
-      `[AgentFlow Studio] window.agentflow is not available. ` +
+      `[LocalAI Nexus] window.agentflow is not available. ` +
         `"${methodName}" returning fallback value.`,
     );
     return Promise.resolve(fallback);
@@ -354,7 +378,7 @@ function apiCallVoid(
   const bridge = window.agentflow;
   if (!bridge) {
     console.warn(
-      `[AgentFlow Studio] window.agentflow is not available. ` +
+      `[LocalAI Nexus] window.agentflow is not available. ` +
         `"${methodName}" is a no-op.`,
     );
     return Promise.resolve();
@@ -940,6 +964,87 @@ export const api = {
     setActive: (config: ActiveProviderConfig) => api.settings.providers.setActive(config),
   },
 
+  gateway: {
+    status: () =>
+      apiCall<NexusGatewayStatus | { error: string }>(
+        'gateway.status',
+        (a) => a.gateway?.status() ?? Promise.resolve({ error: 'Gateway bridge unavailable.' }),
+        {
+          online: false,
+          host: '127.0.0.1',
+          port: 8317,
+          baseUrl: 'http://127.0.0.1:8317',
+          providerCount: 0,
+          defaultBaseUrlHint: 'http://127.0.0.1:8317',
+          v1BaseUrlHint: 'http://127.0.0.1:8317/v1',
+        },
+      ),
+    start: () =>
+      apiCall<NexusGatewayStatus | { error: string }>(
+        'gateway.start',
+        (a) => a.gateway?.start() ?? Promise.resolve({ error: 'Gateway bridge unavailable.' }),
+        { error: 'Gateway bridge unavailable.' },
+      ),
+    stop: () =>
+      apiCall<NexusGatewayStatus | { error: string }>(
+        'gateway.stop',
+        (a) => a.gateway?.stop() ?? Promise.resolve({ error: 'Gateway bridge unavailable.' }),
+        { error: 'Gateway bridge unavailable.' },
+      ),
+  },
+
+  usage: {
+    summary: () =>
+      apiCall<NexusUsageSummary | { error: string }>(
+        'usage.summary',
+        (a) => a.usage?.summary() ?? Promise.resolve({ error: 'Usage bridge unavailable.' }),
+        {
+          todayRequests: 0,
+          weekRequests: 0,
+          monthRequests: 0,
+          inputTokens: 0,
+          outputTokens: 0,
+          totalTokens: 0,
+          successRate: 0,
+          failureRate: 0,
+          averageLatencyMs: 0,
+          p95LatencyMs: 0,
+          byProvider: [],
+          byModel: [],
+        },
+      ),
+    list: (filters?: unknown) =>
+      apiCall<NexusUsageRecord[] | { error: string }>(
+        'usage.list',
+        (a) => a.usage?.list(filters) ?? Promise.resolve([]),
+        [],
+      ),
+  },
+
+  health: {
+    summary: () =>
+      apiCall<{ latest: NexusHealthCheckResult[]; byStatus: Record<string, number> } | { error: string }>(
+        'health.summary',
+        (a) => a.health?.summary() ?? Promise.resolve({ latest: [], byStatus: {} }),
+        { latest: [], byStatus: {} },
+      ),
+    checkProvider: (providerId: string) =>
+      apiCall<NexusHealthCheckResult | { error: string }>(
+        'health.checkProvider',
+        (a) => a.health?.checkProvider(providerId) ?? Promise.resolve({ error: 'Health bridge unavailable.' }),
+        { error: 'Health bridge unavailable.' },
+      ),
+  },
+
+  runtimeProfiles: {
+    generate: () =>
+      apiCall<NexusRuntimeProfile[] | { error: string }>(
+        'runtimeProfiles.generate',
+        (a) => a.runtimeProfiles?.generate() ?? Promise.resolve([]),
+        [],
+      ),
+  },
+
   agents: {
     list: (filters?: { projectId?: string }) =>
       apiCall<AgentRecord[] | { error: string }>('agents.list', (a) => a.agents?.list(filters) ?? Promise.resolve([]), []),
@@ -1006,7 +1111,7 @@ export const api = {
       api.export.json(data, filename),
     exportAll: async () => {
       const data = await api.storage.getAll();
-      return api.export.json(data, `agentflow-export-${Date.now()}.json`);
+      return api.export.json(data, `localai-nexus-export-${Date.now()}.json`);
     },
   },
 
@@ -1034,6 +1139,10 @@ export const api = {
       apiCall<SkillRegistryEntry | { error: string }>('skills.upsertRegistry', (a) => a.skills?.upsertRegistry?.(entry) ?? Promise.resolve({ error: 'Skills registry bridge unavailable.' }), { error: 'Skills registry bridge unavailable.' }),
     toggleRegistry: (id: string, enabled: boolean) =>
       apiCall<SkillRegistryEntry | { error: string }>('skills.toggleRegistry', (a) => a.skills?.toggleRegistry?.(id, enabled) ?? Promise.resolve({ error: 'Skills registry bridge unavailable.' }), { error: 'Skills registry bridge unavailable.' }),
+    create: (entry: Partial<SkillRegistryEntry>) =>
+      apiCall<SkillRegistryEntry | { error: string }>('skills.create', (a) => a.skills?.create?.(entry) ?? Promise.resolve({ error: 'Skill create bridge unavailable.' }), { error: 'Skill create bridge unavailable.' }),
+    test: (skillId: string, input?: Record<string, unknown>) =>
+      apiCall<NexusSkillTestResult | { error: string }>('skills.test', (a) => a.skills?.test?.(skillId, input) ?? Promise.resolve({ error: 'Skill test bridge unavailable.' }), { error: 'Skill test bridge unavailable.' }),
   },
 
   // ── App ──

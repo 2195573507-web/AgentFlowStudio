@@ -65,7 +65,7 @@ function spawnLogged(command, args, logPath, extraEnv = {}) {
 }
 
 async function main() {
-  console.log('\nAgentFlow Studio - Electron Startup Smoke\n');
+  console.log('\nLocalAI Nexus - Electron Startup Smoke\n');
 
   if (!fs.existsSync(electronBin)) {
     throw new Error(`Electron binary not found: ${electronBin}`);

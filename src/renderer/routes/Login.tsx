@@ -35,7 +35,7 @@ export default function Login() {
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-500/15 text-accent-600 dark:text-accent-300">
             <Lock className="h-6 w-6" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">AgentFlow Studio</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">LocalAI Nexus</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
             登录本地优先的 Agent 工作流工作台。默认管理员邮箱已为你填好。
           </p>

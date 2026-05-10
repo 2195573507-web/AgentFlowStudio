@@ -13,14 +13,12 @@ import {
   Workflow,
   Users,
   ScrollText,
-  ChevronLeft,
-  ChevronRight,
+  Network,
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react';
 import { classNames } from '../lib/utils';
 import type { Language } from '../lib/i18n';
-import { t } from '../lib/i18n';
 import { useAuth } from '../lib/auth';
 import { hasPermission } from '../lib/permissions';
 
@@ -32,18 +30,18 @@ export interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard', labelKey: 'nav.dashboard' },
-  { to: '/projects', icon: FolderKanban, label: 'Projects', labelKey: 'nav.projects' },
-  { to: '/workflows', icon: Workflow, label: 'Workflows', labelKey: 'nav.workflows' },
+  { to: '/', icon: LayoutDashboard, label: 'Nexus Home', labelKey: 'nav.dashboard' },
+  { to: '/projects', icon: FolderKanban, label: 'Project Hub', labelKey: 'nav.projects' },
+  { to: '/workflows', icon: Workflow, label: 'Agent Flows', labelKey: 'nav.workflows' },
   { to: '/prompts', icon: Wand2, label: 'Prompt Lab', labelKey: 'nav.promptLab' },
   { to: '/logs', icon: FileSearch, label: 'Log Analyzer', labelKey: 'nav.logAnalyzer' },
   { to: '/git', icon: GitBranch, label: 'Git Timeline', labelKey: 'nav.gitTimeline' },
-  { to: '/safety', icon: Shield, label: 'SafetyBox', labelKey: 'nav.safetyBox' },
+  { to: '/safety', icon: Shield, label: 'Safety Guard', labelKey: 'nav.safetyBox' },
   { to: '/memory', icon: Brain, label: 'Shared Memory', labelKey: 'nav.sharedMemory' },
   { to: '/skills', icon: Puzzle, label: 'Skills', labelKey: 'nav.skills' },
   { to: '/admin/users', icon: Users, label: 'Admin Users', labelKey: 'nav.adminUsers' },
   { to: '/admin/audit', icon: ScrollText, label: 'Audit Logs', labelKey: 'nav.adminAudit' },
-  { to: '/settings', icon: Settings, label: '璁剧疆', labelKey: 'nav.settings' },
+  { to: '/settings', icon: Settings, label: 'Settings', labelKey: 'nav.settings' },
 ];
 
 export interface SidebarProps {
@@ -57,6 +55,7 @@ export interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, language = 'zh' }) => {
   const location = useLocation();
   const { user } = useAuth();
+  void language;
   const visibleNavItems = navItems.filter((item) => {
     if (item.to.startsWith('/admin/users')) return hasPermission(user, 'admin:users');
     if (item.to.startsWith('/admin/audit')) return hasPermission(user, 'admin:audit');
@@ -83,16 +82,16 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, language
         {!collapsed && (
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-accent-500/20 flex items-center justify-center">
-              <Brain className="w-4 h-4 text-accent-500" />
+              <Network className="w-4 h-4 text-accent-500" />
             </div>
             <span className="text-sm font-bold text-slate-800 dark:text-slate-200 tracking-tight">
-              AgentFlow
+              LocalAI Nexus
             </span>
           </div>
         )}
         {collapsed && (
           <div className="w-7 h-7 rounded-lg bg-accent-500/20 flex items-center justify-center">
-            <Brain className="w-4 h-4 text-accent-500" />
+            <Network className="w-4 h-4 text-accent-500" />
           </div>
         )}
       </div>
@@ -101,7 +100,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, language
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1">
         {visibleNavItems.map((item) => {
           const Icon = item.icon;
-          const label = t(item.labelKey, language);
+          const label = item.label;
           const isActive =
             item.to === '/'
               ? location.pathname === '/'
@@ -146,7 +145,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, language
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/70',
             collapsed ? 'justify-center py-2.5' : 'px-3 py-2.5',
           )}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? 'Expand navigation' : 'Collapse navigation'}
         >
           {collapsed ? (
             <PanelLeftOpen className="w-4 h-4" />

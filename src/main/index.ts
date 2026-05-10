@@ -6,12 +6,16 @@ import storage from './storage.js';
 import type { Project, Task, Memory } from '../shared/types.js';
 import { isHttpUrl, normalizeDevServerUrl } from './security.js';
 import { bootstrapAuth } from './session.js';
+import { startGateway } from './domain/gateway/gatewayService.js';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const isDev = !app.isPackaged && process.env.AGENTFLOW_LOAD_DIST !== '1';
+const isDev =
+  !app.isPackaged &&
+  process.env.AGENTFLOW_LOAD_DIST !== '1' &&
+  Boolean(process.env.VITE_DEV_SERVER_URL);
 const devServerUrl = normalizeDevServerUrl(process.env.VITE_DEV_SERVER_URL ?? 'http://localhost:5173');
 const startupSmoke = process.env.AGENTFLOW_STARTUP_SMOKE === '1';
 const mainDir = path.dirname(fileURLToPath(import.meta.url));
@@ -248,9 +252,9 @@ async function seedDemoDataIfNeeded(): Promise<void> {
     {
       id: 'demo-mem-5',
       type: 'project_context',
-      title: 'AgentFlow Studio project overview',
-      content: 'AgentFlow Studio is a local AI project orchestration hub. It manages projects, tasks, prompts, and agent run logs. The architecture uses Electron main process for file I/O and git operations, and React renderer for the UI. Data is stored as JSON files in the user data directory.',
-      tags: ['agentflow', 'overview', 'architecture', 'electron'],
+      title: 'LocalAI Nexus project overview',
+      content: 'LocalAI Nexus is a local AI gateway, runtime switcher, AgentOps hub, and project orchestration desktop app. It manages providers, gateway diagnostics, projects, tasks, prompts, skills, workflows, shared memory, audit logs, and local JSON data.',
+      tags: ['localai-nexus', 'overview', 'architecture', 'electron'],
       projectId: '',
       providerScope: '',
       modelScope: '',
@@ -294,7 +298,8 @@ function createWindow(): BrowserWindow {
     show: !startupSmoke,
     frame: true,
     titleBarStyle: 'default',
-    title: 'AgentFlow Studio',
+    title: 'LocalAI Nexus',
+    icon: path.join(mainDir, '..', '..', 'assets', 'localai-nexus.ico'),
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -362,7 +367,7 @@ function createWindow(): BrowserWindow {
 // App lifecycle
 // ---------------------------------------------------------------------------
 
-app.setName('AgentFlow Studio');
+app.setName('LocalAI Nexus');
 
 process.on('unhandledRejection', (reason) => {
   console.error('Unhandled promise rejection in main process:', reason);
@@ -382,6 +387,12 @@ app.whenReady().then(async () => {
   // Ensure local auth has a hashed default admin before the renderer loads.
   await bootstrapAuth();
 
+  try {
+    await startGateway();
+  } catch (err) {
+    console.error('Failed to start LocalAI Nexus gateway:', err);
+  }
+
   // Seed demo data on first launch
   try {
     await seedDemoDataIfNeeded();
@@ -398,7 +409,7 @@ app.whenReady().then(async () => {
     }
   });
 }).catch((err) => {
-  console.error('Failed to start AgentFlow Studio:', err);
+  console.error('Failed to start LocalAI Nexus:', err);
   app.quit();
 });
 

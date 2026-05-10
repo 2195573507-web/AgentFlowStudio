@@ -1,5 +1,5 @@
-# AgentFlow Studio - Create Desktop Shortcut
-# Current delivery target: rebuilt Electron/Vite workflow studio launcher.
+# LocalAI Nexus - Create Desktop Shortcut
+# Current delivery target: Electron/Vite desktop launcher with devtools skipped.
 
 [CmdletBinding()]
 param(
@@ -10,11 +10,11 @@ param(
 $ErrorActionPreference = "Stop"
 
 $projectDir = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$shortcutFileName = "AgentFlow Studio.lnk"
-$shortcutDescription = "AgentFlow Studio - Local AI Project Orchestration Hub"
-$icoPath = Join-Path $projectDir "assets\icon.ico"
+$shortcutFileName = "LocalAI Nexus.lnk"
+$shortcutDescription = "LocalAI Nexus - Local AI Gateway, Runtime & AgentOps Hub"
+$icoPath = Join-Path $projectDir "assets\localai-nexus.ico"
 
-function Test-AgentFlowIcon {
+function Test-LocalAINexusIcon {
     param([Parameter(Mandatory = $true)][string]$Path)
 
     if (-not (Test-Path $Path -PathType Leaf)) {
@@ -34,14 +34,27 @@ function Test-AgentFlowIcon {
     return $iconBytes.Length
 }
 
-function Get-AgentFlowLauncher {
+function Get-LocalAINexusLauncher {
     param([Parameter(Mandatory = $true)][string]$Root)
+
+    $electronExe = Join-Path $Root "node_modules\electron\dist\electron.exe"
+    $electronMain = Join-Path $Root "dist-electron\main\index.js"
+    if ((Test-Path $electronExe -PathType Leaf) -and (Test-Path $electronMain -PathType Leaf)) {
+        return [PSCustomObject]@{
+            Kind = "ElectronBuilt"
+            TargetPath = $electronExe
+            Arguments = "`"$electronMain`""
+            WorkingDirectory = $Root
+            WindowStyle = 1
+        }
+    }
 
     $desktopLauncher = Join-Path $Root "start-agentflow.bat"
     if (Test-Path $desktopLauncher -PathType Leaf) {
         return [PSCustomObject]@{
-            Kind = "ElectronViteWorkflowStudio"
+            Kind = "ElectronDesktop"
             TargetPath = $desktopLauncher
+            Arguments = ""
             WorkingDirectory = $Root
             WindowStyle = 1
         }
@@ -50,8 +63,9 @@ function Get-AgentFlowLauncher {
     $electronLauncher = Join-Path $Root "start-agentflow-electron.bat"
     if (Test-Path $electronLauncher -PathType Leaf) {
         return [PSCustomObject]@{
-            Kind = "ElectronViteWorkflowStudio"
+            Kind = "ElectronDesktop"
             TargetPath = $electronLauncher
+            Arguments = ""
             WorkingDirectory = $Root
             WindowStyle = 1
         }
@@ -60,8 +74,8 @@ function Get-AgentFlowLauncher {
     throw "Rebuilt desktop launcher not found. Expected start-agentflow.bat in $Root."
 }
 
-$iconSize = Test-AgentFlowIcon -Path $icoPath
-$launcher = Get-AgentFlowLauncher -Root $projectDir
+$iconSize = Test-LocalAINexusIcon -Path $icoPath
+$launcher = Get-LocalAINexusLauncher -Root $projectDir
 
 if ([string]::IsNullOrWhiteSpace($ShortcutDirectory)) {
     $ShortcutDirectory = [Environment]::GetFolderPath("Desktop")
@@ -86,6 +100,7 @@ if (-not (Test-Path $ShortcutDirectory -PathType Container)) {
 $WScriptShell = New-Object -ComObject WScript.Shell
 $shortcut = $WScriptShell.CreateShortcut($shortcutPath)
 $shortcut.TargetPath = $launcher.TargetPath
+$shortcut.Arguments = $launcher.Arguments
 $shortcut.WorkingDirectory = $launcher.WorkingDirectory
 $shortcut.Description = $shortcutDescription
 $shortcut.WindowStyle = $launcher.WindowStyle
@@ -94,5 +109,6 @@ $shortcut.Save()
 
 Write-Host "Desktop shortcut created: $shortcutPath"
 Write-Host "Shortcut target: $($shortcut.TargetPath)"
+Write-Host "Shortcut arguments: $($shortcut.Arguments)"
 Write-Host "Working directory: $($shortcut.WorkingDirectory)"
 Write-Host "Icon location: $($shortcut.IconLocation)"

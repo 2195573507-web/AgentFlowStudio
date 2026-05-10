@@ -15,5 +15,13 @@ test-results/
 .codex-parallel/playwright-report/
 .codex-parallel/test-results/
 .codex-parallel/electron-user-data-smoke/
+.codex-parallel/gateway-smoke-user-data/
+.codex-parallel/gateway-smoke-user-data-direct/
 .codex-parallel/logs/
 .codex-parallel/results/
+.codex-parallel/tasks/
+.codex-parallel/workspaces/
+.codex-parallel/port-locks/
+.codex-parallel/electron-auth-bridge-user-data/
+.codex-parallel/*.log
+logs/

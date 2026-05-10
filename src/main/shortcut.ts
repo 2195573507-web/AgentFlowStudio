@@ -14,7 +14,7 @@ interface ShortcutResult {
 }
 
 /**
- * Create a desktop shortcut to launch AgentFlow Studio.
+ * Create a desktop shortcut to launch LocalAI Nexus.
  *
  * Strategy (Windows):
  *  1. If a built executable exists in `release/`, point the shortcut at it.
@@ -71,28 +71,28 @@ export async function createDesktopShortcut(): Promise<ShortcutResult> {
 
     if (exePath) {
       targetPath = exePath;
-      description = 'AgentFlow Studio';
+      description = 'LocalAI Nexus';
     } else {
       // Fallback: create a .bat launcher in the project root
       const batPath = path.join(projectRoot, 'start-agentflow.bat');
       const batContent = [
         '@echo off',
-        'title AgentFlow Studio',
+        'title LocalAI Nexus',
         `cd /d "${projectRoot}"`,
-        'echo Starting AgentFlow Studio...',
+        'echo Starting LocalAI Nexus...',
         'call npm run dev',
         'pause',
       ].join('\r\n');
 
       await fs.writeFile(batPath, batContent, 'utf-8');
       targetPath = batPath;
-      description = 'AgentFlow Studio (dev)';
+      description = 'LocalAI Nexus (dev)';
     }
 
     // ------------------------------------------------------------------
     // Create the .lnk shortcut using a PowerShell script
     // ------------------------------------------------------------------
-    const shortcutPath = path.join(desktopDir, 'AgentFlow Studio.lnk');
+    const shortcutPath = path.join(desktopDir, 'LocalAI Nexus.lnk');
     const psScript = [
       '$WshShell = New-Object -ComObject WScript.Shell',
       `$Shortcut = $WshShell.CreateShortcut('${shortcutPath.replace(/'/g, "''")}')`,
@@ -103,7 +103,7 @@ export async function createDesktopShortcut(): Promise<ShortcutResult> {
     ].join('; ');
 
     // Write a temporary PowerShell script and execute it
-    const tmpPsPath = path.join(projectRoot, '.agentflow-create-shortcut.ps1');
+    const tmpPsPath = path.join(projectRoot, '.localai-nexus-create-shortcut.ps1');
     await fs.writeFile(tmpPsPath, psScript, 'utf-8');
 
     const { execFile } = await import('child_process');

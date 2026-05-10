@@ -35,6 +35,11 @@ export interface AuditEvent {
     | 'provider.secret_unreadable'
     | 'provider.connection_test'
     | 'provider.active_switch'
+    | 'gateway.request'
+    | 'usage.recorded'
+    | 'health.check'
+    | 'skill.create'
+    | 'skill.test'
     | 'auth.session_restored'
     | 'auth.session_restore_unavailable'
   action: string

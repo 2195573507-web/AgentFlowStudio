@@ -547,7 +547,7 @@ export default function Projects() {
           description={
             search || statusFilter !== 'all'
               ? '尝试更改筛选条件或搜索词'
-              : '创建你的第一个项目来开始使用 AgentFlow Studio'
+              : '创建你的第一个项目来开始使用 LocalAI Nexus'
           }
           actionLabel="新建项目"
           onAction={openNew}

@@ -109,7 +109,7 @@ export interface RunEvent {
   projectId?: string
   workflowId?: string
   auditEventId?: string
-  type: 'run.created' | 'run.updated' | 'permission.denied' | 'audit.recorded' | 'mcp.denied' | 'mcp.allowed' | 'provider.test' | 'provider.switch' | 'agent.execution' | 'feedback.created'
+  type: 'run.created' | 'run.updated' | 'permission.denied' | 'audit.recorded' | 'mcp.denied' | 'mcp.allowed' | 'provider.test' | 'provider.switch' | 'gateway.request' | 'usage.recorded' | 'health.check' | 'skill.test' | 'agent.execution' | 'feedback.created'
   status: 'success' | 'failure' | 'denied' | 'info'
   actorUserId?: string
   title: string
@@ -135,6 +135,14 @@ export interface SkillRegistryEntry {
   name: string
   description: string
   category: string
+  type?: NexusSkillType
+  riskLevel?: WorkflowTemplateRisk | 'critical'
+  inputSchema?: Record<string, unknown>
+  outputSchema?: Record<string, unknown>
+  promptTemplate?: string
+  testSample?: Record<string, unknown>
+  version?: string
+  permissions?: string[]
   enabled: boolean
   createdAt: string
   updatedAt: string
@@ -309,6 +317,14 @@ export interface ProviderSetting {
   baseUrl: string
   apiKey: string
   modelName: string
+  customHeaders?: Record<string, string>
+  proxyUrl?: string
+  tags?: NexusProviderTag[]
+  riskLevel?: NexusProviderRiskLevel
+  dailyQuota?: number
+  monthlyQuota?: number
+  concurrencyLimit?: number
+  cooldownUntil?: string
   recommendedModels?: string[]
   authType?: 'apiKey' | 'none' | 'bearer' | 'custom'
   docsHint?: string
@@ -362,6 +378,154 @@ export interface ActiveProviderConfig {
   scope: 'workspace' | 'project' | 'agent'
   projectId?: string
   agentId?: string
+}
+
+export type NexusProviderKind =
+  | 'openai-compatible'
+  | 'anthropic-compatible'
+  | 'gemini-compatible'
+  | 'ollama-local'
+  | 'custom'
+
+export type NexusProviderTag =
+  | 'default'
+  | 'code'
+  | 'fast'
+  | 'long-context'
+  | 'local'
+  | 'fallback'
+
+export type NexusProviderRiskLevel = 'low' | 'medium' | 'high' | 'critical'
+
+export type NexusHealthStatus =
+  | 'Healthy'
+  | 'Degraded'
+  | 'RateLimited'
+  | 'AuthFailed'
+  | 'QuotaLow'
+  | 'ModelUnavailable'
+  | 'ProtocolError'
+  | 'Offline'
+  | 'Unknown'
+
+export type NexusFailureCategory =
+  | 'none'
+  | '401'
+  | '403'
+  | '404'
+  | '429'
+  | 'timeout'
+  | 'model_not_found'
+  | 'protocol_error'
+  | 'provider_unavailable'
+  | 'base_url_mismatch'
+  | 'unknown'
+
+export interface NexusUsageRecord {
+  id: string
+  providerId?: string
+  providerName?: string
+  model?: string
+  endpoint: string
+  projectId?: string
+  workflowId?: string
+  agentId?: string
+  skillId?: string
+  inputTokens: number
+  outputTokens: number
+  totalTokens: number
+  success: boolean
+  failureCategory: NexusFailureCategory
+  statusCode?: number
+  latencyMs: number
+  requestId?: string
+  createdAt: string
+}
+
+export interface NexusUsageSummary {
+  todayRequests: number
+  weekRequests: number
+  monthRequests: number
+  inputTokens: number
+  outputTokens: number
+  totalTokens: number
+  successRate: number
+  failureRate: number
+  averageLatencyMs: number
+  p95LatencyMs: number
+  recentFailureReason?: string
+  byProvider: Array<{ providerId: string; providerName: string; requests: number; totalTokens: number; successRate: number }>
+  byModel: Array<{ model: string; requests: number; totalTokens: number; successRate: number }>
+}
+
+export interface NexusHealthCheckResult {
+  id: string
+  providerId?: string
+  providerName?: string
+  baseUrl?: string
+  model?: string
+  status: NexusHealthStatus
+  checks: Array<{ name: string; ok: boolean; message: string; latencyMs?: number }>
+  averageLatencyMs: number
+  errorRate: number
+  failureCategory: NexusFailureCategory
+  suggestion: string
+  checkedAt: string
+}
+
+export type NexusRuntimeProfileKind = 'codex' | 'claude-code' | 'cli' | 'custom'
+
+export interface NexusRuntimeProfile {
+  id: string
+  name: string
+  kind: NexusRuntimeProfileKind
+  baseUrl: string
+  model: string
+  providerRef?: string
+  env: Record<string, string>
+  json: Record<string, unknown>
+  toml: string
+  yaml: string
+  diagnostics: string[]
+  updatedAt: string
+}
+
+export interface NexusGatewayStatus {
+  online: boolean
+  host: string
+  port: number
+  baseUrl: string
+  startedAt?: string
+  lastError?: string
+  activeProviderRef?: string
+  activeModel?: string
+  providerCount: number
+  defaultBaseUrlHint: string
+  v1BaseUrlHint: string
+}
+
+export type NexusSkillType =
+  | 'prompt'
+  | 'tool'
+  | 'workflow'
+  | 'mcp'
+  | 'script'
+  | 'agent'
+  | 'composite'
+
+export interface NexusSkillTestResult {
+  ok: boolean
+  skillId: string
+  output: string
+  input: Record<string, unknown>
+  riskLevel: WorkflowTemplateRisk | 'critical'
+  tokens: {
+    input: number
+    output: number
+    total: number
+  }
+  auditEvent?: string
+  createdAt: string
 }
 
 export interface ConfigExportManifest {
@@ -570,6 +734,16 @@ export const IPC_CHANNELS = {
   PROVIDER_ACTIVE_GET: 'provider:active:get',
   PROVIDER_ACTIVE_SET: 'provider:active:set',
 
+  // LocalAI Nexus Gateway / Usage / Health / Runtime
+  GATEWAY_STATUS: 'gateway:status',
+  GATEWAY_START: 'gateway:start',
+  GATEWAY_STOP: 'gateway:stop',
+  USAGE_SUMMARY: 'usage:summary',
+  USAGE_LIST: 'usage:list',
+  HEALTH_SUMMARY: 'health:summary',
+  HEALTH_CHECK_PROVIDER: 'health:provider:check',
+  RUNTIME_PROFILES_GENERATE: 'runtime:profiles:generate',
+
   // Agents
   AGENT_LIST: 'agent:list',
   AGENT_GET: 'agent:get',
@@ -605,6 +779,8 @@ export const IPC_CHANNELS = {
   // Skills
   SKILLS_LIST: 'skills:list',
   SKILL_READ: 'skill:read',
+  SKILL_CREATE: 'skill:create',
+  SKILL_TEST: 'skill:test',
 
   // App
   APP_INFO: 'app:info',

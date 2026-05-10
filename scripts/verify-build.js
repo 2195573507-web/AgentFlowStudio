@@ -35,7 +35,7 @@ function checkDir(name, path) {
   return false
 }
 
-console.log('\nAgentFlow Studio - Build Verification\n')
+console.log('\nLocalAI Nexus - Build Verification\n')
 console.log('=' .repeat(50))
 
 console.log('\n[Core Files]')

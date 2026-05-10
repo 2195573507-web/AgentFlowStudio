@@ -172,7 +172,7 @@ function installAgentflowMock() {
   })
 }
 
-test.describe('AgentFlow Studio React web entry', () => {
+test.describe('LocalAI Nexus React web entry', () => {
   test.beforeEach(async ({ page }) => {
     const consoleErrors: string[] = []
     const pageErrors: string[] = []
@@ -205,12 +205,12 @@ test.describe('AgentFlow Studio React web entry', () => {
   })
 
   test('loads dashboard with beginner navigation and Liquid Glass shell', async ({ page }) => {
-    await expect(page).toHaveTitle(/AgentFlow Studio/)
-    await expect(page.locator('main').getByRole('heading', { name: /Dashboard|仪表板|仪表盘/ })).toBeVisible()
+    await expect(page).toHaveTitle(/LocalAI Nexus/)
+    await expect(page.locator('main').getByRole('heading', { name: /LocalAI Nexus/ })).toBeVisible()
     await expect(page.getByRole('navigation')).toBeVisible()
-    await expect(page.getByText(/下一步|Next/).first()).toBeVisible()
+    await expect(page.getByText(/First-run checklist|Nexus path/).first()).toBeVisible()
 
-    for (const label of ['创建项目', '使用模板', '配置 Provider', '运行示例', '查看诊断']) {
+    for (const label of ['Add a provider', 'Start the local gateway', 'Create the first workflow', 'Save recovery context']) {
       await expect(page.getByText(label).first()).toBeVisible()
     }
 
@@ -264,10 +264,10 @@ test.describe('AgentFlow Studio React web entry', () => {
 
   test('dashboard quick actions use primary routes', async ({ page }) => {
     const quickActions = [
-      { name: /打开提示词实验室/, url: /\/prompts$/ },
-      { name: /打开日志分析/, url: /\/logs$/ },
-      { name: /打开安全检查/, url: /\/safety$/ },
-      { name: /打开共享记忆中心/, url: /\/memory$/ },
+      { name: /Skill Hub/, url: /\/skills$/ },
+      { name: /Diagnostics/, url: /\/settings$/ },
+      { name: /Shared Memory/, url: /\/memory$/ },
+      { name: /Git Timeline/, url: /\/git$/ },
     ]
 
     for (const action of quickActions) {
@@ -281,7 +281,7 @@ test.describe('AgentFlow Studio React web entry', () => {
   test('persists language and theme preferences', async ({ page }) => {
     await page.getByRole('button', { name: /English/ }).click()
     await expect.poll(() => page.evaluate(() => localStorage.getItem('agentflow.language'))).toBe('en')
-    await expect(page.getByRole('link', { name: /Dashboard/ })).toBeVisible()
+    await expect(page.getByRole('link', { name: /Nexus Home/ })).toBeVisible()
 
     await page.locator('header button[title*="Theme"], header button[title*="主题"]').last().click()
     await expect.poll(() => page.evaluate(() => localStorage.getItem('agentflow.theme'))).toBe('light')
@@ -289,7 +289,7 @@ test.describe('AgentFlow Studio React web entry', () => {
     await page.goto('/#/prompts', { waitUntil: 'networkidle' })
     await page.reload({ waitUntil: 'networkidle' })
     await expect(page).toHaveURL(/#\/prompts/)
-    await expect(page.getByRole('link', { name: /Dashboard/ })).toBeVisible()
+    await expect(page.getByRole('link', { name: /Nexus Home/ })).toBeVisible()
     await expect.poll(() => page.evaluate(() => localStorage.getItem('agentflow.theme'))).toBe('light')
     await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme)).toBe('light')
   })

@@ -145,7 +145,7 @@ function appendHandoff(summary) {
 
 async function main() {
   const startedAt = new Date();
-  console.log('\nAgentFlow Studio - Long-Run Static Stability Test\n');
+  console.log('\nLocalAI Nexus - Long-Run Static Stability Test\n');
   console.log(`Duration: ${(durationMs / 60000).toFixed(2)} minutes`);
   if (!hasProjectLocalChromium()) {
     throw new Error(`Project-local Playwright Chromium is missing: ${browserPath}. Run npm run test:e2e first.`);

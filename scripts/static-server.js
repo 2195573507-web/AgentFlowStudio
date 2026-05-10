@@ -99,7 +99,7 @@ function log(message) {
 function initializeLogFile() {
   try {
     ensureDir(path.dirname(logPath))
-    fs.writeFileSync(logPath, `[${new Date().toISOString()}] AgentFlow Studio static server log started\n`, 'utf8')
+    fs.writeFileSync(logPath, `[${new Date().toISOString()}] LocalAI Nexus static server log started\n`, 'utf8')
   } catch (error) {
     logFileAvailable = false
     console.error(
@@ -133,13 +133,13 @@ function writeFallbackApp(reason) {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AgentFlow Studio - 静态可交付模式</title>
-    <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
+    <title>LocalAI Nexus - Static fallback</title>
+    <link rel="icon" href="/assets/localai-nexus.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <div class="fallback-shell">
-      <h1>AgentFlow Studio</h1>
+      <h1>LocalAI Nexus</h1>
       <p>静态可交付模式已启动。</p>
       <p>自动生成原因：${escapeHtml(reason)}</p>
       <nav>
@@ -163,7 +163,7 @@ function writeFallbackApp(reason) {
   }
 
   if (!fs.existsSync(appPath)) {
-    fs.writeFileSync(appPath, `console.log('AgentFlow Studio 静态可交付模式已启动')\n`, 'utf8')
+    fs.writeFileSync(appPath, `console.log('LocalAI Nexus static fallback started')\n`, 'utf8')
   }
 
   return staticDir

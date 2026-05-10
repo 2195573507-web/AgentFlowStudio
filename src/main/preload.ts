@@ -103,6 +103,22 @@ export interface AgentFlowAPI {
     getActive(): Promise<unknown>;
     setActive(config: unknown): Promise<unknown>;
   };
+  gateway: {
+    status(): Promise<unknown>;
+    start(): Promise<unknown>;
+    stop(): Promise<unknown>;
+  };
+  usage: {
+    summary(): Promise<unknown>;
+    list(filters?: unknown): Promise<unknown>;
+  };
+  health: {
+    summary(): Promise<unknown>;
+    checkProvider(providerId: string): Promise<unknown>;
+  };
+  runtimeProfiles: {
+    generate(): Promise<unknown>;
+  };
   agents: {
     list(filters?: unknown): Promise<unknown>;
     get(id: string): Promise<unknown>;
@@ -138,6 +154,8 @@ export interface AgentFlowAPI {
     registry(): Promise<unknown>;
     upsertRegistry(entry: unknown): Promise<unknown>;
     toggleRegistry(id: string, enabled: boolean): Promise<unknown>;
+    create(entry: unknown): Promise<unknown>;
+    test(skillId: string, input?: Record<string, unknown>): Promise<unknown>;
   };
   app: {
     info(): Promise<unknown>;
@@ -270,6 +288,26 @@ const api: AgentFlowAPI = {
     setActive: (config: unknown) => ipcRenderer.invoke(IPC_CHANNELS.PROVIDER_ACTIVE_SET, buildAuthEnvelope(), config),
   },
 
+  gateway: {
+    status: () => ipcRenderer.invoke(IPC_CHANNELS.GATEWAY_STATUS, buildAuthEnvelope()),
+    start: () => ipcRenderer.invoke(IPC_CHANNELS.GATEWAY_START, buildAuthEnvelope()),
+    stop: () => ipcRenderer.invoke(IPC_CHANNELS.GATEWAY_STOP, buildAuthEnvelope()),
+  },
+
+  usage: {
+    summary: () => ipcRenderer.invoke(IPC_CHANNELS.USAGE_SUMMARY, buildAuthEnvelope()),
+    list: (filters?: unknown) => ipcRenderer.invoke(IPC_CHANNELS.USAGE_LIST, buildAuthEnvelope(), filters),
+  },
+
+  health: {
+    summary: () => ipcRenderer.invoke(IPC_CHANNELS.HEALTH_SUMMARY, buildAuthEnvelope()),
+    checkProvider: (providerId: string) => ipcRenderer.invoke(IPC_CHANNELS.HEALTH_CHECK_PROVIDER, buildAuthEnvelope(), providerId),
+  },
+
+  runtimeProfiles: {
+    generate: () => ipcRenderer.invoke(IPC_CHANNELS.RUNTIME_PROFILES_GENERATE, buildAuthEnvelope()),
+  },
+
   agents: {
     list: (filters?: unknown) => ipcRenderer.invoke(IPC_CHANNELS.AGENT_LIST, buildAuthEnvelope(), filters),
     get: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.AGENT_GET, buildAuthEnvelope(), id),
@@ -311,6 +349,8 @@ const api: AgentFlowAPI = {
     registry: () => ipcRenderer.invoke(IPC_CHANNELS.SKILLS_REGISTRY_LIST, buildAuthEnvelope()),
     upsertRegistry: (entry: unknown) => ipcRenderer.invoke(IPC_CHANNELS.SKILLS_REGISTRY_UPSERT, buildAuthEnvelope(), entry),
     toggleRegistry: (id: string, enabled: boolean) => ipcRenderer.invoke(IPC_CHANNELS.SKILLS_REGISTRY_TOGGLE, buildAuthEnvelope(), id, enabled),
+    create: (entry: unknown) => ipcRenderer.invoke(IPC_CHANNELS.SKILL_CREATE, buildAuthEnvelope(), entry),
+    test: (skillId: string, input?: Record<string, unknown>) => ipcRenderer.invoke(IPC_CHANNELS.SKILL_TEST, buildAuthEnvelope(), skillId, input),
   },
 
   app: {

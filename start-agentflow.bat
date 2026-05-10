@@ -2,8 +2,8 @@
 setlocal
 cd /d "%~dp0"
 
-title AgentFlow Studio
-echo Starting AgentFlow Studio rebuilt desktop app...
+title LocalAI Nexus
+echo Starting LocalAI Nexus desktop app...
 echo Project: %CD%
 echo.
 
@@ -14,15 +14,15 @@ if not exist "node_modules\electron\dist\electron.exe" (
 )
 
 if not exist "dist\index.html" (
-  echo Renderer build not found. Building AgentFlow Studio...
+  echo Renderer build not found. Building LocalAI Nexus...
   call npm.cmd run build
   if errorlevel 1 goto fail
 ) else if not exist "dist-electron\main\index.js" (
-  echo Electron main build not found. Building AgentFlow Studio...
+  echo Electron main build not found. Building LocalAI Nexus...
   call npm.cmd run build
   if errorlevel 1 goto fail
 ) else if not exist "dist-electron\main\preload.js" (
-  echo Electron preload build not found. Building AgentFlow Studio...
+  echo Electron preload build not found. Building LocalAI Nexus...
   call npm.cmd run build
   if errorlevel 1 goto fail
 )
@@ -37,7 +37,7 @@ exit /b 0
 
 :fail
 echo.
-echo AgentFlow Studio failed to start. Please run:
+echo LocalAI Nexus failed to start. Please run:
 echo   cd /d D:\AgentFlowStudio
 echo   npm.cmd install
 echo   npm.cmd run build

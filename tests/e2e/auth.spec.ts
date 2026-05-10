@@ -48,7 +48,7 @@ test.describe('AgentFlow auth and admin gates', () => {
     await expect(page).toHaveURL(/#\/projects/)
     await expect.poll(() => page.evaluate(() => localStorage.getItem('agentflow.auth.session') || '')).not.toContain('sessionToken')
     await expect(page.getByText('Local Administrator')).toBeVisible()
-    await page.getByRole('button', { name: 'Logout' }).click()
+    await page.getByRole('button', { name: 'Sign out' }).click()
     await expect(page).toHaveURL(/#\/login/)
   })
 

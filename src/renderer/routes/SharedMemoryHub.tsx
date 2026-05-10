@@ -566,8 +566,8 @@ export default function SharedMemoryHub() {
       const context = generateSharedMemoryContext(activeMemories, contextInjectionMode);
       const projectName = projectFilter !== 'all'
         ? projects.find((project) => project.id === projectFilter)?.name ?? projectFilter
-        : 'AgentFlow Studio';
-      const recoveryPrompt = `# AgentFlow Studio 跨模型恢复上下文 Prompt
+        : 'LocalAI Nexus';
+      const recoveryPrompt = `# LocalAI Nexus 跨模型恢复上下文 Prompt
 
 项目名：${projectName}
 当前方案：Static fallback

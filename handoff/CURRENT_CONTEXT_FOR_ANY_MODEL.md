@@ -25,8 +25,8 @@ IconLocation: D:\AgentFlowStudio\assets\icon.ico,0
 
 - Previous parallel workspace archived to `handoff\archived-agents\run-20260508-173352`.
 - Older archive `handoff\archived-agents\run-20260508-125051` remains historical.
-- Current summary: `.codex-parallel\PARALLEL_SUMMARY.md`.
-- Current logs: `.codex-parallel\logs\agent-a-regression-guard.log` through `agent-g-reporter.log`.
+- Archived 2026-05 parallel-agent summary: `archive\2026-05\parallel-agents\run-20260508-current\PARALLEL_SUMMARY.md`.
+- Archived 2026-05 parallel-agent logs: `archive\2026-05\parallel-agents\run-20260508-current\logs\agent-a-regression-guard.log` through `agent-g-reporter.log`.
 
 ## Verified
 

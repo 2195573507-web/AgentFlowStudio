@@ -25,7 +25,7 @@ function wait(ms) {
 }
 
 async function main() {
-  console.log('\nAgentFlow Studio - Electron Auth Bridge Smoke\n');
+  console.log('\nLocalAI Nexus - Electron Auth Bridge Smoke\n');
 
   for (const required of [
     electronBin,

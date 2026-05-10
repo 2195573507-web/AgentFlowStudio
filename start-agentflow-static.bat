@@ -11,7 +11,7 @@ set "LAUNCHER_LATEST=%CD%\logs\launcher-static.log"
 set "STATIC_SERVER_LOG=%CD%\logs\static-server-%LAUNCH_ID%.log"
 
 > "%LAUNCHER_LOG%" echo ==================================================
->> "%LAUNCHER_LOG%" echo [AgentFlow Studio] Static launcher log
+>> "%LAUNCHER_LOG%" echo [LocalAI Nexus] Static launcher log
 >> "%LAUNCHER_LOG%" echo Start time: %DATE% %TIME%
 >> "%LAUNCHER_LOG%" echo Project path: %CD%
 >> "%LAUNCHER_LOG%" echo Static server log: %STATIC_SERVER_LOG%
@@ -46,8 +46,8 @@ if not exist "scripts\static-server.js" (
 
 call :say serverStart
 call :say browser
->> "%LAUNCHER_LOG%" echo [AgentFlow Studio] Static server is starting.
->> "%LAUNCHER_LOG%" echo [AgentFlow Studio] Static server output is written to: %STATIC_SERVER_LOG%
+>> "%LAUNCHER_LOG%" echo [LocalAI Nexus] Static server is starting.
+>> "%LAUNCHER_LOG%" echo [LocalAI Nexus] Static server output is written to: %STATIC_SERVER_LOG%
 echo.
 
 set "AGENTFLOW_STATIC_LOG_PATH=%STATIC_SERVER_LOG%"
@@ -57,7 +57,7 @@ set "EXIT_CODE=%ERRORLEVEL%"
 echo.
 call :say exited
 echo %EXIT_CODE%
->> "%LAUNCHER_LOG%" echo [AgentFlow Studio] Static server exited with code: %EXIT_CODE%
+>> "%LAUNCHER_LOG%" echo [LocalAI Nexus] Static server exited with code: %EXIT_CODE%
 copy /y "%LAUNCHER_LOG%" "%LAUNCHER_LATEST%" >nul 2>nul
 call :say log
 echo %LAUNCHER_LOG%

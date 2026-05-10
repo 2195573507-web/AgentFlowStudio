@@ -9,7 +9,7 @@ function buildMetadataHeader(title: string, date: string): string {
     '---',
     `title: ${title}`,
     `date: ${date}`,
-    `generatedBy: AgentFlow Studio`,
+    `generatedBy: LocalAI Nexus`,
     `exportedAt: ${new Date().toISOString()}`,
     '---',
     '',
@@ -49,7 +49,7 @@ export function exportJSON(data: unknown, filename: string): string {
       _metadata: {
         filename,
         exportedAt: new Date().toISOString(),
-        generatedBy: 'AgentFlow Studio',
+        generatedBy: 'LocalAI Nexus',
       },
       data: safe,
     },
@@ -85,7 +85,7 @@ export function exportMemoriesToMarkdown(
 ): string {
   const title = projectName
     ? `${projectName} - 记忆导出`
-    : 'AgentFlow Studio 记忆导出';
+    : 'LocalAI Nexus 记忆导出';
   const date = new Date().toISOString();
   const header = buildMetadataHeader(title, date);
 

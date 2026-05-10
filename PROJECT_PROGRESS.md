@@ -1,56 +1,119 @@
 # Project Progress
 
-## 2026-05-10 Rebuild Pass
+## Current Position
 
-- Created dedicated branch `codex-rebuild-from-mainline`.
-- Established `BUILD_JOURNEY.md`, planning files, and rebuild docs.
-- Studied mainline patterns from Flowise, Dify, Langflow, n8n, Coze Studio, FastGPT, Open WebUI, OpenAI Agents SDK/Builder, and cc switch-like tools.
-- Added first-class workflow types, templates, pure runtime, IPC, preload bridge, renderer API, and `/workflows` route.
-- Added workflow runtime tests.
-- Fixed security issues in memory context ACL and config import/export privileges.
-- Replaced core navigation i18n mojibake with clean Chinese/English keys.
+Project directory: `D:\AgentFlowStudio`  
+Current product name: **LocalAI Nexus / 本地 AI 中枢**  
+Subtitle: **Local AI Gateway, Runtime & AgentOps Hub**  
+Branch: `refactor-localai-nexus`
 
-## Current Verification
+LocalAI Nexus evolved from AgentFlowStudio in place. `.git`, history, JSON storage, Shared Memory Hub, Electron security boundaries, and compatibility launchers were preserved.
 
-- Baseline before edits: `npm.cmd test` PASS, `npm.cmd run build` PASS.
-- After workflow implementation: `npm.cmd run typecheck` PASS.
-- Final `npm.cmd run typecheck` PASS.
-- Final `npm.cmd test` PASS: 24 files / 177 tests.
-- Final `npm.cmd run build` PASS with non-fatal Vite chunk/dynamic-import warnings.
-- Final `npm.cmd run lint` PASS: 0 errors / 25 warnings under threshold.
-- Final `npm.cmd run test:e2e` PASS: 16/16.
-- `npm.cmd run test:unit` and `npm.cmd run test:integration` are not defined in `package.json`.
+## Current Architecture State
 
-## 2026-05-10 Login Recovery Follow-up
+- Electron + React + TypeScript app is still the desktop shell.
+- Main-process domain services now include Local Gateway, usage, health, router, runtime profiles, and prompt skill testing.
+- Renderer uses the secure preload bridge; sensitive provider values remain main-process controlled and masked for renderer display.
+- Local Gateway starts on app ready and listens at `http://127.0.0.1:8317`.
+- Static fallback remains available as a recovery path, but the primary desktop shortcut now points directly to the built Electron runtime.
 
-- Verified the desktop shortcut already opens `D:\AgentFlowStudio\start-agentflow.bat`.
-- Verified the local default admin is active and unlocked in `C:\Users\至亲\AppData\Roaming\AgentFlow Studio\agentflow-data\users.json`.
-- Default credentials are valid: `123@admin.com / 123456`.
-- Fixed the preload session bridge so `api.auth.session(sessionId)` forwards `sessionId` to the main process.
-- Fixed main-process session recovery so a renderer-held `sessionId` can be matched with the main-process secure active token.
-- Updated login and forced password-change screens with Chinese-first guidance, default password hints, and concrete error recovery instructions.
-- Verification after this follow-up:
-  - `npm.cmd run typecheck`: PASS.
-  - `npm.cmd test`: PASS, 24 files / 177 tests.
-  - `npm.cmd run build`: PASS, non-fatal Vite chunk/dynamic-import warnings only.
-  - `npm.cmd run test:e2e`: PASS, 16/16.
+## Completed
 
-## 2026-05-10 Electron Launcher Auth Bridge Follow-up
+- Renamed package/product/window/UI surface to LocalAI Nexus.
+- Rebuilt icon assets: `assets/localai-nexus.svg`, `assets/localai-nexus.png`, `assets/localai-nexus.ico`, plus compatibility aliases.
+- Updated Electron BrowserWindow icon and electron-builder Windows icon path.
+- Created/verified `C:\Users\至亲\Desktop\LocalAI Nexus.lnk`.
+- Removed the old desktop shortcut `C:\Users\至亲\Desktop\AgentFlow Studio.lnk`.
+- Avoided `.bat` console popup in the primary shortcut by targeting `node_modules\electron\dist\electron.exe` with `dist-electron\main\index.js` as arguments.
+- Added LocalAI Nexus Dashboard status cards and first-run actions.
+- Added Local Gateway endpoints: `/health`, `/v1/models`, `/v1/chat/completions`, `/v1/responses`, `/responses`, `/v1/messages`.
+- Added `/responses` Base URL diagnostic instead of unexplained 404.
+- Added basic Token usage records and summaries.
+- Added Provider health configuration diagnostics.
+- Added Runtime Profile generation for Codex, Claude Code, CLI, and custom profiles.
+- Added Prompt Skill create/test support with usage attribution.
+- Updated E2E/static tests for LocalAI Nexus expectations.
+- Updated README, architecture plan, structure audit, worklog, test report, and next steps.
 
-- Resumed interrupted session `019e109c-7293-7e81-9c09-976bf9125f93`.
-- User-visible symptom: desktop shortcut reached the rebuilt login page, but login reported `Auth bridge unavailable`.
-- Root cause: the desktop launcher still depended on the Vite/dev style path, and production build ran `tsc -p tsconfig.node.json` after Vite. That second step overwrote Vite's Electron preload bundle with an ESM file. Electron loaded the built renderer, but `contextBridge.exposeInMainWorld('agentflow', api)` did not become available to the renderer.
-- Fix:
-  - `start-agentflow.bat` now launches `node_modules\electron\dist\electron.exe dist-electron\main\index.js` with `AGENTFLOW_LOAD_DIST=1`.
-  - `start-agentflow-electron.bat` delegates to `start-agentflow.bat`.
-  - `npm.cmd run build` now runs `vite build && tsc --noEmit -p tsconfig.node.json`, so Vite owns `dist-electron` output and TypeScript still checks Node/Electron types.
-  - `vite.config.ts` forces the Electron preload bundle to CommonJS with inline dynamic imports.
-  - `npm.cmd run test:electron-auth-bridge` verifies the built Electron app exposes `window.agentflow.auth.login`.
-- Verification after this follow-up:
-  - `npm.cmd run typecheck`: PASS.
-  - `npm.cmd test`: PASS, 24 files / 177 tests.
-  - `npm.cmd run build`: PASS, non-fatal Vite chunk/dynamic-import warnings only.
-  - `npm.cmd run lint`: PASS, 0 errors / 25 warnings.
-  - `npm.cmd run verify`: PASS, 100/100 build checks and 184/184 smoke checks.
-  - `npm.cmd run test:electron-startup`: PASS.
-  - `npm.cmd run test:electron-auth-bridge`: PASS.
+## In Progress
+
+- Provider Hub first-class page polish.
+- Token Center full pool/quota/cooldown/concurrency UI.
+- Health Monitor live upstream probes.
+- Local Gateway live upstream forwarding and streaming.
+- Runtime Switcher one-click writes to external client config.
+- Agent Studio and Workflow Studio live provider/tool execution.
+- Security Center exportable reports and deeper provider risk scoring.
+
+## Not Completed Yet
+
+- Real upstream Provider forwarding.
+- Streamed chat/responses output.
+- Full token pool with daily/monthly quota enforcement.
+- Cost/latency optimized routing and sticky sessions.
+- Full MCP/Tool/Composite Skill execution.
+- Production installer smoke after packaging with `npm.cmd run dist`.
+
+## Known Issues / Risks
+
+- Gateway responses are diagnostic/mock-style until upstream forwarding is completed.
+- Health checks validate local configuration, not remote provider behavior.
+- Some internal compatibility names remain (`window.agentflow`, `agentflow-data`, `start-agentflow*.bat`) to avoid breaking storage, preload bridge, and existing launch paths.
+- Historical handoff/archive files still mention AgentFlow Studio as history; active product docs and visible launch UI use LocalAI Nexus.
+- Existing npm audit dependency vulnerabilities remain outside this refactor scope.
+
+## Latest Verified Commands
+
+| Command | Result |
+|---|---:|
+| `npm.cmd install` | PASS |
+| `npm.cmd run icon` | PASS |
+| `npm.cmd run typecheck` | PASS |
+| `npm.cmd run lint` | PASS |
+| `npm.cmd run test` | PASS |
+| `npm.cmd run build` | PASS |
+| `npm.cmd run test:e2e` | PASS |
+| `npm.cmd run test:launch-static` | PASS |
+| `npm.cmd run test:static-browser` | PASS |
+| `npm.cmd run test:electron-startup` | PASS |
+| `npm.cmd run test:electron-auth-bridge` | PASS |
+| `npm.cmd run verify` | PASS |
+| Gateway direct Electron smoke | PASS |
+
+## Current Desktop Entry State
+
+- Shortcut name: `LocalAI Nexus.lnk`
+- Target: `D:\AgentFlowStudio\node_modules\electron\dist\electron.exe`
+- Arguments: `"D:\AgentFlowStudio\dist-electron\main\index.js"`
+- Working directory: `D:\AgentFlowStudio`
+- Icon: `D:\AgentFlowStudio\assets\localai-nexus.ico,0`
+- Old shortcut: removed.
+
+## Current Icon State
+
+- Canonical icon: `assets/localai-nexus.ico`
+- Source SVG: `assets/localai-nexus.svg`
+- PNG: `assets/localai-nexus.png`
+- Static fallback icon: `static-app/assets/localai-nexus.svg`
+- Legacy `assets/icon.*` aliases retained for compatibility only.
+
+## Startup Popup Check
+
+- Primary desktop shortcut targets Electron directly, so no launcher console window is expected from the shortcut.
+- Electron default production launch loads `dist/index.html`.
+- DevTools are skipped through the launcher environment.
+- Electron startup smoke passed.
+- No extra Electron window, external browser tab, or old welcome popup was found in the verified primary startup path.
+
+## Latest Commit Record
+
+Prepared final commit message for this session:
+
+```text
+refactor: evolve AgentFlowStudio into LocalAI Nexus
+```
+
+## Next Step Plan
+
+1. Commit and push `refactor-localai-nexus`.
+2. Continue next round with live Provider forwarding, streaming, full Token Center UI, and richer Agent/Workflow execution.

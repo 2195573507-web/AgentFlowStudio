@@ -9,7 +9,7 @@ Read first:
 - `handoff/TASK_STATUS.md`
 - `handoff/CURRENT_CONTEXT_FOR_ANY_MODEL.md`
 - `handoff/CODEX_HANDOFF.md`
-- `.codex-parallel/PARALLEL_SUMMARY.md`
+- `archive/2026-05/parallel-agents/run-20260508-current/PARALLEL_SUMMARY.md`
 
 Important: archived reports under `handoff\archived-agents\run-20260508-125051` and `handoff\archived-agents\run-20260508-173352` are historical only. Do not use archived results as current PASS evidence.
 

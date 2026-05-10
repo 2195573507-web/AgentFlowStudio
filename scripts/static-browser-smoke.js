@@ -88,7 +88,7 @@ async function clickNav(page, pageId, expectedText) {
 }
 
 async function main() {
-  console.log('\nAgentFlow Studio - Static Browser Smoke\n')
+  console.log('\nLocalAI Nexus - Static Browser Smoke\n')
 
   child = spawn(process.execPath, ['scripts/static-server.js', 'static-app', '4173'], {
     cwd: root,
@@ -144,7 +144,7 @@ async function main() {
 
   await page.getByRole('heading', { name: '仪表盘' }).waitFor({ timeout: 5000 })
   record('dashboard loads in Chinese', true)
-  record('document title', (await page.title()).includes('AgentFlow Studio'), await page.title())
+  record('document title', (await page.title()).includes('LocalAI Nexus'), await page.title())
 
   const panelBg = await page.locator('.panel').first().evaluate((el) => getComputedStyle(el).backdropFilter)
   record('Liquid Glass backdrop exists', panelBg.includes('blur'), panelBg)
@@ -205,13 +205,13 @@ async function main() {
   await page.locator('.output').first().waitFor({ timeout: 3000 })
   record('log analyzer produces output', (await page.locator('.output').first().innerText()).length > 20)
 
-  await clickNav(page, 'safety-box', 'SafetyBox')
+  await clickNav(page, 'safety-box', 'Safety Guard')
   await page.locator('textarea[name="command"]').fill('Remove-Item -Recurse C:\\Users')
   await page.locator('form[data-form="risk"] button[type="submit"]').click()
   await page.locator('.risk-pill').first().waitFor({ timeout: 3000 })
   record('safety check flags risky command', /High|Critical|高|严重/.test(await page.locator('.risk-pill').first().innerText()))
 
-  await clickNav(page, 'shared-memory', 'Shared Memory Hub')
+  await clickNav(page, 'shared-memory', 'Shared Memory')
   await page.locator('input[name="title"]').fill('Browser secret memory')
   await page.locator('textarea[name="content"]').fill('api_key=browser-secret-value')
   await page.locator('form[data-form="memory"] button[type="submit"]').click()

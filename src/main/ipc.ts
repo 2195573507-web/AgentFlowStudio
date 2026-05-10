@@ -36,6 +36,11 @@ import { evaluateMcpGatewayRequest } from './mcpGateway.js';
 import { runWorkflow } from '../core/workflowRuntime.js';
 import { BEGINNER_WORKFLOW_TEMPLATES } from '../templates/workflowTemplates.js';
 import type { Workflow, WorkflowVersion } from '../shared/workflowTypes.js';
+import { getGatewayStatus, startGateway, stopGateway } from './domain/gateway/gatewayService.js';
+import { checkProviderHealth, healthSummary } from './domain/health/healthService.js';
+import { listUsageRecords, summarizeUsage } from './domain/usage/usageService.js';
+import { generateRuntimeProfiles } from './domain/runtime/runtimeProfileService.js';
+import { createPromptSkill, testPromptSkill } from './domain/skills/skillService.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -112,6 +117,14 @@ const CHANNEL_PERMISSIONS: Partial<Record<string, Permission>> = {
   [IPC_CHANNELS.PROVIDER_TEST]: 'provider:write',
   [IPC_CHANNELS.PROVIDER_ACTIVE_GET]: 'provider:read',
   [IPC_CHANNELS.PROVIDER_ACTIVE_SET]: 'provider:write',
+  [IPC_CHANNELS.GATEWAY_STATUS]: 'provider:read',
+  [IPC_CHANNELS.GATEWAY_START]: 'provider:write',
+  [IPC_CHANNELS.GATEWAY_STOP]: 'provider:write',
+  [IPC_CHANNELS.USAGE_SUMMARY]: 'provider:read',
+  [IPC_CHANNELS.USAGE_LIST]: 'provider:read',
+  [IPC_CHANNELS.HEALTH_SUMMARY]: 'provider:read',
+  [IPC_CHANNELS.HEALTH_CHECK_PROVIDER]: 'provider:write',
+  [IPC_CHANNELS.RUNTIME_PROFILES_GENERATE]: 'provider:read',
   [IPC_CHANNELS.AGENT_LIST]: 'project:read',
   [IPC_CHANNELS.AGENT_GET]: 'project:read',
   [IPC_CHANNELS.AGENT_CREATE]: 'project:write',
@@ -138,6 +151,8 @@ const CHANNEL_PERMISSIONS: Partial<Record<string, Permission>> = {
   [IPC_CHANNELS.EXPORT_JSON]: 'export:write',
   [IPC_CHANNELS.SKILLS_LIST]: 'skill:read',
   [IPC_CHANNELS.SKILL_READ]: 'skill:read',
+  [IPC_CHANNELS.SKILL_CREATE]: 'mcp:write',
+  [IPC_CHANNELS.SKILL_TEST]: 'skill:read',
   [IPC_CHANNELS.GET_DATA_PATH]: 'app:read',
   [IPC_CHANNELS.DIALOG_OPEN]: 'dialog:open',
   [IPC_CHANNELS.USER_LIST]: 'admin:users',
@@ -337,6 +352,13 @@ const ALLOWED_STORAGE_COLLECTIONS = new Set([
   'workflows',
   'workflowVersions',
   'diagnosticReports',
+  'tokenUsage',
+  'healthChecks',
+  'runtimeProfiles',
+  'modelRoutes',
+  'skills',
+  'skillRuns',
+  'gatewayRequests',
   'memories',
   'riskChecks',
   'settings',
@@ -1752,6 +1774,80 @@ export function registerIpcHandlers(): void {
     }
   });
 
+  ipcMain.handle(IPC_CHANNELS.GATEWAY_STATUS, async () => {
+    try {
+      return await getGatewayStatus();
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GATEWAY_START, async () => {
+    try {
+      return await startGateway();
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GATEWAY_STOP, async () => {
+    try {
+      return await stopGateway();
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.USAGE_SUMMARY, async () => {
+    try {
+      return await summarizeUsage();
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.USAGE_LIST, async (_event, filters?: unknown) => {
+    try {
+      return await listUsageRecords(filters as never);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.HEALTH_SUMMARY, async () => {
+    try {
+      return await healthSummary();
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.HEALTH_CHECK_PROVIDER, async (_event, providerId: string, context?: SessionContext) => {
+    try {
+      const result = await checkProviderHealth(providerId);
+      await recordAudit({
+        type: 'health.check',
+        action: 'health.provider.check',
+        status: result.status === 'Healthy' ? 'success' : 'failure',
+        severity: result.status === 'Healthy' ? 'info' : 'warning',
+        actor: actorFor(context),
+        resource: { type: 'provider', id: providerId, label: result.providerName },
+        metadata: sanitizeObject({ status: result.status, failureCategory: result.failureCategory }),
+      });
+      return result;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.RUNTIME_PROFILES_GENERATE, async () => {
+    try {
+      return await generateRuntimeProfiles();
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
   ipcMain.handle(IPC_CHANNELS.AGENT_LIST, async (_event, filters?: { projectId?: string }, context?: SessionContext) => {
     try {
       const agents = (await storage.getAll<AgentRecord>('agents')).filter((agent) => !agent.deletedAt);
@@ -2195,6 +2291,42 @@ export function registerIpcHandlers(): void {
       const updated = await storage.update('skillsRegistry', id, { enabled, updatedAt: new Date().toISOString() } as never);
       await recordMutationAudit(context, 'skillsRegistry.toggle', { type: 'skill', id }, { enabled });
       return updated;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.SKILL_CREATE, async (_event, entry: Partial<SkillRegistryEntry>, context?: SessionContext) => {
+    try {
+      const created = await createPromptSkill(entry);
+      await recordAudit({
+        type: 'skill.create',
+        action: 'skill.create',
+        status: 'success',
+        severity: 'info',
+        actor: actorFor(context),
+        resource: { type: 'skill', id: created.id, label: created.name },
+        metadata: sanitizeObject({ type: created.type, category: created.category, riskLevel: created.riskLevel }),
+      });
+      return created;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.SKILL_TEST, async (_event, skillId: string, input?: Record<string, unknown>, context?: SessionContext) => {
+    try {
+      const result = await testPromptSkill(skillId, input);
+      await recordAudit({
+        type: 'skill.test',
+        action: 'skill.test',
+        status: result.ok ? 'success' : 'failure',
+        severity: result.riskLevel === 'high' || result.riskLevel === 'critical' ? 'warning' : 'info',
+        actor: actorFor(context),
+        resource: { type: 'skill', id: skillId },
+        metadata: sanitizeObject({ tokens: result.tokens, riskLevel: result.riskLevel }),
+      });
+      return result;
     } catch (err) {
       return handleError(err);
     }

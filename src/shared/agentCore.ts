@@ -36,7 +36,7 @@ export const ERROR_MESSAGES_ZH: Record<Exclude<PreflightCode, 'ok'>, { message: 
     action: '请补齐 Agent 名称、Provider、模型和输入摘要后重试。',
   },
   safe_storage_unavailable: {
-    message: '系统安全存储不可用，AgentFlow 已拒绝保存密钥。',
+    message: '系统安全存储不可用，LocalAI Nexus 已拒绝保存密钥。',
     action: '请在支持 Electron safeStorage 的桌面环境中配置密钥。',
   },
   network_error: {
@@ -104,7 +104,7 @@ export function createDemoExecution(agentId = 'demo-agent', now = new Date()): A
     startedAt,
     finishedAt: startedAt,
     durationMs: 12,
-    inputSummary: 'Demo input: explain AgentFlow onboarding.',
+    inputSummary: 'Demo input: explain LocalAI Nexus onboarding.',
     outputSummary: 'Demo output: created a local-only simulated response and timeline event.',
     customData: { externalCalls: 0, dangerousOperations: false },
     createdAt: startedAt,

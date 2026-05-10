@@ -1,486 +1,476 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  FolderKanban,
-  CheckSquare,
-  Wand2,
-  Shield,
-  Brain,
-  Plus,
-  FileText,
-  AlertTriangle,
-  Database,
-  GitBranch,
-  Package,
-  RefreshCw,
-  ChevronRight,
-  Sparkles,
+  Activity,
   ArrowRight,
-  Settings,
-  PlayCircle,
-  ClipboardCheck,
-  Circle,
+  Brain,
   CheckCircle2,
+  CheckSquare,
+  Circle,
+  ClipboardCheck,
+  Database,
+  FileSearch,
+  FolderKanban,
+  GitBranch,
+  KeyRound,
+  PlayCircle,
+  RefreshCw,
+  Settings,
+  Shield,
+  Sparkles,
+  Wand2,
+  Workflow,
 } from 'lucide-react';
 import { api } from '../lib/api';
-import { GlassCard, StatCard, EmptyState, Charts } from '../components/';
-import type { Project, SavedPrompt, Task, Memory } from '../lib/types';
+import { EmptyState, GlassCard, StatCard } from '../components/';
+import type {
+  Memory,
+  NexusGatewayStatus,
+  NexusHealthCheckResult,
+  NexusUsageSummary,
+  Project,
+  ProviderSetting,
+  SavedPrompt,
+  Task,
+} from '../lib/types';
 import { formatRelativeDate, truncate } from '../lib/utils';
 
-const { TaskStatusChart, MemoryTypeChart } = Charts;
+const now = Date.now();
 
-// ── Demo data (used when api is unavailable) ────────────────────────────────
 const DEMO_PROJECTS: Project[] = [
   {
-    id: 'demo-1',
-    name: 'AI 聊天助手',
-    idea: '带有记忆持久化和多接口支持的跨平台 AI 聊天应用。',
+    id: 'demo-nexus-1',
+    name: 'Local coding cockpit',
+    idea: 'A local workspace for coordinating AI coding agents, prompts, logs, memories, and release notes.',
     platform: 'Desktop',
     techStack: 'Electron, React, TypeScript, Tailwind',
-    uiStyle: '玻璃拟态工作台',
+    uiStyle: 'Liquid Glass operations console',
     difficulty: 'Medium',
     status: 'active',
-    createdAt: new Date(Date.now() - 7 * 864e5).toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: new Date(now - 10 * 864e5).toISOString(),
+    updatedAt: new Date(now - 2 * 3600e3).toISOString(),
   },
   {
-    id: 'demo-2',
-    name: '开发工具 CLI',
-    idea: '面向开发者的命令行效率工具，集成 Git、日志分析和项目恢复上下文。',
-    platform: 'CLI',
-    techStack: 'Node.js, TypeScript, Ink',
-    uiStyle: '极简终端',
+    id: 'demo-nexus-2',
+    name: 'Provider switchboard',
+    idea: 'Track local and OpenAI-compatible providers without exposing secrets in prompts or exports.',
+    platform: 'Desktop',
+    techStack: 'Node.js, Electron IPC',
+    uiStyle: 'Compact admin surface',
     difficulty: 'Hard',
     status: 'planning',
-    createdAt: new Date(Date.now() - 3 * 864e5).toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: new Date(now - 5 * 864e5).toISOString(),
+    updatedAt: new Date(now - 12 * 3600e3).toISOString(),
   },
   {
-    id: 'demo-3',
-    name: '记忆同步服务',
-    idea: '在项目与 AI 接口之间同步共享记忆的本地后台服务。',
+    id: 'demo-nexus-3',
+    name: 'Memory recovery kit',
+    idea: 'Capture decisions, issue fixes, and handoff context so another model can resume the project cleanly.',
     platform: 'Web',
-    techStack: 'Go, SQLite, gRPC',
-    uiStyle: 'Linear',
-    difficulty: 'Hard',
-    status: 'active',
-    createdAt: new Date(Date.now() - 14 * 864e5).toISOString(),
-    updatedAt: new Date(Date.now() - 2 * 864e5).toISOString(),
-  },
-  {
-    id: 'demo-4',
-    name: 'Prompt 模板管理器',
-    idea: '用于管理、版本化和变量注入的 Prompt 模板界面。',
-    platform: 'Web',
-    techStack: 'Next.js, Prisma, PostgreSQL',
-    uiStyle: 'Raycast',
-    difficulty: 'Easy',
-    status: 'done',
-    createdAt: new Date(Date.now() - 30 * 864e5).toISOString(),
-    updatedAt: new Date(Date.now() - 10 * 864e5).toISOString(),
-  },
-  {
-    id: 'demo-5',
-    name: '安全沙盒',
-    idea: '用于测试 AI 生成命令、分析风险并给出替代方案的隔离环境。',
-    platform: 'Desktop',
-    techStack: 'Tauri, Rust, React',
-    uiStyle: 'Glassmorphism',
+    techStack: 'React, JSON storage',
+    uiStyle: 'Linear-inspired knowledge hub',
     difficulty: 'Medium',
-    status: 'paused',
-    createdAt: new Date(Date.now() - 21 * 864e5).toISOString(),
-    updatedAt: new Date(Date.now() - 5 * 864e5).toISOString(),
+    status: 'done',
+    createdAt: new Date(now - 21 * 864e5).toISOString(),
+    updatedAt: new Date(now - 3 * 864e5).toISOString(),
   },
 ];
 
 const DEMO_TASKS: Task[] = [
-  { id: 't1', projectId: 'demo-1', title: '搭建项目脚手架', status: 'done', priority: 'high', createdAt: new Date().toISOString() },
-  { id: 't2', projectId: 'demo-1', title: '实现登录与权限流程', status: 'in_progress', priority: 'high', createdAt: new Date().toISOString() },
-  { id: 't3', projectId: 'demo-1', title: '设计聊天工作台界面', status: 'in_progress', priority: 'medium', createdAt: new Date().toISOString() },
-  { id: 't4', projectId: 'demo-2', title: '编写 CLI 参数解析器', status: 'todo', priority: 'medium', createdAt: new Date().toISOString() },
-  { id: 't5', projectId: 'demo-3', title: '定义 gRPC 协议结构', status: 'done', priority: 'high', createdAt: new Date().toISOString() },
-  { id: 't6', projectId: 'demo-3', title: '实现记忆 CRUD 流程', status: 'in_progress', priority: 'high', createdAt: new Date().toISOString() },
+  { id: 'task-1', projectId: 'demo-nexus-1', title: 'Connect the first local project', status: 'done', priority: 'high', createdAt: new Date(now - 6 * 864e5).toISOString() },
+  { id: 'task-2', projectId: 'demo-nexus-1', title: 'Generate task prompts for the next coding agent', status: 'in_progress', priority: 'high', createdAt: new Date(now - 2 * 864e5).toISOString() },
+  { id: 'task-3', projectId: 'demo-nexus-2', title: 'Test provider connection before using it in prompts', status: 'todo', priority: 'medium', createdAt: new Date(now - 864e5).toISOString() },
+  { id: 'task-4', projectId: 'demo-nexus-3', title: 'Save recovery context to Shared Memory', status: 'done', priority: 'medium', createdAt: new Date(now - 4 * 864e5).toISOString() },
 ];
 
 const DEMO_PROMPTS: SavedPrompt[] = [
-  { id: 'p1', name: '系统架构师 Prompt', templateId: 'system-architect', variables: {}, content: '你是资深系统架构师，请先分析约束再给出方案...', starred: true, createdAt: new Date().toISOString() },
-  { id: 'p2', name: '代码审查 Prompt', templateId: 'code-reviewer', variables: {}, content: '请审查这段代码中的缺陷、风险和遗漏测试...', starred: false, createdAt: new Date(Date.now() - 2 * 864e5).toISOString() },
-  { id: 'p3', name: '问题修复 Prompt', templateId: 'bug-fixer', variables: {}, content: '请定位并修复以下问题，说明根因和验证步骤...', starred: true, createdAt: new Date(Date.now() - 5 * 864e5).toISOString() },
+  { id: 'prompt-1', name: 'Implementation handoff prompt', templateId: 'handoff', variables: {}, content: 'Read the local project context, preserve existing changes, implement the next scoped task, and report verification.', starred: true, favorite: true, createdAt: new Date(now - 2 * 3600e3).toISOString() },
+  { id: 'prompt-2', name: 'Safety review prompt', templateId: 'safety', variables: {}, content: 'Review the command for destructive behavior, secret exposure, and safer alternatives before execution.', starred: false, createdAt: new Date(now - 2 * 864e5).toISOString() },
 ];
 
 const DEMO_MEMORIES: Memory[] = [
-  { id: 'm1', type: 'decision', title: '采用 Electron 作为跨平台桌面方案', content: '保留 Electron 方案，同时在 esbuild 受限时使用 Static fallback 交付。', tags: ['architecture', 'frontend'], importance: 4, status: 'active', projectId: 'demo-1', lastUsedAt: new Date().toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'm2', type: 'pattern', title: '数据访问统一走仓储模式', content: '项目、任务、记忆等实体通过统一仓储接口访问，便于后续迁移存储层。', tags: ['backend', 'architecture'], importance: 3, status: 'active', projectId: 'demo-1', lastUsedAt: new Date().toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'm3', type: 'insight', title: '记忆注入能提升 Prompt 输出质量', content: '在生成 Prompt 前注入相关共享记忆，可以减少上下文丢失和重复解释。', tags: ['research', 'ai'], importance: 5, status: 'active', lastUsedAt: new Date().toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'memory-1', type: 'decision', title: 'Local-first orchestration', content: 'Project context, provider settings, and memories stay local unless the user exports them.', tags: ['local-first', 'architecture'], importance: 5, status: 'active', projectId: 'demo-nexus-1', lastUsedAt: new Date(now - 3600e3).toISOString(), createdAt: new Date(now - 5 * 864e5).toISOString(), updatedAt: new Date(now - 3600e3).toISOString() },
+  { id: 'memory-2', type: 'safety_check', title: 'Shortcut launch policy', content: 'Desktop shortcuts should prefer the Electron entry and skip devtools to avoid startup noise.', tags: ['launcher', 'safety'], importance: 4, status: 'active', projectId: 'demo-nexus-1', lastUsedAt: new Date(now - 2 * 3600e3).toISOString(), createdAt: new Date(now - 3 * 864e5).toISOString(), updatedAt: new Date(now - 2 * 3600e3).toISOString() },
 ];
 
-// ── Component ───────────────────────────────────────────────────────────────
+const statusLabel: Record<string, string> = {
+  active: 'Active',
+  planning: 'Planning',
+  paused: 'Paused',
+  done: 'Done',
+};
+
+const statusClass: Record<string, string> = {
+  active: 'border-emerald-400/30 bg-emerald-500/15 text-emerald-600 dark:text-emerald-300',
+  planning: 'border-blue-400/30 bg-blue-500/15 text-blue-600 dark:text-blue-300',
+  paused: 'border-amber-400/30 bg-amber-500/15 text-amber-600 dark:text-amber-300',
+  done: 'border-slate-400/30 bg-slate-500/15 text-slate-600 dark:text-slate-300',
+};
+
 export default function Dashboard() {
   const navigate = useNavigate();
-
-  // State
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [prompts, setPrompts] = useState<SavedPrompt[]>([]);
   const [memories, setMemories] = useState<Memory[]>([]);
-  const [riskCount, setRiskCount] = useState<number>(0);
+  const [riskCount, setRiskCount] = useState(0);
+  const [providers, setProviders] = useState<ProviderSetting[]>([]);
+  const [activeProvider, setActiveProvider] = useState({ providerRef: '', model: '' });
+  const [gatewayStatus, setGatewayStatus] = useState<NexusGatewayStatus | null>(null);
+  const [usageSummary, setUsageSummary] = useState<NexusUsageSummary | null>(null);
+  const [healthState, setHealthState] = useState<{ latest: NexusHealthCheckResult[]; byStatus: Record<string, number> } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [apiAvailable, setApiAvailable] = useState(true);
+  const [gatewayBusy, setGatewayBusy] = useState(false);
+
+  const applyDemoData = useCallback(() => {
+    setApiAvailable(false);
+    setProjects(DEMO_PROJECTS);
+    setTasks(DEMO_TASKS);
+    setPrompts(DEMO_PROMPTS);
+    setMemories(DEMO_MEMORIES);
+    setRiskCount(DEMO_MEMORIES.filter((memory) => memory.type === 'safety_check').length);
+    setProviders([]);
+    setActiveProvider({ providerRef: '', model: '' });
+    setGatewayStatus(null);
+    setUsageSummary(null);
+    setHealthState(null);
+  }, []);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
       if (!api || typeof api.projects?.list !== 'function') {
-        // API not available — use demo data
-        setApiAvailable(false);
-        setProjects(DEMO_PROJECTS);
-        setTasks(DEMO_TASKS);
-        setPrompts(DEMO_PROMPTS);
-        setMemories(DEMO_MEMORIES);
-        setRiskCount(12);
-        setLoading(false);
+        applyDemoData();
         return;
       }
 
-      const [pRes, tRes, prRes, mRes] = await Promise.all([
+      const [
+        projectResult,
+        taskResult,
+        promptResult,
+        memoryResult,
+        providerResult,
+        activeResult,
+        gatewayResult,
+        usageResult,
+        healthResult,
+      ] = await Promise.all([
         api.projects.list(),
         api.tasks.list(),
         api.prompts.list(),
         api.memory.list(),
+        api.providers.list().catch(() => []),
+        api.providers.getActive().catch(() => ({ providerRef: '', model: '' })),
+        api.gateway.status().catch(() => null),
+        api.usage.summary().catch(() => null),
+        api.health.summary().catch(() => null),
       ]);
 
-      setProjects(Array.isArray(pRes) ? pRes : []);
-      setTasks(Array.isArray(tRes) ? tRes : []);
-      setPrompts(Array.isArray(prRes) ? prRes : []);
-      setMemories(Array.isArray(mRes) ? mRes : []);
+      const projectList = Array.isArray(projectResult) ? projectResult : [];
+      const taskList = Array.isArray(taskResult) ? taskResult : [];
+      const promptList = Array.isArray(promptResult) ? promptResult : [];
+      const memoryList = Array.isArray(memoryResult) ? memoryResult : [];
 
-      // Count risk checks from safety history
-      const safetyMemories = (Array.isArray(mRes) ? mRes : []).filter(
-        (m: Memory) => m.type === 'safety_check' || (m.tags || []).includes('safety')
+      setApiAvailable(true);
+      setProjects(projectList);
+      setTasks(taskList);
+      setPrompts(promptList);
+      setMemories(memoryList);
+      setProviders(Array.isArray(providerResult) ? providerResult : []);
+      if (activeResult && typeof activeResult === 'object' && !('error' in activeResult)) {
+        setActiveProvider({ providerRef: activeResult.providerRef, model: activeResult.model });
+      }
+      if (gatewayResult && typeof gatewayResult === 'object' && !('error' in gatewayResult)) {
+        setGatewayStatus(gatewayResult);
+      }
+      if (usageResult && typeof usageResult === 'object' && !('error' in usageResult)) {
+        setUsageSummary(usageResult);
+      }
+      if (healthResult && typeof healthResult === 'object' && !('error' in healthResult)) {
+        setHealthState(healthResult);
+      }
+      setRiskCount(
+        memoryList.filter((memory) => memory.type === 'safety_check' || (memory.tags || []).includes('safety')).length,
       );
-      setRiskCount(safetyMemories.length || 0);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error('Dashboard fetch error:', message, err);
-      // Fallback to demo data on error
-      setApiAvailable(false);
-      setProjects(DEMO_PROJECTS);
-      setTasks(DEMO_TASKS);
-      setPrompts(DEMO_PROMPTS);
-      setMemories(DEMO_MEMORIES);
-      setRiskCount(12);
+    } catch (error) {
+      console.error('Dashboard fetch error:', error);
+      applyDemoData();
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [applyDemoData]);
 
   useEffect(() => {
-    fetchData();
+    void fetchData();
   }, [fetchData]);
 
-  // ── Derived data ────────────────────────────────────────────────────────
-  const taskStatusDistribution = React.useMemo(() => {
-    const dist: Record<string, number> = { done: 0, in_progress: 0, todo: 0 };
-    tasks.forEach((t) => {
-      dist[t.status] = (dist[t.status] || 0) + 1;
-    });
-    return dist;
-  }, [tasks]);
+  const recentProjects = useMemo(
+    () => [...projects].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 4),
+    [projects],
+  );
 
-  const memoryTypeDistribution = React.useMemo(() => {
-    const dist: Record<string, number> = {};
-    memories.forEach((m) => {
-      dist[m.type] = (dist[m.type] || 0) + 1;
-    });
-    return dist;
-  }, [memories]);
-
-  const recentProjects = [...projects]
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-    .slice(0, 5);
-
-  const recentPrompts = [...prompts]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 5);
-
-  // ── Quick actions ───────────────────────────────────────────────────────
-  const quickActions = [
-    { label: '新建项目', icon: Plus, route: '/projects', color: 'text-blue-400', bg: 'bg-blue-500/10 hover:bg-blue-500/20' },
-    { label: '提示词实验室', icon: Wand2, route: '/prompts', color: 'text-purple-400', bg: 'bg-purple-500/10 hover:bg-purple-500/20' },
-    { label: '日志分析', icon: FileText, route: '/logs', color: 'text-amber-400', bg: 'bg-amber-500/10 hover:bg-amber-500/20' },
-    { label: '安全检查', icon: Shield, route: '/safety', color: 'text-green-400', bg: 'bg-green-500/10 hover:bg-green-500/20' },
-    { label: '共享记忆中心', icon: Brain, route: '/memory', color: 'text-pink-400', bg: 'bg-pink-500/10 hover:bg-pink-500/20' },
-    { label: 'Codex 交接', icon: Package, route: '/skills', color: 'text-cyan-400', bg: 'bg-cyan-500/10 hover:bg-cyan-500/20' },
-  ];
-
-  const beginnerSteps = [
-    {
-      title: '1. 创建项目',
-      description: '写下目标、约束和技术栈，建立本地项目边界。',
-      icon: FolderKanban,
-      route: '/projects',
-      action: '创建项目',
-    },
-    {
-      title: '2. 使用模板',
-      description: '从 Start / Prompt / LLM / Tool / Condition / Human Approval / Output 模板开始。',
-      icon: PlayCircle,
-      route: '/workflows',
-      action: '使用模板',
-    },
-    {
-      title: '3. 配置 Provider',
-      description: '保存 Provider 与 API Key；密钥只进入主进程安全存储。',
-      icon: Settings,
-      route: '/settings',
-      action: '配置 Provider',
-    },
-    {
-      title: '4. 运行示例',
-      description: '运行示例 Workflow，确认 Timeline / Trace 能显示节点事件。',
-      icon: PlayCircle,
-      route: '/workflows',
-      action: '运行示例',
-    },
-    {
-      title: '5. 查看最近运行',
-      description: '回到项目详情或 Workflow 页查看 Run 记录和错误恢复建议。',
-      icon: FileText,
-      route: '/workflows',
-      action: '查看最近运行',
-    },
-    {
-      title: '6. 查看诊断',
-      description: '打开设置、审计和安全检查，确认环境、权限和常见问题。',
-      icon: Shield,
-      route: '/settings',
-      action: '查看诊断',
-    },
-  ];
+  const recentPrompts = useMemo(
+    () => [...prompts].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 4),
+    [prompts],
+  );
 
   const hasProjects = projects.length > 0;
+  const hasTasks = tasks.length > 0;
   const hasPrompts = prompts.length > 0;
   const hasMemories = memories.length > 0;
   const hasSafetyChecks = riskCount > 0;
-  const hasActiveTasks = tasks.some((task) => task.status === 'in_progress' || task.status === 'todo');
-  const workflowSteps = [
-    { label: 'Idea', title: '记录想法', done: hasProjects, route: '/projects' },
-    { label: 'Plan', title: '生成规划', done: hasProjects && tasks.length > 0, route: recentProjects[0] ? `/projects/${recentProjects[0].id}` : '/projects' },
-    { label: 'Tasks', title: '拆成任务', done: tasks.length > 0, route: recentProjects[0] ? `/projects/${recentProjects[0].id}` : '/projects' },
-    { label: 'Prompt', title: '生成 Prompt', done: hasPrompts, route: '/prompts' },
-    { label: 'Safety', title: '检查命令', done: hasSafetyChecks, route: '/safety' },
-    { label: 'Logs', title: '分析结果', done: false, route: '/logs' },
-    { label: 'Memory', title: '沉淀记忆', done: hasMemories, route: '/memory' },
-    { label: 'Handoff', title: '交接恢复', done: hasMemories && hasPrompts, route: '/memory' },
-  ];
-  const nextStep = workflowSteps.find((step) => !step.done) || workflowSteps[workflowSteps.length - 1];
-  const nextStepCopy = !hasProjects
-    ? '先创建一个项目，把目标、约束和技术栈写清楚。'
-    : !hasActiveTasks && tasks.length === 0
-      ? '进入项目详情，把想法拆成可交给 AI 的任务。'
-      : !hasPrompts
-        ? '打开 Prompt Lab，把任务变成可复制给 Codex / Claude Code / Cursor 的执行提示词。'
-        : !hasSafetyChecks
-          ? '运行前先把命令放进安全检查，避免误删文件或泄露密钥。'
-          : !hasMemories
-            ? '把关键决策和修复结果保存到共享记忆，方便下一轮恢复上下文。'
-            : '复制恢复上下文，准备进入下一轮验证和交接。';
+  const activeProviderRecord = providers.find((provider) => provider.id === activeProvider.providerRef);
+  const providerHealth = healthState?.latest[0]?.status ?? 'Unknown';
+  const recentFailure = usageSummary?.recentFailureReason ?? 'None';
+  const gatewayOnline = Boolean(gatewayStatus?.online);
 
-  // ── Status badge helper ─────────────────────────────────────────────────
-  const statusBadge = (status: string) => {
-    const map: Record<string, { label: string; cls: string }> = {
-      active:   { label: '进行中', cls: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
-      planning: { label: '规划中', cls: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
-      paused:   { label: '已暂停', cls: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
-      done:     { label: '已完成', cls: 'bg-zinc-500/20 text-zinc-300 border-zinc-500/30' },
-    };
-    const m = map[status] || { label: status, cls: 'bg-zinc-500/20 text-zinc-300 border-zinc-500/30' };
-    return (
-      <span className={`px-2 py-0.5 text-[11px] font-medium rounded-full border ${m.cls}`}>
-        {m.label}
-      </span>
-    );
+  const startGateway = async () => {
+    setGatewayBusy(true);
+    try {
+      const status = await api.gateway.start();
+      if (status && typeof status === 'object' && !('error' in status)) setGatewayStatus(status);
+      await fetchData();
+    } finally {
+      setGatewayBusy(false);
+    }
   };
 
-  // ── Loading skeleton ────────────────────────────────────────────────────
+  const firstRunSteps = [
+    {
+      label: 'Provider',
+      title: 'Add a provider',
+      body: 'Connect OpenAI-compatible, Anthropic-compatible, Gemini, Ollama, or custom local providers.',
+      icon: KeyRound,
+      route: '/settings',
+      done: providers.length > 0,
+    },
+    {
+      label: 'Gateway',
+      title: 'Start the local gateway',
+      body: 'Expose the local OpenAI-compatible gateway at http://127.0.0.1:8317.',
+      icon: Activity,
+      route: '/settings',
+      done: gatewayOnline,
+    },
+    {
+      label: 'Workflow',
+      title: 'Create the first workflow',
+      body: 'Bind a task, prompt skill, provider route, and audit timeline into a repeatable run.',
+      icon: Workflow,
+      route: '/workflows',
+      done: hasTasks,
+    },
+    {
+      label: 'Project',
+      title: 'Create or open a project',
+      body: 'Capture the goal, constraints, stack, and delivery boundary before asking an agent to act.',
+      icon: FolderKanban,
+      route: '/projects',
+      done: hasProjects,
+    },
+    {
+      label: 'Prompt',
+      title: 'Generate the handoff prompt',
+      body: 'Turn a scoped task into an executable prompt for Codex, Claude Code, Cursor, or another agent.',
+      icon: Wand2,
+      route: '/prompts',
+      done: hasPrompts,
+    },
+    {
+      label: 'Guard',
+      title: 'Check risky commands',
+      body: 'Run command ideas through Safety before they touch the local workspace.',
+      icon: Shield,
+      route: '/safety',
+      done: hasSafetyChecks,
+    },
+    {
+      label: 'Memory',
+      title: 'Save recovery context',
+      body: 'Store decisions, fixes, and handoff notes so the next model can resume without guesswork.',
+      icon: Brain,
+      route: '/memory',
+      done: hasMemories,
+    },
+  ];
+
+  const nextStep = firstRunSteps.find((step) => !step.done) || firstRunSteps[firstRunSteps.length - 1];
+
+  const quickActions = [
+    { label: 'Provider Hub', icon: Settings, route: '/settings', tone: 'text-blue-500' },
+    { label: 'Runtime Profile', icon: Activity, route: '/settings', tone: 'text-emerald-500' },
+    { label: 'Skill Hub', icon: Wand2, route: '/skills', tone: 'text-violet-500' },
+    { label: 'Diagnostics', icon: FileSearch, route: '/settings', tone: 'text-amber-500' },
+    { label: 'Shared Memory', icon: Brain, route: '/memory', tone: 'text-rose-500' },
+    { label: 'Git Timeline', icon: GitBranch, route: '/git', tone: 'text-cyan-500' },
+  ];
+
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8 animate-pulse">
-        {/* Stat cards skeleton */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-28 rounded-2xl bg-white/5 border border-white/10" />
+      <div className="mx-auto max-w-7xl space-y-6 px-6 py-8 animate-pulse">
+        <div className="h-44 rounded-2xl bg-white/10" />
+        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <div key={index} className="h-28 rounded-2xl bg-white/10" />
           ))}
         </div>
-        {/* Quick actions skeleton */}
-        <div className="flex flex-wrap gap-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-10 w-40 rounded-xl bg-white/5 border border-white/10" />
-          ))}
-        </div>
-        {/* Charts skeleton */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="h-80 rounded-2xl bg-white/5 border border-white/10" />
-          <div className="h-80 rounded-2xl bg-white/5 border border-white/10" />
-        </div>
-        {/* Cards skeleton */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="h-64 rounded-2xl bg-white/5 border border-white/10" />
-          <div className="h-64 rounded-2xl bg-white/5 border border-white/10" />
+        <div className="grid gap-5 lg:grid-cols-2">
+          <div className="h-72 rounded-2xl bg-white/10" />
+          <div className="h-72 rounded-2xl bg-white/10" />
         </div>
       </div>
     );
   }
 
-  // ── Error state ─────────────────────────────────────────────────────────
-  if (error && !apiAvailable) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <GlassCard className="p-12 text-center">
-          <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-zinc-100 mb-2">数据加载失败</h2>
-          <p className="text-zinc-400 mb-4">{error}</p>
-          <button
-            onClick={fetchData}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-zinc-200 transition-colors"
-          >
-            <RefreshCw className="w-4 h-4" /> 重试
-          </button>
+  return (
+    <div className="mx-auto max-w-7xl space-y-7 px-6 py-8">
+      {!apiAvailable && (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-200">
+          <Sparkles className="h-4 w-4 shrink-0" />
+          LocalAI Nexus is showing demo data because the desktop data bridge is not available in this session.
+        </div>
+      )}
+
+      <section className="liquid-glass-card overflow-hidden p-0">
+        <div className="grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:p-7">
+          <div className="min-w-0">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--glass-surface)] px-3 py-1 text-xs font-semibold text-accent-700 dark:text-accent-300">
+              <Activity className="h-3.5 w-3.5" />
+              Local-first AI orchestration hub
+            </div>
+            <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-950 dark:text-zinc-50">
+              LocalAI Nexus
+            </h1>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 dark:text-zinc-400">
+              Bring projects, model providers, task prompts, safety checks, logs, git context, and shared memory into one local control surface.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  if (nextStep.label === 'Gateway') void startGateway();
+                  else navigate(nextStep.route);
+                }}
+                className="liquid-focus inline-flex min-h-[44px] items-center gap-2 rounded-lg bg-accent-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-accent-500/20 transition-colors hover:bg-accent-500"
+                disabled={gatewayBusy}
+              >
+                {gatewayBusy ? 'Starting gateway...' : `Continue: ${nextStep.title}`}
+                <ArrowRight className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => void fetchData()}
+                className="liquid-focus inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-surface)] px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-white/70 dark:text-zinc-200 dark:hover:bg-white/10"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-[var(--glass-border)] bg-white/40 p-4 shadow-[var(--glass-inner)] dark:bg-white/5">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase text-slate-500 dark:text-zinc-400">
+              <ClipboardCheck className="h-4 w-4" />
+              First-run checklist
+            </div>
+            <div className="mt-4 space-y-2">
+              {firstRunSteps.slice(0, 3).map((step) => (
+                <button
+                  key={step.label}
+                  type="button"
+                  onClick={() => {
+                    if (step.label === 'Gateway') void startGateway();
+                    else navigate(step.route);
+                  }}
+                  className="liquid-focus flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-white/55 dark:hover:bg-white/10"
+                >
+                  {step.done ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <Circle className="h-4 w-4 text-slate-400" />}
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-800 dark:text-zinc-200">{step.title}</span>
+                  <ArrowRight className="h-3.5 w-3.5 text-slate-400" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <GlassCard className="p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase text-slate-500 dark:text-zinc-500">Gateway</p>
+              <h2 className="mt-1 text-lg font-bold text-slate-900 dark:text-zinc-100">
+                {gatewayOnline ? 'Online' : 'Offline'}
+              </h2>
+              <p className="mt-1 text-xs text-slate-600 dark:text-zinc-400">
+                {gatewayStatus?.baseUrl ?? 'http://127.0.0.1:8317'}
+              </p>
+            </div>
+            <span className={`rounded-full px-2 py-1 text-xs font-semibold ${gatewayOnline ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300' : 'bg-amber-500/15 text-amber-600 dark:text-amber-300'}`}>
+              {gatewayOnline ? 'Ready' : 'Start needed'}
+            </span>
+          </div>
+          {!gatewayOnline && (
+            <button
+              type="button"
+              onClick={() => void startGateway()}
+              className="liquid-focus mt-3 inline-flex min-h-[36px] items-center gap-2 rounded-lg border border-[var(--glass-border)] px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-white/65 dark:text-zinc-200 dark:hover:bg-white/10"
+              disabled={gatewayBusy}
+            >
+              <PlayCircle className="h-3.5 w-3.5" />
+              {gatewayBusy ? 'Starting' : 'Start Gateway'}
+            </button>
+          )}
+        </GlassCard>
+
+        <GlassCard className="p-4">
+          <p className="text-xs font-semibold uppercase text-slate-500 dark:text-zinc-500">Default Provider</p>
+          <h2 className="mt-1 truncate text-lg font-bold text-slate-900 dark:text-zinc-100">
+            {activeProviderRecord?.providerName || 'Not selected'}
+          </h2>
+          <p className="mt-1 truncate text-xs text-slate-600 dark:text-zinc-400">
+            {activeProvider.model || activeProviderRecord?.modelName || 'Choose a model in Settings'}
+          </p>
+        </GlassCard>
+
+        <GlassCard className="p-4">
+          <p className="text-xs font-semibold uppercase text-slate-500 dark:text-zinc-500">Token Today</p>
+          <h2 className="mt-1 text-lg font-bold tabular-nums text-slate-900 dark:text-zinc-100">
+            {usageSummary?.totalTokens ?? 0}
+          </h2>
+          <p className="mt-1 text-xs text-slate-600 dark:text-zinc-400">
+            {usageSummary?.todayRequests ?? 0} requests / failure {Math.round((usageSummary?.failureRate ?? 0) * 100)}%
+          </p>
+        </GlassCard>
+
+        <GlassCard className="p-4">
+          <p className="text-xs font-semibold uppercase text-slate-500 dark:text-zinc-500">Health</p>
+          <h2 className="mt-1 text-lg font-bold text-slate-900 dark:text-zinc-100">{providerHealth}</h2>
+          <p className="mt-1 truncate text-xs text-slate-600 dark:text-zinc-400">
+            Recent failure: {recentFailure}
+          </p>
         </GlassCard>
       </div>
-    );
-  }
 
-  // ── Demo banner ─────────────────────────────────────────────────────────
-  const DemoBanner = !apiAvailable ? (
-    <div className="mb-6 px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-sm flex items-center gap-2">
-      <Sparkles className="w-4 h-4 flex-shrink-0" />
-      正在使用演示数据。启动 Electron 应用以连接真实数据。
-    </div>
-  ) : null;
-
-  // ── Render ──────────────────────────────────────────────────────────────
-  return (
-    <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-      {DemoBanner}
-
-      {/* Page header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/45 px-3 py-1 text-xs font-semibold text-slate-600 shadow-[var(--glass-inner)] backdrop-blur-md dark:border-white/10 dark:bg-white/10 dark:text-slate-300">
-            <Sparkles className="h-3.5 w-3.5 text-accent-500" />
-            本地优先的 AI 项目编排工作台
-          </div>
-          <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 dark:text-zinc-100">仪表板</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-zinc-400">
-            从想法、规划、任务、Prompt、安全检查到日志和共享记忆，把一次 AI 协作变成可验证、可恢复的闭环。
-          </p>
-        </div>
-        <button
-          onClick={fetchData}
-          className="liquid-focus rounded-xl border border-white/30 bg-white/45 p-2 text-slate-500 transition-colors hover:bg-white/70 hover:text-slate-800 dark:border-white/10 dark:bg-white/10 dark:text-zinc-400 dark:hover:bg-white/15 dark:hover:text-zinc-200"
-          title="刷新数据"
-          aria-label="刷新数据"
-        >
-          <RefreshCw className="w-4 h-4" />
-        </button>
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+        <StatCard icon={FolderKanban} label="Projects" value={projects.length} color="blue" onClick={() => navigate('/projects')} />
+        <StatCard icon={CheckSquare} label="Tasks" value={tasks.length} color="emerald" onClick={() => navigate('/projects')} />
+        <StatCard icon={Wand2} label="Prompts" value={prompts.length} color="purple" onClick={() => navigate('/prompts')} />
+        <StatCard icon={Shield} label="Safety checks" value={riskCount} color="amber" onClick={() => navigate('/safety')} />
+        <StatCard icon={Brain} label="Memories" value={memories.length} color="pink" onClick={() => navigate('/memory')} />
       </div>
 
-      <GlassCard className="p-5 md:p-6" hoverable>
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-accent-600 dark:text-accent-300">
-              <ClipboardCheck className="h-4 w-4" />
-              下一步
-            </div>
-            <h2 className="mt-2 text-xl font-semibold text-slate-900 dark:text-zinc-100">{nextStep.title}</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 dark:text-zinc-400">{nextStepCopy}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => navigate(nextStep.route)}
-            className="liquid-focus inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-xl bg-accent-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-accent-500/25 transition-all hover:bg-accent-500 active:scale-[0.98]"
-          >
-            继续到 {nextStep.title}
-            <ArrowRight className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="mt-5 grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-8">
-          {workflowSteps.map((step) => (
-            <button
-              key={step.label}
-              type="button"
-              onClick={() => navigate(step.route)}
-              className="liquid-focus rounded-lg border border-white/25 bg-white/35 p-3 text-left transition-colors hover:bg-white/60 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
-              aria-label={`${step.title}${step.done ? '，已完成' : '，待处理'}`}
-            >
-              {step.done ? (
-                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              ) : (
-                <Circle className="h-4 w-4 text-slate-400 dark:text-slate-500" />
-              )}
-              <div className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{step.label}</div>
-              <div className="mt-1 text-xs font-medium text-slate-800 dark:text-zinc-200">{step.title}</div>
-            </button>
-          ))}
-        </div>
-      </GlassCard>
-
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <StatCard
-          icon={FolderKanban}
-          label="项目总数"
-          value={projects.length}
-          color="blue"
-          onClick={() => navigate('/projects')}
-        />
-        <StatCard
-          icon={CheckSquare}
-          label="任务总数"
-          value={tasks.length}
-          color="emerald"
-          onClick={() => navigate('/projects')}
-        />
-        <StatCard
-          icon={Wand2}
-          label="Prompt 数量"
-          value={prompts.length}
-          color="purple"
-          onClick={() => navigate('/prompts')}
-        />
-        <StatCard
-          icon={Shield}
-          label="风险检查"
-          value={riskCount}
-          color="amber"
-          onClick={() => navigate('/safety')}
-        />
-        <StatCard
-          icon={Brain}
-          label="共享记忆"
-          value={memories.length}
-          color="pink"
-          onClick={() => navigate('/memory')}
-        />
-      </div>
-
-      {/* Quick actions */}
-      <div className="flex flex-wrap gap-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
         {quickActions.map((action) => (
           <button
             key={action.label}
             type="button"
             onClick={() => navigate(action.route)}
-            aria-label={`打开${action.label}`}
-            title={`打开${action.label}`}
-            className={`liquid-focus inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-medium text-slate-700 shadow-[var(--glass-inner)] transition-all duration-200 dark:text-zinc-200 ${action.bg}`}
+            className="liquid-focus flex min-h-[76px] items-center gap-3 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-surface)] px-4 py-3 text-left shadow-[var(--glass-inner)] transition-colors hover:bg-white/65 dark:hover:bg-white/10"
           >
-            <action.icon className={`w-4 h-4 ${action.color}`} />
-            {action.label}
-            <ArrowRight className="w-3.5 h-3.5 text-zinc-500" />
+            <action.icon className={`h-5 w-5 shrink-0 ${action.tone}`} />
+            <span className="min-w-0 text-sm font-semibold text-slate-800 dark:text-zinc-200">{action.label}</span>
           </button>
         ))}
       </div>
@@ -488,165 +478,105 @@ export default function Dashboard() {
       <GlassCard className="p-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-base font-semibold text-slate-900 dark:text-zinc-100">新手导航</h2>
-            <p className="text-sm text-slate-600 dark:text-zinc-400 mt-1">第一次打开时，按这六步就能从项目、模板、Provider、运行、Trace 到诊断形成闭环。</p>
+            <h2 className="text-base font-semibold text-slate-900 dark:text-zinc-100">Nexus path</h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-zinc-400">
+              A practical route from first idea to recoverable agent handoff.
+            </p>
           </div>
-          <span className="text-xs text-slate-500 dark:text-zinc-500">本地优先 · 可恢复 · 可验证</span>
+          <span className="text-xs font-medium text-slate-500 dark:text-zinc-500">Local data, explicit handoffs, safer execution</span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-3 mt-4">
-          {beginnerSteps.map((step) => (
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          {firstRunSteps.map((step) => (
             <button
-              key={step.title}
+              key={step.label}
               type="button"
               onClick={() => navigate(step.route)}
-              aria-label={`${step.title}：${step.action}`}
-              title={step.action}
-              className="liquid-focus text-left rounded-lg border border-white/20 bg-white/35 p-4 min-h-[142px] transition-colors hover:bg-white/60 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+              className="liquid-focus min-h-[176px] rounded-lg border border-[var(--glass-border)] bg-white/35 p-4 text-left transition-colors hover:bg-white/65 dark:bg-white/5 dark:hover:bg-white/10"
             >
-              <step.icon className="w-5 h-5 text-blue-300 mb-3" />
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-zinc-100">{step.title}</h3>
-              <p className="text-xs text-slate-600 dark:text-zinc-400 leading-5 mt-2">{step.description}</p>
-              <span className="inline-flex items-center gap-1 text-xs text-blue-300 mt-3">
-                {step.action}
-                <ChevronRight className="w-3 h-3" />
-              </span>
+              <div className="flex items-center justify-between">
+                <step.icon className="h-5 w-5 text-accent-500" />
+                {step.done ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <Circle className="h-4 w-4 text-slate-400" />}
+              </div>
+              <div className="mt-4 text-[11px] font-semibold uppercase text-slate-500 dark:text-zinc-500">{step.label}</div>
+              <h3 className="mt-1 text-sm font-semibold text-slate-900 dark:text-zinc-100">{step.title}</h3>
+              <p className="mt-2 text-xs leading-5 text-slate-600 dark:text-zinc-400">{step.body}</p>
             </button>
           ))}
         </div>
       </GlassCard>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <GlassCard className="p-6">
-          <h3 className="text-sm font-semibold text-zinc-300 mb-4 flex items-center gap-2">
-            <CheckSquare className="w-4 h-4 text-blue-400" />
-            任务状态分布
-          </h3>
-          {tasks.length > 0 ? (
-            <div className="h-64">
-              <TaskStatusChart data={taskStatusDistribution} />
-            </div>
-          ) : (
-            <EmptyState
-              icon={CheckSquare}
-              title="暂无任务"
-              description="创建项目后即可添加任务"
-            />
-          )}
-        </GlassCard>
-
-        <GlassCard className="p-6">
-          <h3 className="text-sm font-semibold text-zinc-300 mb-4 flex items-center gap-2">
-            <Brain className="w-4 h-4 text-pink-400" />
-            记忆类型分布
-          </h3>
-          {memories.length > 0 ? (
-            <div className="h-64">
-              <MemoryTypeChart data={memoryTypeDistribution} />
-            </div>
-          ) : (
-            <EmptyState
-              icon={Brain}
-              title="暂无记忆"
-              description="在项目中创建共享记忆以开始积累知识"
-            />
-          )}
-        </GlassCard>
-      </div>
-
-      {/* Bottom cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Projects */}
-        <GlassCard className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-zinc-300 flex items-center gap-2">
-              <FolderKanban className="w-4 h-4 text-blue-400" />
-              最近项目
-            </h3>
-            <button
-              onClick={() => navigate('/projects')}
-              className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
-            >
-              查看全部 <ChevronRight className="w-3 h-3" />
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-zinc-100">
+              <FolderKanban className="h-4 w-4 text-blue-500" />
+              Recent projects
+            </h2>
+            <button type="button" onClick={() => navigate('/projects')} className="text-xs font-semibold text-accent-600 dark:text-accent-300">
+              View all
             </button>
           </div>
           {recentProjects.length > 0 ? (
             <div className="space-y-2">
-              {recentProjects.map((p) => (
+              {recentProjects.map((project) => (
                 <button
-                  key={p.id}
-                  onClick={() => navigate(`/projects/${p.id}`)}
-                  className="w-full text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors border border-transparent hover:border-white/10"
+                  key={project.id}
+                  type="button"
+                  onClick={() => navigate(`/projects/${project.id}`)}
+                  className="liquid-focus w-full rounded-lg border border-transparent bg-black/5 p-3 text-left transition-colors hover:border-[var(--glass-border)] hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-zinc-200">{p.name}</span>
-                    {statusBadge(p.status)}
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="min-w-0 truncate text-sm font-semibold text-slate-900 dark:text-zinc-100">{project.name}</span>
+                    <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${statusClass[project.status] || statusClass.done}`}>
+                      {statusLabel[project.status] || project.status}
+                    </span>
                   </div>
-                  <p className="text-xs text-zinc-500 mt-1">{truncate(p.idea, 80)}</p>
-                  <p className="text-[11px] text-zinc-600 mt-1">{formatRelativeDate(p.updatedAt)}</p>
+                  <p className="mt-1 text-xs text-slate-600 dark:text-zinc-400">{truncate(project.idea, 96)}</p>
+                  <p className="mt-2 text-[11px] text-slate-500 dark:text-zinc-500">{formatRelativeDate(project.updatedAt)}</p>
                 </button>
               ))}
             </div>
           ) : (
-            <EmptyState
-              icon={FolderKanban}
-              title="暂无项目"
-              description="创建第一个项目开始使用"
-              actionLabel="创建项目"
-              onAction={() => navigate('/projects')}
-            />
+            <EmptyState icon={FolderKanban} title="No projects yet" description="Create a project to start building a recoverable AI workflow." actionLabel="Create project" onAction={() => navigate('/projects')} />
           )}
         </GlassCard>
 
-        {/* Recent Prompts */}
         <GlassCard className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-zinc-300 flex items-center gap-2">
-              <Wand2 className="w-4 h-4 text-purple-400" />
-              最近 Prompt
-            </h3>
-            <button
-              onClick={() => navigate('/prompts')}
-              className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors"
-            >
-              查看全部 <ChevronRight className="w-3 h-3" />
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-zinc-100">
+              <Wand2 className="h-4 w-4 text-violet-500" />
+              Recent prompts
+            </h2>
+            <button type="button" onClick={() => navigate('/prompts')} className="text-xs font-semibold text-accent-600 dark:text-accent-300">
+              Open Lab
             </button>
           </div>
           {recentPrompts.length > 0 ? (
             <div className="space-y-2">
-              {recentPrompts.map((p) => (
+              {recentPrompts.map((prompt) => (
                 <button
-                  key={p.id}
+                  key={prompt.id}
+                  type="button"
                   onClick={() => navigate('/prompts')}
-                  className="w-full text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors border border-transparent hover:border-white/10 flex items-center justify-between"
+                  className="liquid-focus flex w-full items-center gap-3 rounded-lg border border-transparent bg-black/5 p-3 text-left transition-colors hover:border-[var(--glass-border)] hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10"
                 >
+                  <Database className="h-4 w-4 shrink-0 text-violet-500" />
                   <div className="min-w-0 flex-1">
-                    <span className="text-sm font-medium text-zinc-200 block truncate">
-                      {p.name}
-                    </span>
-                    <span className="text-xs text-zinc-500 block truncate mt-0.5">
-                      {truncate(p.content, 60)}
-                    </span>
+                    <div className="truncate text-sm font-semibold text-slate-900 dark:text-zinc-100">{prompt.name || prompt.title || 'Untitled prompt'}</div>
+                    <div className="mt-0.5 truncate text-xs text-slate-600 dark:text-zinc-400">{truncate(prompt.content, 84)}</div>
                   </div>
-                  {p.starred && <Sparkles className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 ml-2" />}
+                  {(prompt.starred || prompt.favorite) && <Sparkles className="h-4 w-4 shrink-0 text-amber-500" />}
                 </button>
               ))}
             </div>
           ) : (
-            <EmptyState
-              icon={Wand2}
-              title="暂无 Prompt"
-              description="在 Prompt Lab 中创建你的第一个模板"
-              actionLabel="前往 Prompt Lab"
-              onAction={() => navigate('/prompts')}
-            />
+            <EmptyState icon={Wand2} title="No saved prompts yet" description="Use Prompt Lab to turn tasks into reusable agent handoffs." actionLabel="Open Prompt Lab" onAction={() => navigate('/prompts')} />
           )}
         </GlassCard>
       </div>
 
-      {/* Subtle footer info */}
-      <p className="text-center text-xs text-zinc-600 pt-4">
-        AgentFlow Studio {apiAvailable ? '' : '— 离线模式'}
+      <p className="pb-2 text-center text-xs text-slate-500 dark:text-zinc-600">
+        LocalAI Nexus {apiAvailable ? '' : '- demo mode'}
       </p>
     </div>
   );
