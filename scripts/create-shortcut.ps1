@@ -1,5 +1,5 @@
 # AgentFlow Studio - Create Desktop Shortcut
-# Current delivery target: stable static fallback launcher.
+# Current delivery target: rebuilt Electron/Vite workflow studio launcher.
 
 [CmdletBinding()]
 param(
@@ -37,17 +37,27 @@ function Test-AgentFlowIcon {
 function Get-AgentFlowLauncher {
     param([Parameter(Mandatory = $true)][string]$Root)
 
-    $staticLauncher = Join-Path $Root "start-agentflow-static.bat"
-    if (Test-Path $staticLauncher -PathType Leaf) {
+    $desktopLauncher = Join-Path $Root "start-agentflow.bat"
+    if (Test-Path $desktopLauncher -PathType Leaf) {
         return [PSCustomObject]@{
-            Kind = "StaticFallbackBat"
-            TargetPath = $staticLauncher
+            Kind = "ElectronViteWorkflowStudio"
+            TargetPath = $desktopLauncher
             WorkingDirectory = $Root
             WindowStyle = 1
         }
     }
 
-    throw "Static launcher not found. Expected start-agentflow-static.bat in $Root."
+    $electronLauncher = Join-Path $Root "start-agentflow-electron.bat"
+    if (Test-Path $electronLauncher -PathType Leaf) {
+        return [PSCustomObject]@{
+            Kind = "ElectronViteWorkflowStudio"
+            TargetPath = $electronLauncher
+            WorkingDirectory = $Root
+            WindowStyle = 1
+        }
+    }
+
+    throw "Rebuilt desktop launcher not found. Expected start-agentflow.bat in $Root."
 }
 
 $iconSize = Test-AgentFlowIcon -Path $icoPath
