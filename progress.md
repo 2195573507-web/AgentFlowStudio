@@ -99,3 +99,4 @@
 - Strengthened `scripts/mojibake-scan.js`; `npm.cmd run scan:mojibake` passed with 144 files checked and 6 legacy docs allowlisted.
 - Focused security tests passed: `secureStore`, `mcpGateway`, `audit`, `resourceAcl`, and `apiRuns`.
 - Full required validation passed: `typecheck`, `test` (19 files / 163 tests), `test:e2e` (14/14), `lint` (0 errors / 28 warnings), `build`, `test:electron-startup`, `test:launch-static`, `test:static-browser`, `smoke` (184/184), `verify` (100/100 + smoke), and `scan:mojibake`.
+- Committed and pushed `0ccaf27 feat: harden security sandbox cleanup phase` to `origin/codex-security-sandbox-cleanup`.

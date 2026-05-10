@@ -98,4 +98,4 @@ Starting from baseline commit `cec7dfb`, preserve the working Static fallback wh
 | 5. MCP runtime gateway/sandbox | complete | Added allowlist-backed gateway decision, restrictive sandbox metadata, audit/run-event trace, and tests. |
 | 6. Audit export checkpoint | complete | Added export manifest/checkpoint hash over audit export metadata and chain head. |
 | 7. Cleanup and mojibake docs | complete | Removed generated shared JS artifacts and strengthened mojibake scanner; broad UI copy cleanup deferred. |
-| 8. Validation, docs, commits, push | in_progress | Full required matrix passed; commit and push next. |
+| 8. Validation, docs, commits, push | complete | Full required matrix passed; committed and pushed `codex-security-sandbox-cleanup`. |
