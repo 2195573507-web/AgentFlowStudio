@@ -107,6 +107,49 @@ Branch: `codex-liquid-glass-ui-agent-optimization`
 - Audit hash chain is tamper-evident but not externally signed.
 - Resource ACL is centered on workflow/project resources; standalone resource-level sharing needs future expansion.
 
+## Security Sandbox Cleanup Round - 2026-05-10
+
+### What Changed
+
+- Added `src/main/secureStore.ts` for Electron `safeStorage` secret envelopes.
+- Provider API keys are now stored as protected envelopes and only returned masked to the renderer.
+- Added durable main-process active session recovery through a protected settings value while keeping raw tokens out of renderer storage.
+- Added dedicated workflow ACL IPC and a Project Detail sharing panel.
+- Added MCP gateway decisions with deny-by-default sandbox metadata and audit/run-event correlation.
+- Added audit export manifests with chain-head checkpoint hashes.
+- Removed generated shared JS artifacts from `src/shared`.
+- Strengthened mojibake scan coverage for common historical corruption markers.
+
+### Focused Results
+
+| Check | Status | Details |
+|---|---:|---|
+| `npm.cmd run typecheck` | PASS | TypeScript passed after security gateway and sharing UI changes. |
+| `npm.cmd run test -- tests/unit/secureStore.test.ts tests/unit/mcpGateway.test.ts tests/unit/audit.test.ts tests/unit/resourceAcl.test.ts tests/unit/apiRuns.test.ts` | PASS | 5 files / 20 tests. |
+| `npm.cmd run scan:mojibake` | PASS | 144 files checked; 6 legacy docs allowlisted. |
+
+### Full Validation Results
+
+| Check | Status | Details |
+|---|---:|---|
+| `npm.cmd run typecheck` | PASS | TypeScript passed. |
+| `npm.cmd run test` | PASS | Vitest: 19 files / 163 tests. |
+| `npm.cmd run test:e2e` | PASS | Playwright React suite: 14/14. |
+| `npm.cmd run lint` | PASS | 0 errors / 28 warnings under threshold. |
+| `npm.cmd run build` | PASS | Renderer and Electron build passed; existing Charts chunk-size and api dynamic-import warnings only. |
+| `npm.cmd run test:electron-startup` | PASS | Electron ready marker captured on `127.0.0.1:5200`. |
+| `npm.cmd run test:launch-static` | PASS | Token-gated static fallback launch returned HTTP 200 and remained alive. |
+| `npm.cmd run test:static-browser` | PASS | Static browser workflow, layout, persistence, redaction, and console/network checks passed. |
+| `npm.cmd run smoke` | PASS | 184/184 checks. |
+| `npm.cmd run verify` | PASS | 100/100 build verification plus smoke 184/184. |
+| `npm.cmd run scan:mojibake` | PASS | 144 files checked; 6 legacy docs allowlisted. |
+
+### Remaining Risk
+
+- Audit manifest checkpoints are local hash manifests, not external signatures.
+- MCP runtime gateway is a decision/sandbox broker only; no tool execution path was added.
+- Full historical UI copy cleanup is still deferred to avoid broad text churn in this security round.
+
 ## Liquid Glass UI And Workflow Onboarding Pass - 2026-05-09
 
 Baseline tag: `codex-liquid-glass-ui-base-20260509-172941`

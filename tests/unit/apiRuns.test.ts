@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../../src/renderer/lib/api'
 import type { ReleaseStatus, Run } from '../../src/shared/types'
+import type { ResourceAcl } from '../../src/shared/authTypes'
 
 const originalWindow = globalThis.window
 
@@ -192,5 +193,35 @@ describe('api.release', () => {
       testResults: [],
     })
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('window.agentflow is not available'))
+  })
+})
+
+describe('api.projects ACL helpers', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    Object.defineProperty(globalThis, 'window', {
+      value: originalWindow,
+      configurable: true,
+      writable: true,
+    })
+  })
+
+  it('uses the dedicated project ACL preload methods', async () => {
+    const acl: ResourceAcl = {
+      ownerUserId: 'owner',
+      visibility: 'shared',
+      entries: [
+        { userId: 'owner', role: 'owner', grantedAt: '2026-05-10T00:00:00.000Z' },
+        { userId: 'viewer', role: 'viewer', grantedAt: '2026-05-10T00:00:00.000Z' },
+      ],
+    }
+    const getAcl = vi.fn(async () => ({ projectId: 'project-1', acl, ownerUserId: 'owner' }))
+    const updateAcl = vi.fn(async () => ({ id: 'project-1', acl }))
+    setAgentflowBridge({ projects: { getAcl, updateAcl } })
+
+    await expect(api.projects.getAcl('project-1')).resolves.toEqual({ projectId: 'project-1', acl, ownerUserId: 'owner' })
+    await expect(api.projects.updateAcl('project-1', acl)).resolves.toEqual({ id: 'project-1', acl })
+    expect(getAcl).toHaveBeenCalledWith('project-1')
+    expect(updateAcl).toHaveBeenCalledWith('project-1', acl)
   })
 })

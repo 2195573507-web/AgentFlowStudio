@@ -44,6 +44,12 @@ describe('resource scoped ACL', () => {
     expect(canAccessProjectResource(ctx('editor'), baseProject, 'admin')).toBe(false)
   })
 
+  it('requires owner-level resource access for ACL administration', () => {
+    expect(canAccessProjectResource(ctx('viewer'), baseProject, 'admin')).toBe(false)
+    expect(canAccessProjectResource(ctx('editor'), baseProject, 'admin')).toBe(false)
+    expect(canAccessProjectResource(ctx('owner'), baseProject, 'admin')).toBe(true)
+  })
+
   it('allows owners and admins to administer resources', () => {
     expect(canAccessProjectResource(ctx('owner'), baseProject, 'admin')).toBe(true)
     expect(canAccessProjectResource(ctx('someone', 'admin'), baseProject, 'admin')).toBe(true)

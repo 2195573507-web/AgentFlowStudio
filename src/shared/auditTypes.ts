@@ -27,6 +27,12 @@ export interface AuditEvent {
     | 'security.exception'
     | 'export'
     | 'admin.operation'
+    | 'workflow.acl.update'
+    | 'provider.secret_stored'
+    | 'provider.secret_migrated'
+    | 'provider.secret_unreadable'
+    | 'auth.session_restored'
+    | 'auth.session_restore_unavailable'
   action: string
   status: AuditStatus
   severity: AuditSeverity
@@ -50,6 +56,18 @@ export interface AuditIntegrityReport {
   firstBrokenEventId?: string
   lastHash?: string
   generatedAt: string
+}
+
+export interface AuditExportManifest {
+  version: 1
+  exportedAt: string
+  eventCount: number
+  chainHeadHash: string
+  integrityOk: boolean
+  integrityHash: string
+  checkpoint: string
+  hashAlgorithm: 'sha256'
+  manifestHash: string
 }
 
 export interface AuditQuery {

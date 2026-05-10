@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { IPC_CHANNELS } from '../shared/types.js';
-import type { MemoryInjectionMode } from '../shared/types.js';
+import type { McpGatewayRequest, MemoryInjectionMode } from '../shared/types.js';
 import type { AuditQuery } from '../shared/auditTypes.js';
 import type { ChangePasswordRequest, CreateUserRequest, LoginRequest, ResetPasswordRequest, UpdateUserRequest } from '../shared/authTypes.js';
 
@@ -19,6 +19,7 @@ export interface AgentFlowAPI {
   };
   users: {
     list(): Promise<unknown>;
+    directory(): Promise<unknown>;
     create(request: CreateUserRequest): Promise<unknown>;
     update(request: UpdateUserRequest): Promise<unknown>;
     resetPassword(request: ResetPasswordRequest): Promise<unknown>;
@@ -33,6 +34,8 @@ export interface AgentFlowAPI {
     create(data: unknown): Promise<unknown>;
     update(id: string, data: unknown): Promise<unknown>;
     delete(id: string): Promise<unknown>;
+    getAcl(id: string): Promise<unknown>;
+    updateAcl(id: string, acl: unknown): Promise<unknown>;
   };
   tasks: {
     list(projectId: string): Promise<unknown>;
@@ -55,6 +58,7 @@ export interface AgentFlowAPI {
     allowlist(): Promise<unknown>;
     check(request: { serverName: string; toolName: string }): Promise<unknown>;
     upsert(entry: unknown): Promise<unknown>;
+    evaluate(request: McpGatewayRequest): Promise<unknown>;
   };
   git: {
     log(repoPath: string): Promise<unknown>;
@@ -122,6 +126,7 @@ const api: AgentFlowAPI = {
 
   users: {
     list: () => ipcRenderer.invoke(IPC_CHANNELS.USER_LIST, buildAuthEnvelope()),
+    directory: () => ipcRenderer.invoke(IPC_CHANNELS.USER_DIRECTORY, buildAuthEnvelope()),
     create: (request: CreateUserRequest) => ipcRenderer.invoke(IPC_CHANNELS.USER_CREATE, buildAuthEnvelope(), request),
     update: (request: UpdateUserRequest) => ipcRenderer.invoke(IPC_CHANNELS.USER_UPDATE, buildAuthEnvelope(), request),
     resetPassword: (request: ResetPasswordRequest) =>
@@ -139,6 +144,8 @@ const api: AgentFlowAPI = {
     create: (data: unknown) => ipcRenderer.invoke(IPC_CHANNELS.PROJECT_CREATE, buildAuthEnvelope(), data),
     update: (id: string, data: unknown) => ipcRenderer.invoke(IPC_CHANNELS.PROJECT_UPDATE, buildAuthEnvelope(), id, data),
     delete: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.PROJECT_DELETE, buildAuthEnvelope(), id),
+    getAcl: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.PROJECT_ACL_GET, buildAuthEnvelope(), id),
+    updateAcl: (id: string, acl: unknown) => ipcRenderer.invoke(IPC_CHANNELS.PROJECT_ACL_UPDATE, buildAuthEnvelope(), id, acl),
   },
 
   tasks: {
@@ -166,6 +173,8 @@ const api: AgentFlowAPI = {
     check: (request: { serverName: string; toolName: string }) =>
       ipcRenderer.invoke(IPC_CHANNELS.MCP_ALLOWLIST_CHECK, buildAuthEnvelope(), request),
     upsert: (entry: unknown) => ipcRenderer.invoke(IPC_CHANNELS.MCP_ALLOWLIST_UPSERT, buildAuthEnvelope(), entry),
+    evaluate: (request: McpGatewayRequest) =>
+      ipcRenderer.invoke(IPC_CHANNELS.MCP_GATEWAY_EVALUATE, buildAuthEnvelope(), request),
   },
 
   git: {

@@ -27,6 +27,9 @@ import {
   Lightbulb,
   Timer,
   Upload,
+  Share2,
+  Users,
+  ShieldCheck,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { generateProjectPlan } from '../lib/planner';
@@ -39,11 +42,13 @@ import {
   parseRunNodeTrace,
   serializeRun,
 } from '../lib/runLogs';
-import { GlassCard, Badge, Button, Input, Textarea, TaskBoard } from '../components/';
+import { GlassCard, Badge, Button, Input, Textarea, TaskBoard, Modal } from '../components/';
 import type {
   Project, ProjectPlan, Task, Run, Memory, MemoryInjectionMode, MemoryType,
   RunNodeTrace,
 } from '../lib/types';
+import type { PublicUser, ResourceAcl, ResourceRole } from '../../shared/authTypes';
+import { useAuth } from '../lib/auth';
 import { formatDate, formatRelativeDate, copyToClipboard, classNames } from '../lib/utils';
 
 // ── Demo project ───────────────────────────────────────────────────────────
@@ -266,6 +271,21 @@ const RUN_STATUS_OPTIONS = [
   { value: 'blocked', label: '受阻', variant: 'warning' as const },
 ];
 
+const WORKFLOW_SHARE_ROLES: ResourceRole[] = ['viewer', 'editor', 'owner'];
+
+function defaultAclForProject(project: Project): ResourceAcl {
+  const ownerUserId = project.ownerUserId || project.acl?.ownerUserId || '';
+  return {
+    ownerUserId,
+    visibility: project.acl?.visibility ?? 'private',
+    entries: project.acl?.entries?.length
+      ? project.acl.entries
+      : ownerUserId
+        ? [{ userId: ownerUserId, role: 'owner', grantedAt: project.createdAt }]
+        : [],
+  };
+}
+
 function getRunStatusInfo(status: string) {
   return RUN_STATUS_OPTIONS.find((item) => item.value === status) || RUN_STATUS_OPTIONS[0];
 }
@@ -275,6 +295,7 @@ export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
 
   const [project, setProject] = useState<Project | null>(null);
   const [plan, setPlan] = useState<ProjectPlan | null>(null);
@@ -296,6 +317,12 @@ export default function ProjectDetail() {
   const [runSummary, setRunSummary] = useState('');
   const [runLog, setRunLog] = useState('');
   const [runSaveStatus, setRunSaveStatus] = useState<string | null>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareUsers, setShareUsers] = useState<PublicUser[]>([]);
+  const [shareAcl, setShareAcl] = useState<ResourceAcl | null>(null);
+  const [shareUserId, setShareUserId] = useState('');
+  const [shareRole, setShareRole] = useState<ResourceRole>('viewer');
+  const [shareStatus, setShareStatus] = useState<string | null>(null);
   const navigationState = useMemo(
     () => location.state as { highlightPlan?: boolean; project?: Project } | null,
     [location.state],
@@ -303,6 +330,14 @@ export default function ProjectDetail() {
   const shouldHighlightPlan =
     new URLSearchParams(location.search).get('next') === 'plan' ||
     Boolean(navigationState?.highlightPlan);
+  const projectAcl = project ? (shareAcl ?? defaultAclForProject(project)) : null;
+  const currentAclRole = projectAcl?.entries.find((entry) => entry.userId === user?.id)?.role;
+  const canManageSharing = Boolean(
+    user?.role === 'admin' ||
+      currentAclRole === 'owner' ||
+      project?.ownerUserId === user?.id ||
+      project?.acl?.ownerUserId === user?.id,
+  );
 
   // ── Fetch ──────────────────────────────────────────────────────────────
   const fetchProject = useCallback(async () => {
@@ -376,6 +411,70 @@ export default function ProjectDetail() {
   }, [id, navigationState]);
 
   useEffect(() => { fetchProject(); }, [fetchProject]);
+
+  const loadSharing = useCallback(async () => {
+    if (!id || !project) return;
+    setShareStatus(null);
+    const [aclResult, usersResult] = await Promise.all([
+      api.projects.getAcl(id),
+      api.users.directory(),
+    ]);
+    if (aclResult && typeof aclResult === 'object' && 'error' in aclResult) {
+      setShareStatus(String(aclResult.error));
+    } else {
+      setShareAcl(aclResult.acl);
+    }
+    if (Array.isArray(usersResult)) setShareUsers(usersResult.filter((item) => item.status === 'active'));
+  }, [id, project]);
+
+  const openShareModal = async () => {
+    setShowShareModal(true);
+    await loadSharing();
+  };
+
+  const saveAcl = async (nextAcl: ResourceAcl) => {
+    if (!project) return;
+    setShareStatus('Saving access changes...');
+    const result = await api.projects.updateAcl(project.id, nextAcl);
+    if (result && typeof result === 'object' && 'error' in result) {
+      setShareStatus(String(result.error));
+      return;
+    }
+    setProject(result as Project);
+    setShareAcl((result as Project).acl ?? nextAcl);
+    setShareStatus('Access updated.');
+  };
+
+  const addShareMember = async () => {
+    if (!projectAcl || !shareUserId) return;
+    const now = new Date().toISOString();
+    const entries = projectAcl.entries.filter((entry) => entry.userId !== shareUserId);
+    await saveAcl({
+      ...projectAcl,
+      visibility: 'shared',
+      entries: [...entries, { userId: shareUserId, role: shareRole, grantedBy: user?.id, grantedAt: now }],
+    });
+    setShareUserId('');
+    setShareRole('viewer');
+  };
+
+  const updateShareRole = async (memberUserId: string, role: ResourceRole) => {
+    if (!projectAcl) return;
+    await saveAcl({
+      ...projectAcl,
+      entries: projectAcl.entries.map((entry) => entry.userId === memberUserId ? { ...entry, role } : entry),
+    });
+  };
+
+  const removeShareMember = async (memberUserId: string) => {
+    if (!projectAcl) return;
+    const entries = projectAcl.entries.filter((entry) => entry.userId !== memberUserId);
+    await saveAcl({
+      ...projectAcl,
+      visibility: entries.length > 1 ? 'shared' : 'private',
+      entries,
+    });
+  };
 
   // ── Generate plan ──────────────────────────────────────────────────────
   const handleGeneratePlan = async () => {
@@ -663,6 +762,13 @@ export default function ProjectDetail() {
 
           <div className="flex flex-wrap items-center gap-2">
             <Button
+              variant="ghost"
+              onClick={openShareModal}
+              icon={<Share2 className="w-4 h-4" />}
+            >
+              Access
+            </Button>
+            <Button
               onClick={handleGeneratePlan}
               loading={generating}
               icon={<Sparkles className="w-4 h-4" />}
@@ -687,6 +793,111 @@ export default function ProjectDetail() {
           </div>
         </div>
       </GlassCard>
+
+      <Modal
+        open={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        title="Workflow access"
+        size="lg"
+      >
+        <div className="space-y-4">
+          <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-surface)] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-accent-400" />
+                <div>
+                  <div className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
+                    {projectAcl?.visibility === 'shared' ? 'Shared workflow' : 'Private workflow'}
+                  </div>
+                  <div className="text-xs text-slate-500 dark:text-zinc-500">
+                    IPC enforces workflow access; this panel only manages the ACL.
+                  </div>
+                </div>
+              </div>
+              <Badge variant={canManageSharing ? 'success' : 'warning'}>
+                {canManageSharing ? 'Owner/Admin' : 'Read only'}
+              </Badge>
+            </div>
+          </div>
+
+          {canManageSharing && (
+            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_160px_auto]">
+              <select
+                aria-label="Share user"
+                value={shareUserId}
+                onChange={(event) => setShareUserId(event.target.value)}
+                className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-surface)] px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+              >
+                <option value="">Select user</option>
+                {shareUsers
+                  .filter((item) => !projectAcl?.entries.some((entry) => entry.userId === item.id))
+                  .map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.profile.displayName || item.email} ({item.email})
+                    </option>
+                  ))}
+              </select>
+              <select
+                aria-label="Share role"
+                value={shareRole}
+                onChange={(event) => setShareRole(event.target.value as ResourceRole)}
+                className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-surface)] px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+              >
+                {WORKFLOW_SHARE_ROLES.map((role) => (
+                  <option key={role} value={role}>{role}</option>
+                ))}
+              </select>
+              <Button onClick={addShareMember} disabled={!shareUserId} icon={<Users className="w-4 h-4" />}>
+                Add
+              </Button>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            {(projectAcl?.entries ?? []).map((entry) => {
+              const member = shareUsers.find((item) => item.id === entry.userId);
+              const label = member?.profile.displayName || member?.email || entry.userId;
+              const isOwner = entry.userId === projectAcl?.ownerUserId || entry.role === 'owner';
+              return (
+                <div
+                  key={entry.userId}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--glass-border)] bg-white/35 p-3 dark:bg-zinc-950/30"
+                >
+                  <div>
+                    <div className="text-sm font-medium text-slate-900 dark:text-zinc-100">{label}</div>
+                    <div className="text-xs text-slate-500 dark:text-zinc-500">{member?.email || entry.userId}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {canManageSharing && !isOwner ? (
+                      <select
+                        aria-label={`Role for ${label}`}
+                        value={entry.role}
+                        onChange={(event) => updateShareRole(entry.userId, event.target.value as ResourceRole)}
+                        className="rounded-lg border border-[var(--glass-border)] bg-[var(--glass-surface)] px-2 py-1 text-xs text-slate-800 dark:text-slate-100"
+                      >
+                        {WORKFLOW_SHARE_ROLES.filter((role) => role !== 'owner').map((role) => (
+                          <option key={role} value={role}>{role}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <Badge variant={isOwner ? 'success' : 'default'}>{entry.role}</Badge>
+                    )}
+                    {canManageSharing && !isOwner && (
+                      <Button size="sm" variant="ghost" onClick={() => removeShareMember(entry.userId)}>
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {shareStatus && (
+            <p className="text-xs text-slate-500 dark:text-zinc-400">{shareStatus}</p>
+          )}
+        </div>
+      </Modal>
 
       {shouldHighlightPlan && !plan && (
         <GlassCard

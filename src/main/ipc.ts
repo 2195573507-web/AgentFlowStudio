@@ -3,14 +3,15 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import { randomUUID } from 'crypto';
 import { IPC_CHANNELS } from '../shared/types.js';
-import type { MemoryType, ReleaseStatus, ReleaseTestResult, ReleaseTestStatus } from '../shared/types.js';
+import type { McpAllowlistEntry, McpGatewayRequest, MemoryType, Project, ReleaseStatus, ReleaseTestResult, ReleaseTestStatus } from '../shared/types.js';
 import { sanitizeObject } from '../shared/secretRedaction.js';
+import { buildAuditExportManifest } from '../shared/auditCore.js';
 import storage from './storage.js';
 import { getGitLog, getGitStatus, getGitSummary } from './git.js';
 import { readSkillsFromDir, fileExists } from './filesystem.js';
 import { sanitizeFilePath, sanitizeRealFilePath, validateUserChosenSavePath } from './security.js';
 import type { AuditQuery } from '../shared/auditTypes.js';
-import type { ChangePasswordRequest, CreateUserRequest, LoginRequest, ResetPasswordRequest, UpdateUserRequest } from '../shared/authTypes.js';
+import type { ChangePasswordRequest, CreateUserRequest, LoginRequest, ResetPasswordRequest, ResourceAcl, ResourceRole, UpdateUserRequest } from '../shared/authTypes.js';
 import { assertProjectAccess, canAccessProjectResource, canRole, type Permission, type ResourceAction } from './rbac.js';
 import {
   bootstrapAuth,
@@ -28,6 +29,8 @@ import {
 } from './session.js';
 import { listAuditEvents, recordAudit } from './audit.js';
 import { verifyAuditIntegrity } from './audit.js';
+import { isProtectedSecret, maskSecret, protectSecret } from './secureStore.js';
+import { evaluateMcpGatewayRequest } from './mcpGateway.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -57,6 +60,8 @@ const CHANNEL_PERMISSIONS: Partial<Record<string, Permission>> = {
   [IPC_CHANNELS.PROJECT_CREATE]: 'project:write',
   [IPC_CHANNELS.PROJECT_UPDATE]: 'project:write',
   [IPC_CHANNELS.PROJECT_DELETE]: 'project:write',
+  [IPC_CHANNELS.PROJECT_ACL_GET]: 'project:read',
+  [IPC_CHANNELS.PROJECT_ACL_UPDATE]: 'project:write',
   [IPC_CHANNELS.TASK_LIST]: 'project:read',
   [IPC_CHANNELS.TASK_CREATE]: 'task:write',
   [IPC_CHANNELS.TASK_UPDATE]: 'task:write',
@@ -71,6 +76,7 @@ const CHANNEL_PERMISSIONS: Partial<Record<string, Permission>> = {
   [IPC_CHANNELS.MCP_ALLOWLIST_LIST]: 'mcp:write',
   [IPC_CHANNELS.MCP_ALLOWLIST_CHECK]: 'mcp:write',
   [IPC_CHANNELS.MCP_ALLOWLIST_UPSERT]: 'mcp:write',
+  [IPC_CHANNELS.MCP_GATEWAY_EVALUATE]: 'mcp:write',
   [IPC_CHANNELS.GIT_LOG]: 'git:read',
   [IPC_CHANNELS.GIT_STATUS]: 'git:read',
   [IPC_CHANNELS.GIT_SUMMARY]: 'git:read',
@@ -100,6 +106,7 @@ const CHANNEL_PERMISSIONS: Partial<Record<string, Permission>> = {
   [IPC_CHANNELS.USER_CREATE]: 'admin:users',
   [IPC_CHANNELS.USER_UPDATE]: 'admin:users',
   [IPC_CHANNELS.USER_RESET_PASSWORD]: 'admin:users',
+  [IPC_CHANNELS.USER_DIRECTORY]: 'project:write',
   [IPC_CHANNELS.AUDIT_LIST]: 'admin:audit',
   [IPC_CHANNELS.AUDIT_EXPORT]: 'admin:audit',
 };
@@ -175,6 +182,41 @@ function aclForOwner(context: SessionContext) {
     visibility: 'private' as const,
     entries: [{ userId: context.user.id, role: 'owner' as const, grantedBy: context.user.id, grantedAt: now }],
   };
+}
+
+function sanitizeProjectAcl(input: unknown, fallback: ResourceAcl): ResourceAcl {
+  const source = input && typeof input === 'object' ? (input as Partial<ResourceAcl>) : {};
+  const ownerUserId = String(source.ownerUserId || fallback.ownerUserId);
+  const entries = Array.isArray(source.entries) ? source.entries : fallback.entries;
+  const allowedRoles = new Set<ResourceRole>(['owner', 'editor', 'viewer']);
+  const normalized = entries
+    .flatMap((entry) => {
+      const role = (entry as { role?: ResourceRole }).role;
+      const userId = String((entry as { userId?: unknown }).userId ?? '').trim();
+      if (!userId || !role || !allowedRoles.has(role)) return [];
+      return [{
+        userId,
+        role,
+        grantedBy: String((entry as { grantedBy?: unknown }).grantedBy ?? ''),
+        grantedAt: String((entry as { grantedAt?: unknown }).grantedAt ?? new Date().toISOString()),
+      }];
+    });
+  if (!normalized.some((entry) => entry.userId === ownerUserId && entry.role === 'owner')) {
+    normalized.unshift({ userId: ownerUserId, role: 'owner', grantedBy: ownerUserId, grantedAt: new Date().toISOString() });
+  }
+  return {
+    ownerUserId,
+    visibility: normalized.length > 1 ? 'shared' : 'private',
+    entries: normalized,
+  };
+}
+
+async function getProjectAclPayload(projectId: string, context: SessionContext | undefined) {
+  const project = await storage.getById<Project>('projects', projectId);
+  if (!project) throw new Error('Project not found.');
+  assertProjectAccess(context as SessionContext, project, 'read');
+  const acl = project.acl ?? aclForOwner(context as SessionContext);
+  return { projectId, acl, ownerUserId: project.ownerUserId ?? acl.ownerUserId };
 }
 
 async function getProjectForAccess(projectId: string) {
@@ -259,10 +301,9 @@ const ALLOWED_STORAGE_COLLECTIONS = new Set([
   'settings',
 ]);
 
-const MASKED_SECRET = '[REDACTED]';
 const MASKED_API_KEY_PREFIX = 'Saved key ending in ';
 
-type ProviderRecord = { id: string; apiKey?: string; [key: string]: unknown };
+type ProviderRecord = { id: string; providerName?: string; apiKey?: unknown; [key: string]: unknown };
 
 function assertAllowedCollection(collection: string): void {
   if (!ALLOWED_STORAGE_COLLECTIONS.has(collection)) {
@@ -401,10 +442,7 @@ async function buildReleaseStatus(repoPath?: string): Promise<ReleaseStatus> {
 }
 
 function maskApiKey(apiKey: unknown): string {
-  if (typeof apiKey !== 'string' || apiKey.length === 0) return '';
-  if (apiKey === MASKED_SECRET || apiKey.startsWith(MASKED_API_KEY_PREFIX)) return apiKey;
-  const last4 = apiKey.slice(-4);
-  return last4 ? `${MASKED_API_KEY_PREFIX}${last4}` : MASKED_SECRET;
+  return maskSecret(apiKey);
 }
 
 function maskProviderForRenderer<T extends { apiKey?: unknown }>(provider: T): T {
@@ -417,11 +455,11 @@ function maskProviderForRenderer<T extends { apiKey?: unknown }>(provider: T): T
 function isMaskedApiKey(value: unknown): boolean {
   return (
     typeof value === 'string' &&
-    (value === '' || value === MASKED_SECRET || value.startsWith(MASKED_API_KEY_PREFIX))
+    (value === '' || value === '[REDACTED]' || value.startsWith(MASKED_API_KEY_PREFIX))
   );
 }
 
-function sanitizeProviderForStorage(data: unknown, existingApiKey = ''): unknown {
+function sanitizeProviderForStorage(data: unknown, existingApiKey: unknown = ''): unknown {
   const payload = sanitizeObject(data) as { apiKey?: unknown; [key: string]: unknown };
   const source =
     data && typeof data === 'object' ? (data as { apiKey?: unknown; [key: string]: unknown }) : {};
@@ -431,16 +469,54 @@ function sanitizeProviderForStorage(data: unknown, existingApiKey = ''): unknown
     if (isMaskedApiKey(submittedApiKey)) {
       payload.apiKey = existingApiKey;
     } else {
-      payload.apiKey = submittedApiKey;
+      payload.apiKey = protectSecret(submittedApiKey, 'provider.apiKey');
     }
   }
 
   return payload;
 }
 
+async function migrateProviderSecretIfNeeded(provider: ProviderRecord): Promise<ProviderRecord> {
+  if (!provider.apiKey || isProtectedSecret(provider.apiKey) || isMaskedApiKey(provider.apiKey)) return provider;
+  if (typeof provider.apiKey !== 'string') return provider;
+  try {
+    const protectedApiKey = protectSecret(provider.apiKey, 'provider.apiKey');
+    const updated = await storage.update('providerSettings', provider.id, { apiKey: protectedApiKey } as never);
+    await recordAudit({
+      type: 'provider.secret_migrated',
+      action: 'provider.secret.migrate',
+      status: 'success',
+      severity: 'info',
+      actor: {},
+      resource: { type: 'provider', id: provider.id, label: provider.providerName },
+    });
+    return (updated ?? { ...provider, apiKey: protectedApiKey }) as ProviderRecord;
+  } catch (err) {
+    await recordAudit({
+      type: 'provider.secret_unreadable',
+      action: 'provider.secret.migrate',
+      status: 'failure',
+      severity: 'warning',
+      actor: {},
+      resource: { type: 'provider', id: provider.id, label: provider.providerName },
+      metadata: { reason: err instanceof Error ? err.message : String(err) },
+    });
+    return provider;
+  }
+}
+
+async function listProvidersForRenderer(): Promise<ProviderRecord[]> {
+  const providers = await storage.getAll<ProviderRecord>('providerSettings');
+  const migrated: ProviderRecord[] = [];
+  for (const provider of providers) {
+    migrated.push(await migrateProviderSecretIfNeeded(provider));
+  }
+  return migrated.map(maskProviderForRenderer);
+}
+
 async function mergeProviderUpdate(id: string, data: unknown): Promise<unknown> {
   const existing = await storage.getById<ProviderRecord>('providerSettings', id);
-  return sanitizeProviderForStorage(data, existing?.apiKey ?? '');
+  return sanitizeProviderForStorage(data, existing?.apiKey);
 }
 
 // ---------------------------------------------------------------------------
@@ -605,6 +681,21 @@ export function registerIpcHandlers(): void {
     }
   });
 
+  ipcMain.handle(IPC_CHANNELS.USER_DIRECTORY, async (_event, context?: SessionContext) => {
+    try {
+      if (!context) throw new Error('Authentication required.');
+      return (await listUsers()).map((user) => ({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+        profile: user.profile,
+      }));
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
   ipcMain.handle(IPC_CHANNELS.AUDIT_LIST, async (_event, query?: AuditQuery) => {
     try {
       return await listAuditEvents(query ?? {});
@@ -617,7 +708,9 @@ export function registerIpcHandlers(): void {
     try {
       const events = await listAuditEvents({ limit: Number.MAX_SAFE_INTEGER });
       const integrity = await verifyAuditIntegrity();
-      return { auditLogs: events, integrity, exportedAt: new Date().toISOString() };
+      const exportedAt = new Date().toISOString();
+      const manifest = buildAuditExportManifest(events, integrity, exportedAt);
+      return { auditLogs: events, integrity, manifest, exportedAt };
     } catch (err) {
       return handleError(err);
     }
@@ -708,13 +801,55 @@ export function registerIpcHandlers(): void {
       await assertProjectResourceAccess(context, id, 'write');
       const existing = await storage.getById<{ id: string; ownerUserId?: string; acl?: unknown }>('projects', id);
       const incoming = data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
+      const { acl: _acl, ownerUserId: _ownerUserId, ...safeIncoming } = incoming;
       const payload = {
-        ...incoming,
+        ...safeIncoming,
         ownerUserId: existing?.ownerUserId,
-        acl: incoming.acl ?? existing?.acl,
+        acl: existing?.acl,
       };
       const updated = await storage.update('projects', id, payload as never);
       await recordMutationAudit(context, 'workflow.update', { type: 'workflow', id });
+      return updated;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.PROJECT_ACL_GET, async (_event, id: string, context?: SessionContext) => {
+    try {
+      return await getProjectAclPayload(id, context);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.PROJECT_ACL_UPDATE, async (_event, id: string, acl: unknown, context?: SessionContext) => {
+    try {
+      if (!context) throw new Error('Authentication required.');
+      await assertProjectResourceAccess(context, id, 'admin');
+      const project = await storage.getById<Project>('projects', id);
+      if (!project) throw new Error('Project not found.');
+      const fallback = project.acl ?? aclForOwner(context);
+      const nextAcl = sanitizeProjectAcl(acl, fallback);
+      const updated = await storage.update('projects', id, {
+        acl: nextAcl,
+        ownerUserId: nextAcl.ownerUserId,
+        updatedAt: new Date().toISOString(),
+      } as never);
+      await recordAudit({
+        type: 'workflow.acl.update',
+        action: 'workflow.acl.update',
+        status: 'success',
+        severity: 'warning',
+        actor: actorFor(context),
+        resource: { type: 'workflow', id, label: project.name },
+        metadata: {
+          visibility: nextAcl.visibility,
+          memberCount: nextAcl.entries.length,
+          roles: nextAcl.entries.map((entry) => ({ userId: entry.userId, role: entry.role })),
+          projectId: id,
+        },
+      });
       return updated;
     } catch (err) {
       return handleError(err);
@@ -884,10 +1019,9 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.MCP_ALLOWLIST_CHECK, async (_event, request: unknown, context?: SessionContext) => {
     try {
-      const serverName = String((request as { serverName?: unknown })?.serverName ?? '');
-      const toolName = String((request as { toolName?: unknown })?.toolName ?? '');
-      const entries = await storage.getAll<{ id: string; serverName: string; toolName: string; enabled: boolean; permission?: string }>('mcpAllowlist');
-      const allowed = entries.some((entry) => entry.enabled && entry.serverName === serverName && entry.toolName === toolName);
+      const entries = await storage.getAll<McpAllowlistEntry>('mcpAllowlist');
+      const decision = evaluateMcpGatewayRequest(request as McpGatewayRequest, entries);
+      const { serverName, toolName, allowed } = decision;
       await recordAudit({
         type: allowed ? 'mcp.allowed' : 'mcp.denied',
         action: 'mcp.allowlist.check',
@@ -897,7 +1031,39 @@ export function registerIpcHandlers(): void {
         resource: { type: 'mcp_tool', id: `${serverName}:${toolName}`, label: toolName },
         metadata: { serverName, toolName },
       });
-      return { allowed };
+      return { allowed, decision };
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.MCP_GATEWAY_EVALUATE, async (_event, request: McpGatewayRequest, context?: SessionContext) => {
+    try {
+      if (request.projectId) await assertProjectResourceAccess(context, request.projectId, 'write');
+      const entries = await storage.getAll<McpAllowlistEntry>('mcpAllowlist');
+      const decision = evaluateMcpGatewayRequest(request, entries);
+      await recordAudit({
+        type: decision.allowed ? 'mcp.allowed' : 'mcp.denied',
+        action: 'mcp.gateway.evaluate',
+        status: decision.allowed ? 'success' : 'denied',
+        severity: decision.allowed ? 'info' : 'warning',
+        actor: actorFor(context),
+        resource: { type: 'mcp_tool', id: `${decision.serverName}:${decision.toolName}`, label: decision.toolName },
+        metadata: { ...decision, projectId: request.projectId, runId: request.runId },
+      });
+      await storage.create('runEvents', {
+        id: randomUUID(),
+        projectId: request.projectId ?? '',
+        runId: request.runId ?? '',
+        type: decision.allowed ? 'mcp.allowed' : 'mcp.denied',
+        status: decision.allowed ? 'success' : 'denied',
+        actorUserId: context?.user.id,
+        title: `MCP ${decision.serverName}:${decision.toolName}`,
+        detail: decision.reason,
+        metadata: decision,
+        createdAt: decision.checkedAt,
+      } as never).catch(() => undefined);
+      return decision;
     } catch (err) {
       return handleError(err);
     }
@@ -1081,6 +1247,7 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.SETTINGS_GET, async (_event, key: string) => {
     try {
+      if (key === 'auth.activeSessionSecret') return null;
       const all = await storage.getAll<{ id: string; [key: string]: unknown }>('settings');
       const entry = all.find((s) => s.id === key);
       return entry ?? null;
@@ -1091,6 +1258,7 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.SETTINGS_SET, async (_event, key: string, value: unknown) => {
     try {
+      if (key === 'auth.activeSessionSecret') throw new Error('This setting is managed by the main process.');
       const all = await storage.getAll<{ id: string; [key: string]: unknown }>('settings');
       const existing = all.find((s) => s.id === key);
       if (existing) {
@@ -1104,7 +1272,9 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.SETTINGS_GET_ALL, async () => {
     try {
-      const all = await storage.getAll<{ id: string; [key: string]: unknown }>('settings');
+      const all = (await storage.getAll<{ id: string; [key: string]: unknown }>('settings')).filter(
+        (setting) => setting.id !== 'auth.activeSessionSecret',
+      );
       const result: Record<string, unknown> = {};
       for (const s of all) {
         result[String(s.id)] = s.value;
@@ -1119,29 +1289,46 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.PROVIDER_LIST, async () => {
     try {
-      const providers = await storage.getAll<ProviderRecord>('providerSettings');
-      return providers.map(maskProviderForRenderer);
+      return await listProvidersForRenderer();
     } catch (err) {
       return handleError(err);
     }
   });
 
-  ipcMain.handle(IPC_CHANNELS.PROVIDER_CREATE, async (_event, data: unknown) => {
+  ipcMain.handle(IPC_CHANNELS.PROVIDER_CREATE, async (_event, data: unknown, context?: SessionContext) => {
     try {
       const provider = await storage.create(
         'providerSettings',
         sanitizeProviderForStorage(data) as never,
       );
+      await recordAudit({
+        type: 'provider.secret_stored',
+        action: 'provider.secret.store',
+        status: 'success',
+        severity: 'info',
+        actor: actorFor(context),
+        resource: { type: 'provider', id: provider.id, label: String((provider as ProviderRecord).providerName ?? '') },
+      });
       return maskProviderForRenderer(provider as ProviderRecord);
     } catch (err) {
       return handleError(err);
     }
   });
 
-  ipcMain.handle(IPC_CHANNELS.PROVIDER_UPDATE, async (_event, id: string, data: unknown) => {
+  ipcMain.handle(IPC_CHANNELS.PROVIDER_UPDATE, async (_event, id: string, data: unknown, context?: SessionContext) => {
     try {
       const payload = await mergeProviderUpdate(id, data);
       const provider = await storage.update('providerSettings', id, payload as never);
+      if ((data as { apiKey?: unknown })?.apiKey && !isMaskedApiKey((data as { apiKey?: unknown }).apiKey)) {
+        await recordAudit({
+          type: 'provider.secret_stored',
+          action: 'provider.secret.update',
+          status: 'success',
+          severity: 'info',
+          actor: actorFor(context),
+          resource: { type: 'provider', id, label: String((provider as ProviderRecord)?.providerName ?? '') },
+        });
+      }
       return maskProviderForRenderer(provider as ProviderRecord);
     } catch (err) {
       return handleError(err);

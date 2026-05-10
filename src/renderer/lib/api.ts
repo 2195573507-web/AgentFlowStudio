@@ -15,8 +15,10 @@ import type {
   GitCommitEntry,
   ReleaseStatus,
   MemoryInjectionMode,
+  McpGatewayDecision,
+  McpGatewayRequest,
 } from '../../shared/types';
-import type { AuditEvent, AuditQuery } from '../../shared/auditTypes';
+import type { AuditEvent, AuditExportManifest, AuditIntegrityReport, AuditQuery } from '../../shared/auditTypes';
 import type {
   AuthSessionState,
   ChangePasswordRequest,
@@ -24,6 +26,7 @@ import type {
   LoginRequest,
   LoginResult,
   PublicUser,
+  ResourceAcl,
   ResetPasswordRequest,
   ResetPasswordResult,
   SessionUser,
@@ -42,13 +45,14 @@ interface AgentFlowPreloadAPI {
   };
   users?: {
     list(): Promise<PublicUser[] | { error: string }>;
+    directory?(): Promise<PublicUser[] | { error: string }>;
     create(request: CreateUserRequest): Promise<PublicUser | { error: string }>;
     update(request: UpdateUserRequest): Promise<PublicUser | { error: string }>;
     resetPassword(request: ResetPasswordRequest): Promise<ResetPasswordResult | { error: string }>;
   };
   audit?: {
     list(query?: AuditQuery): Promise<AuditEvent[] | { error: string }>;
-    exportAll(): Promise<{ auditLogs: AuditEvent[]; exportedAt: string } | { error: string }>;
+    exportAll(): Promise<{ auditLogs: AuditEvent[]; integrity?: AuditIntegrityReport; manifest?: AuditExportManifest; exportedAt: string } | { error: string }>;
   };
   storage?: {
     get<T>(key: string): Promise<T | null>;
@@ -62,6 +66,8 @@ interface AgentFlowPreloadAPI {
     create(project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'> | Project): Promise<Project>;
     update(id: string, updates: Partial<Project>): Promise<Project | null>;
     delete(id: string): Promise<boolean>;
+    getAcl?(id: string): Promise<{ projectId: string; acl: ResourceAcl; ownerUserId: string } | { error: string }>;
+    updateAcl?(id: string, acl: ResourceAcl): Promise<Project | { error: string }>;
   };
   tasks?: {
     list(projectId?: string): Promise<Task[]>;
@@ -84,6 +90,7 @@ interface AgentFlowPreloadAPI {
     allowlist(): Promise<unknown[]>;
     check(request: { serverName: string; toolName: string }): Promise<{ allowed: boolean } | { error: string }>;
     upsert(entry: unknown): Promise<unknown>;
+    evaluate?(request: McpGatewayRequest): Promise<McpGatewayDecision | { error: string }>;
   };
   git?: {
     log(repoPath: string): Promise<GitCommitEntry[]>;
@@ -344,6 +351,12 @@ export const api = {
         (a) => a.users?.list() ?? Promise.resolve([]),
         [],
       ),
+    directory: () =>
+      apiCall<PublicUser[] | { error: string }>(
+        'users.directory',
+        (a) => a.users?.directory?.() ?? a.users?.list() ?? Promise.resolve([]),
+        [],
+      ),
     create: (request: CreateUserRequest) =>
       apiCall<PublicUser | { error: string }>(
         'users.create',
@@ -372,7 +385,7 @@ export const api = {
         [],
       ),
     exportAll: () =>
-      apiCall<{ auditLogs: AuditEvent[]; exportedAt: string } | { error: string }>(
+      apiCall<{ auditLogs: AuditEvent[]; integrity?: AuditIntegrityReport; manifest?: AuditExportManifest; exportedAt: string } | { error: string }>(
         'audit.exportAll',
         (a) => a.audit?.exportAll() ?? Promise.resolve({ auditLogs: [], exportedAt: new Date().toISOString() }),
         { auditLogs: [], exportedAt: new Date().toISOString() },
@@ -426,6 +439,18 @@ export const api = {
       ),
     delete: (id: string) =>
       apiCall<boolean>('deleteProject', (a) => a.projects?.delete(id) ?? a.deleteProject(id), false),
+    getAcl: (id: string) =>
+      apiCall<{ projectId: string; acl: ResourceAcl; ownerUserId: string } | { error: string }>(
+        'projects.getAcl',
+        (a) => a.projects?.getAcl?.(id) ?? Promise.resolve({ error: 'Project ACL bridge unavailable.' }),
+        { error: 'Project ACL bridge unavailable.' },
+      ),
+    updateAcl: (id: string, acl: ResourceAcl) =>
+      apiCall<Project | { error: string }>(
+        'projects.updateAcl',
+        (a) => a.projects?.updateAcl?.(id, acl) ?? Promise.resolve({ error: 'Project ACL bridge unavailable.' }),
+        { error: 'Project ACL bridge unavailable.' },
+      ),
   },
 
   // ── Tasks ──
@@ -506,6 +531,12 @@ export const api = {
       apiCall<{ allowed: boolean } | { error: string }>('mcp.check', (a) => a.mcp?.check(request) ?? Promise.resolve({ allowed: false }), { allowed: false }),
     upsert: (entry: unknown) =>
       apiCall<unknown>('mcp.upsert', (a) => a.mcp?.upsert(entry) ?? Promise.resolve({ error: 'MCP bridge unavailable.' }), { error: 'MCP bridge unavailable.' }),
+    evaluate: (request: McpGatewayRequest) =>
+      apiCall<McpGatewayDecision | { error: string }>(
+        'mcp.evaluate',
+        (a) => a.mcp?.evaluate?.(request) ?? Promise.resolve({ error: 'MCP gateway bridge unavailable.' }),
+        { error: 'MCP gateway bridge unavailable.' },
+      ),
   },
 
   // ── Git ──

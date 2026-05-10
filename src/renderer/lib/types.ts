@@ -9,6 +9,8 @@ export type {
   MemoryType,
   MemoryStatus,
   MemoryInjectionMode,
+  McpGatewayDecision,
+  McpGatewayRequest,
   RiskLevel,
   ThemeMode,
   AITool,

@@ -1,4 +1,4 @@
-import type { AuditEvent, AuditQuery } from './auditTypes.js';
+import type { AuditEvent, AuditExportManifest, AuditIntegrityReport, AuditQuery } from './auditTypes.js';
 import { sanitizeObject } from './secretRedaction.js';
 import crypto from 'node:crypto';
 
@@ -39,6 +39,38 @@ function stableStringify(value: unknown): string {
       .join(',')}}`;
   }
   return JSON.stringify(value);
+}
+
+function sha256(value: string): string {
+  return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+export function buildAuditExportManifest(
+  events: AuditEvent[],
+  integrity: AuditIntegrityReport,
+  exportedAt: string,
+): AuditExportManifest {
+  const integrityHash = sha256(stableStringify(integrity));
+  const checkpoint = sha256(stableStringify({
+    exportedAt,
+    eventIds: events.map((event) => event.id),
+    chainHeadHash: integrity.lastHash ?? '',
+    integrityHash,
+  }));
+  const manifestWithoutHash = {
+    version: 1 as const,
+    exportedAt,
+    eventCount: events.length,
+    chainHeadHash: integrity.lastHash ?? '',
+    integrityOk: integrity.ok,
+    integrityHash,
+    checkpoint,
+    hashAlgorithm: 'sha256' as const,
+  };
+  return {
+    ...manifestWithoutHash,
+    manifestHash: sha256(stableStringify(manifestWithoutHash)),
+  };
 }
 
 export function filterAuditEvents(events: AuditEvent[], query: AuditQuery = {}): AuditEvent[] {

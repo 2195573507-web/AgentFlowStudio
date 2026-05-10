@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AuditEvent } from '../../src/shared/auditTypes'
-import { computeAuditHash, filterAuditEvents, sanitizeAuditEvent, verifyAuditChain } from '../../src/shared/auditCore'
+import { buildAuditExportManifest, computeAuditHash, filterAuditEvents, sanitizeAuditEvent, verifyAuditChain } from '../../src/shared/auditCore'
 
 const base: AuditEvent = {
   id: 'a1',
@@ -59,5 +59,18 @@ describe('audit logs', () => {
 
     expect(filterAuditEvents(events).length).toBe(200)
     expect(filterAuditEvents(events, { limit: Number.MAX_SAFE_INTEGER }).length).toBe(1005)
+  })
+
+  it('builds a tamper-evident audit export manifest', () => {
+    const event = { ...base, previousHash: '', chainVersion: 1 as const, retentionUntil: '2026-11-10T00:00:00.000Z' }
+    event.hash = computeAuditHash(event)
+    const integrity = { ...verifyAuditChain([event]), generatedAt: '2026-05-10T00:02:00.000Z' }
+    const manifest = buildAuditExportManifest([event], integrity, '2026-05-10T00:03:00.000Z')
+
+    expect(manifest.eventCount).toBe(1)
+    expect(manifest.chainHeadHash).toBe(event.hash)
+    expect(manifest.checkpoint).toHaveLength(64)
+    expect(manifest.manifestHash).toHaveLength(64)
+    expect(buildAuditExportManifest([{ ...event, id: 'tampered' }], integrity, '2026-05-10T00:03:00.000Z').checkpoint).not.toBe(manifest.checkpoint)
   })
 })

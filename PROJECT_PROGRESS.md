@@ -287,3 +287,24 @@ Branch: `codex-liquid-glass-ui-agent-optimization`
 - Add an MCP runtime gateway that enforces allowlist decisions before any tool execution and logs input/output summaries.
 - Add optional external audit-chain checkpoints or signed export manifests.
 - Continue UTF-8 cleanup for historical docs now that the mojibake gate exists.
+
+# 2026-05-10 Security Sandbox Cleanup Round
+
+## Completed
+
+- Added main-process `safeStorage` wrapping for provider API keys and durable active-session recovery.
+- Kept renderer session storage token-free; renderer settings cannot read or write `auth.activeSessionSecret`.
+- Added lazy migration for existing plaintext provider API keys into protected envelopes.
+- Added dedicated workflow ACL IPC (`project:acl:get`, `project:acl:update`) and a Project Detail access panel.
+- Hardened `project:update` so editor-level writes cannot mutate `acl` or `ownerUserId`.
+- Added MCP runtime gateway evaluation with allowlist matching, name validation, argument-size limit, restrictive sandbox metadata, audit logs, and run events.
+- Added audit export manifest/checkpoint hashes over export metadata and chain head.
+- Deleted generated `src/shared/types.js` and `src/shared/types.js.map`.
+- Strengthened mojibake scan patterns and added safety/unit/smoke coverage for this round.
+
+## Remaining Risk
+
+- Audit export manifests are hash checkpoints, not externally signed with a private key.
+- MCP gateway evaluates and records decisions; it does not execute tools.
+- `safeStorage` availability depends on OS/user session support. Provider key writes fail closed if unavailable.
+- Large-scale historical mojibake cleanup still needs a controlled UI copy pass to avoid breaking existing static/E2E keyword checks.

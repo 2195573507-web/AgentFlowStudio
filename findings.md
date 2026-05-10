@@ -81,3 +81,18 @@
 - OWASP logging guidance supports retention boundaries, tamper detection, and testing logging failure behavior. The implemented hash chain and retention metadata are a local JSON-compatible first layer, not a replacement for append-only or externally signed logs.
 - Workflow tools such as n8n use workflow/project sharing roles like admin/editor/viewer and restrict workflow actions by role. The new ACL model mirrors that shape around workflow/project resources.
 - Agent tracing systems model workflow runs as timelines/traces of tool calls, guardrails, handoffs, and custom events. The new `runEvents` collection is the local foundation for correlating run creation, permission denial, MCP decisions, and audit events.
+
+## Round 12 Reconnaissance Notes - 2026-05-10
+
+- `src/main/ipc.ts` is the central permission truth. Renderer preload only sends an auth envelope, while `readAuthHeader()` resolves the active main-process session token.
+- Provider settings still store raw `apiKey` values in JSON with renderer masking on read. This is the primary durable `safeStorage` target.
+- `src/main/storage.ts` has a closed `CollectionName` union. New security state should be explicit collections, not ad hoc files.
+- `src/shared/types.js` and `src/shared/types.js.map` are generated artifacts inside `src/shared`; they should be deleted if no runtime import requires them.
+- Handoff/README docs still contain legacy mojibake content. The previous scanner allowed these as historical docs; Round 12 should clean actively maintained docs and keep or remove allowlist entries accordingly.
+
+## Round 12 Implementation Findings
+
+- `project:update` previously preserved incoming `acl` under project write access. This would let editors attempt ACL mutation through a generic update payload. Dedicated ACL IPC now owns sharing changes and requires resource admin access.
+- Provider key masking alone was insufficient because JSON storage still held raw submitted keys. Provider writes now protect new keys and lazy-migrate plaintext legacy keys when listing providers.
+- The MCP allowlist needed a runtime decision object rather than a boolean check. The gateway now returns sandbox metadata and denial reasons before any future execution path can run.
+- `src/shared/types.js` and `src/shared/types.js.map` were tracked generated artifacts with no repository references; they were removed.

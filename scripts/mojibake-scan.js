@@ -4,9 +4,14 @@ import { join, relative } from 'node:path'
 const root = process.cwd()
 const roots = ['src', 'tests', 'scripts', 'static-app', 'handoff', 'README.md', 'AGENTS.md', 'PROJECT_PROGRESS.md']
 const ignoredDirs = new Set(['node_modules', '.git', '.codex-parallel', 'dist', 'dist-electron', 'release'])
+const boxDrawingMojibake = String.fromCharCode(0x9239)
+const smartQuoteMojibake = String.fromCharCode(0x9225, 0x3f)
+const arrowMojibake = String.fromCharCode(0x920b, 0x3f)
 const suspicious = [
   { label: 'replacement character', test: (text) => text.includes(String.fromCharCode(0xfffd)) },
   { label: 'latin-1 mojibake', test: (text) => /[\u00c2\u00c3]/.test(text) || text.includes(String.fromCharCode(0x00e2, 0x20ac)) },
+  { label: 'box drawing mojibake', test: (text) => text.includes(boxDrawingMojibake) },
+  { label: 'smart quote mojibake', test: (text) => text.includes(smartQuoteMojibake) || text.includes(arrowMojibake) },
   { label: 'common Chinese mojibake', test: (text) => text.includes(String.fromCharCode(0x95c8, 0x6b39)) || text.includes(String.fromCharCode(0x9396, 0x611f)) || text.includes(String.fromCharCode(0x6924, 0x572d)) },
 ]
 const textExt = /\.(ts|tsx|js|mjs|cjs|json|md|html|css|ps1|bat)$/i

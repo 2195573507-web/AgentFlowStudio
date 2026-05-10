@@ -86,3 +86,16 @@
 - Confirmed mojibake scan exists as `npm.cmd run scan:mojibake` with legacy docs allowlisted.
 - Final validation passed: `typecheck`, `test` 155/155, `test:e2e` 14/14, `lint`, `build`, `test:electron-startup`, `test:launch-static`, `test:static-browser`, `smoke` 179/179, `verify`, and `scan:mojibake`.
 - Updated `PROJECT_PROGRESS.md`, `handoff/TEST_REPORT.md`, `task_plan.md`, and `progress.md` with this round's completed work and residual risks.
+
+## 2026-05-10 Round 12 Security Sandbox Cleanup
+
+- Started from `codex-liquid-glass-ui-agent-optimization` and created `codex-security-sandbox-cleanup`.
+- Required baseline commands completed: `git status -sb` and `git fetch --all --prune --tags`.
+- Restored planning context from `task_plan.md`, `progress.md`, `findings.md`, README, package scripts, and handoff files.
+- Spawned three read-only reconnaissance agents for durable safeStorage/session, workflow sharing ACL UI, and MCP/audit/cleanup.
+- Noted `rg` is blocked in this Windows environment with `Access is denied`; using PowerShell file enumeration and text search instead.
+- Implemented `secureStore`, provider API key protection, active session recovery, dedicated workflow ACL IPC/UI, MCP gateway decisions, audit export manifests, and safety tests.
+- Removed generated `src/shared/types.js` and `src/shared/types.js.map`.
+- Strengthened `scripts/mojibake-scan.js`; `npm.cmd run scan:mojibake` passed with 144 files checked and 6 legacy docs allowlisted.
+- Focused security tests passed: `secureStore`, `mcpGateway`, `audit`, `resourceAcl`, and `apiRuns`.
+- Full required validation passed: `typecheck`, `test` (19 files / 163 tests), `test:e2e` (14/14), `lint` (0 errors / 28 warnings), `build`, `test:electron-startup`, `test:launch-static`, `test:static-browser`, `smoke` (184/184), `verify` (100/100 + smoke), and `scan:mojibake`.

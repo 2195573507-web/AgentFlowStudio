@@ -126,6 +126,31 @@ export interface McpAllowlistEntry {
   updatedAt: string
 }
 
+export interface McpGatewayRequest {
+  serverName: string
+  toolName: string
+  arguments?: unknown
+  projectId?: string
+  runId?: string
+}
+
+export interface McpGatewayDecision {
+  id: string
+  serverName: string
+  toolName: string
+  allowed: boolean
+  reason: string
+  allowlistEntryId?: string
+  riskLevel?: WorkflowTemplateRisk
+  sandbox: {
+    network: 'denied'
+    filesystem: 'read-only'
+    commandExecution: 'denied'
+    maxArgumentBytes: number
+  }
+  checkedAt: string
+}
+
 export interface RunNodeTrace {
   id: string
   name: string
@@ -349,6 +374,8 @@ export const IPC_CHANNELS = {
   PROJECT_CREATE: 'project:create',
   PROJECT_UPDATE: 'project:update',
   PROJECT_DELETE: 'project:delete',
+  PROJECT_ACL_GET: 'project:acl:get',
+  PROJECT_ACL_UPDATE: 'project:acl:update',
 
   // Tasks
   TASK_LIST: 'task:list',
@@ -371,6 +398,7 @@ export const IPC_CHANNELS = {
   MCP_ALLOWLIST_LIST: 'mcp:allowlist:list',
   MCP_ALLOWLIST_CHECK: 'mcp:allowlist:check',
   MCP_ALLOWLIST_UPSERT: 'mcp:allowlist:upsert',
+  MCP_GATEWAY_EVALUATE: 'mcp:gateway:evaluate',
 
   // Git
   GIT_LOG: 'git:log',
@@ -424,6 +452,7 @@ export const IPC_CHANNELS = {
   USER_CREATE: 'user:create',
   USER_UPDATE: 'user:update',
   USER_RESET_PASSWORD: 'user:resetPassword',
+  USER_DIRECTORY: 'user:directory',
 
   // Audit
   AUDIT_LIST: 'audit:list',

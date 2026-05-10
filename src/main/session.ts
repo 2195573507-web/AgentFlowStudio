@@ -17,6 +17,7 @@ import {
 import storage from './storage.js';
 import { getPermissionsForRole, isValidRole } from './rbac.js';
 import { recordAudit } from './audit.js';
+import { isProtectedSecret, isSecureStoreAvailable, protectSecret, unprotectSecret } from './secureStore.js';
 import type { CreateUserRequest, LoginRequest, ResetPasswordRequest, UpdateUserRequest } from '../shared/authTypes.js';
 
 export interface SessionContext {
@@ -25,6 +26,12 @@ export interface SessionContext {
 }
 
 let activeRendererSession: { sessionId: string; token: string } | null = null;
+const ACTIVE_SESSION_SETTING_ID = 'auth.activeSessionSecret';
+
+type ActiveSessionSecret = {
+  sessionId: string;
+  token: string;
+};
 
 export function getActiveRendererSession(): { sessionId?: string; sessionToken?: string } {
   return {
@@ -36,6 +43,87 @@ export function getActiveRendererSession(): { sessionId?: string; sessionToken?:
 export function clearActiveRendererSession(sessionId?: string): void {
   if (!sessionId || activeRendererSession?.sessionId === sessionId) {
     activeRendererSession = null;
+  }
+}
+
+async function persistActiveSessionSecret(sessionId: string, token: string): Promise<void> {
+  if (!isSecureStoreAvailable()) {
+    await recordAudit({
+      type: 'auth.session_restore_unavailable',
+      action: 'auth.session.persist',
+      status: 'denied',
+      severity: 'warning',
+      actor: {},
+      resource: { type: 'session', id: sessionId },
+      metadata: { reason: 'safeStorage_unavailable' },
+    });
+    return;
+  }
+  const envelope = protectSecret(JSON.stringify({ sessionId, token }), 'auth.session');
+  const existing = await storage.getById<{ id: string; value?: unknown }>('settings', ACTIVE_SESSION_SETTING_ID);
+  if (existing) {
+    await storage.update('settings', ACTIVE_SESSION_SETTING_ID, { value: envelope } as never);
+  } else {
+    await storage.create('settings', { id: ACTIVE_SESSION_SETTING_ID, value: envelope } as never);
+  }
+}
+
+async function clearPersistedActiveSessionSecret(sessionId?: string): Promise<void> {
+  const existing = await storage.getById<{ id: string; value?: unknown }>('settings', ACTIVE_SESSION_SETTING_ID);
+  if (!existing) return;
+  if (sessionId && isProtectedSecret(existing.value)) {
+    const decrypted = unprotectSecret(existing.value);
+    if (decrypted) {
+      try {
+        const parsed = JSON.parse(decrypted) as ActiveSessionSecret;
+        if (parsed.sessionId !== sessionId) return;
+      } catch {
+        // Corrupt session secrets should be cleared below.
+      }
+    }
+  }
+  await storage.delete('settings', ACTIVE_SESSION_SETTING_ID);
+}
+
+async function restoreActiveSessionFromSecureStore(sessionId?: string): Promise<void> {
+  if (activeRendererSession) return;
+  const existing = await storage.getById<{ id: string; value?: unknown }>('settings', ACTIVE_SESSION_SETTING_ID);
+  if (!existing?.value) return;
+  if (!isSecureStoreAvailable()) {
+    await recordAudit({
+      type: 'auth.session_restore_unavailable',
+      action: 'auth.session.restore',
+      status: 'denied',
+      severity: 'warning',
+      actor: {},
+      metadata: { reason: 'safeStorage_unavailable' },
+    });
+    return;
+  }
+  const decrypted = unprotectSecret(existing.value);
+  if (!decrypted) {
+    await clearPersistedActiveSessionSecret();
+    return;
+  }
+  try {
+    const parsed = JSON.parse(decrypted) as ActiveSessionSecret;
+    if (sessionId && parsed.sessionId !== sessionId) return;
+    const ctx = await validateSession(parsed.sessionId, parsed.token);
+    if (!ctx) {
+      await clearPersistedActiveSessionSecret(parsed.sessionId);
+      return;
+    }
+    activeRendererSession = { sessionId: parsed.sessionId, token: parsed.token };
+    await recordAudit({
+      type: 'auth.session_restored',
+      action: 'auth.session.restore',
+      status: 'success',
+      severity: 'info',
+      actor: { userId: ctx.user.id, email: ctx.user.email, role: ctx.user.role, sessionId: ctx.session.id },
+      resource: { type: 'session', id: ctx.session.id },
+    });
+  } catch {
+    await clearPersistedActiveSessionSecret();
   }
 }
 
@@ -123,6 +211,7 @@ export async function login(request: LoginRequest) {
   const { session, token } = createSession(user.id, undefined, now);
   activeRendererSession = { sessionId: session.id, token };
   await storage.create('sessions', session as never);
+  await persistActiveSessionSecret(session.id, token);
   const updated = await storage.update('users', user.id, {
     failedLoginCount: 0,
     lockedUntil: undefined,
@@ -160,6 +249,7 @@ export async function validateSession(sessionId?: string, token?: string): Promi
 }
 
 export async function sessionState(sessionId?: string, token?: string) {
+  await restoreActiveSessionFromSecureStore(sessionId);
   if (!sessionId && !token) {
     const active = getActiveRendererSession();
     sessionId = active.sessionId;
@@ -180,6 +270,7 @@ export async function logout(sessionId?: string, token?: string): Promise<boolea
   if (!ctx) return false;
   await storage.update('sessions', ctx.session.id, { revokedAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as never);
   clearActiveRendererSession(ctx.session.id);
+  await clearPersistedActiveSessionSecret(ctx.session.id);
   await recordAudit({
     type: 'auth.logout',
     action: 'auth.logout',
@@ -202,6 +293,21 @@ async function revokeUserSessions(userId: string, exceptSessionId?: string): Pro
   if (!exceptSessionId && activeRendererSession) {
     const active = sessions.find((session) => session.id === activeRendererSession?.sessionId);
     if (active?.userId === userId) clearActiveRendererSession(active.id);
+  }
+  const persisted = await storage.getById<{ id: string; value?: unknown }>('settings', ACTIVE_SESSION_SETTING_ID);
+  if (persisted?.value && isProtectedSecret(persisted.value)) {
+    const decrypted = unprotectSecret(persisted.value);
+    if (decrypted) {
+      try {
+        const parsed = JSON.parse(decrypted) as ActiveSessionSecret;
+        const session = sessions.find((item) => item.id === parsed.sessionId);
+        if (session?.userId === userId && session.id !== exceptSessionId) {
+          await clearPersistedActiveSessionSecret(session.id);
+        }
+      } catch {
+        await clearPersistedActiveSessionSecret();
+      }
+    }
   }
 }
 

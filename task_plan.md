@@ -86,3 +86,16 @@ Starting from baseline commit `cec7dfb`, preserve the working Static fallback wh
 3. Add an MCP runtime gateway/sandbox that consumes the allowlist before tool execution.
 4. Add signed audit export manifests or external hash checkpoints.
 5. Plan a controlled UTF-8 cleanup of historical mojibake docs.
+
+## Round 12 - Security Sandbox Cleanup
+
+| Phase | Status | Notes |
+|---|---|---|
+| 1. Baseline and branch | complete | Ran `git status -sb`, `git fetch --all --prune --tags`, and created `codex-security-sandbox-cleanup`. |
+| 2. Parallel reconnaissance | complete | Subagents returned findings for safeStorage/session, workflow sharing ACL UI, MCP gateway/audit/cleanup candidates. |
+| 3. Durable secret/session wrapper | complete | Added main-process safeStorage wrapper, provider secret envelopes, protected active session recovery, and tests. |
+| 4. Workflow sharing UI and IPC | complete | Added dedicated ACL IPC and Project Detail sharing UI; main process requires owner/admin ACL access. |
+| 5. MCP runtime gateway/sandbox | complete | Added allowlist-backed gateway decision, restrictive sandbox metadata, audit/run-event trace, and tests. |
+| 6. Audit export checkpoint | complete | Added export manifest/checkpoint hash over audit export metadata and chain head. |
+| 7. Cleanup and mojibake docs | complete | Removed generated shared JS artifacts and strengthened mojibake scanner; broad UI copy cleanup deferred. |
+| 8. Validation, docs, commits, push | in_progress | Full required matrix passed; commit and push next. |
