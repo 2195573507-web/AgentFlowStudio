@@ -4,7 +4,7 @@ export const LANGUAGE_KEY = 'agentflow.language';
 
 const translations = {
   zh: {
-    'nav.dashboard': '仪表盘',
+    'nav.dashboard': '仪表板',
     'nav.projects': '项目管理',
     'nav.projectDetail': '项目详情',
     'nav.promptLab': '提示词实验室',
@@ -12,6 +12,8 @@ const translations = {
     'nav.safetyBox': '安全检查',
     'nav.sharedMemory': '共享记忆中心',
     'nav.skills': '技能管理',
+    'nav.adminUsers': 'Admin Users',
+    'nav.adminAudit': 'Audit Logs',
     'nav.gitTimeline': 'Git 时间线',
     'nav.settings': '设置',
     'topbar.language': 'English',
@@ -22,7 +24,7 @@ const translations = {
     'error.title': '页面加载失败',
     'error.body': '当前页面遇到渲染错误，其他功能仍可继续使用。',
     'error.retry': '重试',
-    'error.backDashboard': '返回仪表盘',
+    'error.backDashboard': '返回仪表板',
   },
   en: {
     'nav.dashboard': 'Dashboard',
@@ -33,6 +35,8 @@ const translations = {
     'nav.safetyBox': 'SafetyBox',
     'nav.sharedMemory': 'Shared Memory Hub',
     'nav.skills': 'Skills',
+    'nav.adminUsers': 'Admin Users',
+    'nav.adminAudit': 'Audit Logs',
     'nav.gitTimeline': 'Git Timeline',
     'nav.settings': 'Settings',
     'topbar.language': '中文',

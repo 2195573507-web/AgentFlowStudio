@@ -188,3 +188,44 @@
 - 建立 MCP allowlist 与只读工具试点，先暴露查询项目、列任务、读记忆等低风险能力。
 - 引入沙箱执行调研：优先只做受限模板/Jinja 或只读代码片段验证。
 - 把 run quality checklist 产生的失败样本转成 eval case，并加入人工评分入口。
+
+# 2026-05-10 Auth / Admin / RBAC / Audit Round
+
+## Completed
+
+- Added local user authentication for the Electron app.
+- Default admin is initialized as `123@admin.com` with password `123456`, but the password is immediately hashed with PBKDF2 and the account is marked `mustChangePassword`.
+- Added session persistence through an opaque `sessionId` + `sessionToken` stored in renderer localStorage and verified in the main process.
+- Added secure logout, failed-login counters, and temporary lockout after repeated failures.
+- Added admin user management: list users, create users, change role, enable/disable users, and reset passwords with one-time random temporary passwords.
+- Added RBAC policy in the main process. Frontend route guards now match backend IPC guards, but IPC remains the source of truth.
+- Added redacted audit logging and searchable/exportable audit UI.
+- Added tests for password hashing, password verification, session validation, lockout helpers, RBAC, audit redaction/filtering, protected routes, admin denial, user creation flow, logout, and audit UI.
+- Replaced the renderer `i18n.ts` translation table with valid UTF-8 to remove a brittle mojibake parse failure.
+
+## Security Design Notes
+
+- Passwords are never stored in plaintext. Stored user records contain `passwordHash`, `passwordSalt`, iterations, and digest metadata.
+- The default bootstrap password exists only in the shared auth initializer path; password reset flows no longer reuse it and do not persist plaintext temporary passwords.
+- The renderer never decides authorization. It can hide routes/buttons, but all privileged IPC channels require a valid session and role permission in `src/main/ipc.ts`.
+- Generic storage remains collection-allowlisted and now sits behind session permission checks.
+- Provider write operations are admin-only through `provider:write`.
+- Audit events are sanitized with the shared recursive secret redaction path before persistence and export.
+
+## Architecture Debt Report
+
+- JSON storage is still a local single-device store. Multi-user/team collaboration will need migration metadata, conflict handling, and likely SQLite or another transactional adapter.
+- Session tokens are opaque and hashed in storage, but renderer localStorage is not equivalent to OS credential storage. Future desktop hardening should consider Electron `safeStorage` for local session token wrapping.
+- RBAC is role-based only. Future workflow sharing, MCP, sandbox, and team workspaces need resource-scoped ACLs.
+- Audit logs are append-only JSON records but do not yet have retention, tamper evidence, or timeline correlation with workflow run events.
+- Static fallback is not yet auth-gated; it remains a lightweight fallback shell and should either gain matching auth or be clearly scoped as demo/local fallback.
+- Some historical source/docs still contain mojibake. Only `src/renderer/lib/i18n.ts` was cleaned this round.
+
+## Validation
+
+- `npm.cmd run typecheck`: PASS.
+- `npm.cmd run test`: PASS, 16 files / 149 tests.
+- `npm.cmd run test:e2e`: PASS, 14/14.
+- `npm.cmd run lint`: PASS, 0 errors / 28 warnings under threshold.
+- `npm.cmd run build`: PASS, with existing Charts chunk-size warning and api dynamic-import note.
+- `npm.cmd run smoke`: PASS, 168/168.

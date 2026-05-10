@@ -6,6 +6,56 @@ test.describe('AgentFlow Studio React web entry', () => {
     const pageErrors: string[] = []
     const networkFailures: string[] = []
 
+    await page.addInitScript(() => {
+      const user = {
+        id: 'e2e-user',
+        email: 'e2e@example.com',
+        role: 'admin',
+        status: 'active',
+        profile: { displayName: 'E2E User' },
+        mustChangePassword: false,
+        failedLoginCount: 0,
+        permissions: [
+          'app:read',
+          'project:read',
+          'project:write',
+          'task:write',
+          'prompt:write',
+          'run:write',
+          'memory:read',
+          'memory:write',
+          'memory:export',
+          'provider:read',
+          'provider:write',
+          'git:read',
+          'skill:read',
+          'export:write',
+          'settings:read',
+          'settings:write',
+          'dialog:open',
+          'admin:users',
+          'admin:audit',
+        ],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+      localStorage.setItem('agentflow.auth.session', JSON.stringify({ sessionId: 'e2e-session', sessionToken: 'e2e-token' }))
+      Object.defineProperty(window, 'agentflow', {
+        configurable: true,
+        value: {
+          auth: {
+            bootstrap: async () => ({ ok: true }),
+            session: async () => ({ authenticated: true, sessionId: 'e2e-session', user }),
+            logout: async () => true,
+          },
+          projects: { list: async () => [] },
+          tasks: { list: async () => [] },
+          prompts: { list: async () => [] },
+          memory: { list: async () => [] },
+        },
+      })
+    })
+
     page.on('console', (msg) => {
       if (msg.type() === 'error') consoleErrors.push(msg.text())
     })
@@ -130,6 +180,11 @@ test.describe('AgentFlow Studio React web entry', () => {
       Object.defineProperty(window, 'agentflow', {
         configurable: true,
         value: {
+          auth: {
+            bootstrap: async () => ({ ok: true }),
+            session: async () => ({ authenticated: true, user: { id: 'e2e-user', email: 'e2e@example.com', role: 'admin', status: 'active', profile: { displayName: 'E2E User' }, mustChangePassword: false, failedLoginCount: 0, permissions: ['app:read', 'project:read', 'project:write', 'run:write', 'memory:read', 'export:write'], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } }),
+            logout: async () => true,
+          },
           projects: {
             list: async () => projects,
             get: async (id: string) => projects.find((project) => project.id === id) ?? null,
@@ -176,6 +231,11 @@ test.describe('AgentFlow Studio React web entry', () => {
       Object.defineProperty(window, 'agentflow', {
         configurable: true,
         value: {
+          auth: {
+            bootstrap: async () => ({ ok: true }),
+            session: async () => ({ authenticated: true, user: { id: 'e2e-user', email: 'e2e@example.com', role: 'admin', status: 'active', profile: { displayName: 'E2E User' }, mustChangePassword: false, failedLoginCount: 0, permissions: ['app:read', 'project:read', 'project:write'], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } }),
+            logout: async () => true,
+          },
           projects: {
             list: async () => [],
             create: async () => ({ error: 'E2E create failed' }),
@@ -229,6 +289,11 @@ test.describe('AgentFlow Studio React web entry', () => {
       Object.defineProperty(window, 'agentflow', {
         configurable: true,
         value: {
+          auth: {
+            bootstrap: async () => ({ ok: true }),
+            session: async () => ({ authenticated: true, user: { id: 'e2e-user', email: 'e2e@example.com', role: 'admin', status: 'active', profile: { displayName: 'E2E User' }, mustChangePassword: false, failedLoginCount: 0, permissions: ['app:read', 'project:read', 'run:write', 'memory:read', 'export:write'], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } }),
+            logout: async () => true,
+          },
           projects: { get: async () => project },
           tasks: { list: async () => [] },
           memory: { list: async () => [] },

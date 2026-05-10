@@ -67,6 +67,9 @@ export default defineConfig(({ mode }) => {
     test: {
       environment: 'node',
       include: ['tests/unit/**/*.test.ts'],
+      alias: {
+        'node:crypto': 'crypto',
+      },
     },
   }
 })

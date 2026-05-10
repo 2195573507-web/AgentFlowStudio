@@ -26,6 +26,8 @@ export type MemoryInjectionMode = 'off' | 'minimal' | 'balanced' | 'full'
 export type RiskLevel = 'safe' | 'low' | 'medium' | 'high' | 'critical' | 'Safe' | 'Low' | 'Medium' | 'High' | 'Critical'
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type AITool = 'Claude Code' | 'Codex' | 'Cursor' | 'Other'
+export type { UserRole, UserStatus, AuthUser, StoredAuthUser, AuthSession, SessionUser, AuthSessionState, LoginRequest, LoginResult, ChangePasswordRequest, CreateUserRequest, ResetPasswordRequest, UpdateUserRequest, PublicUser } from './authTypes.js'
+export type { AuditSeverity, AuditStatus, AuditActor, AuditEvent, AuditQuery } from './auditTypes.js'
 
 export interface Project {
   id: string
@@ -372,4 +374,21 @@ export const IPC_CHANNELS = {
 
   // Dialog
   DIALOG_OPEN: 'dialog:open',
+
+  // Auth
+  AUTH_BOOTSTRAP: 'auth:bootstrap',
+  AUTH_LOGIN: 'auth:login',
+  AUTH_LOGOUT: 'auth:logout',
+  AUTH_SESSION: 'auth:session',
+  AUTH_CHANGE_PASSWORD: 'auth:changePassword',
+
+  // Users / Admin
+  USER_LIST: 'user:list',
+  USER_CREATE: 'user:create',
+  USER_UPDATE: 'user:update',
+  USER_RESET_PASSWORD: 'user:resetPassword',
+
+  // Audit
+  AUDIT_LIST: 'audit:list',
+  AUDIT_EXPORT: 'audit:export',
 } as const

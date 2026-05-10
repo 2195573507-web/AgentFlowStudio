@@ -6,6 +6,8 @@ import type { ThemeMode } from '../lib/types';
 import type { Language } from '../lib/i18n';
 import { t } from '../lib/i18n';
 import { navItems } from './Sidebar';
+import { useAuth } from '../lib/auth';
+import Button from './Button';
 
 export interface TopbarProps {
   /** Optional title override. If not provided, derived from current route. */
@@ -32,6 +34,7 @@ const Topbar: React.FC<TopbarProps> = ({
   className,
 }) => {
   const location = useLocation();
+  const { user, logout } = useAuth();
   const themeLabels: Record<ThemeMode, string> = {
     system: t('theme.system', language),
     light: t('theme.light', language),
@@ -81,6 +84,13 @@ const Topbar: React.FC<TopbarProps> = ({
       <div className="flex items-center gap-2 shrink-0">
         {actions}
 
+        {user && (
+          <div className="hidden sm:flex items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-surface)] px-2.5 py-1.5 text-xs text-slate-600 dark:text-slate-300">
+            <span className="font-semibold truncate max-w-[140px]">{user.profile.displayName || user.email}</span>
+            <span className="rounded-md bg-accent-500/15 px-1.5 py-0.5 text-accent-700 dark:text-accent-300">{user.role}</span>
+          </div>
+        )}
+
         {onLanguageChange && (
           <button
             onClick={() => onLanguageChange(nextLanguage)}
@@ -113,6 +123,12 @@ const Topbar: React.FC<TopbarProps> = ({
           >
             <ThemeIcon className="w-4 h-4" />
           </button>
+        )}
+
+        {user && (
+          <Button variant="ghost" size="sm" onClick={() => void logout()}>
+            Logout
+          </Button>
         )}
       </div>
     </header>

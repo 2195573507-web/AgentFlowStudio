@@ -16,10 +16,40 @@ import type {
   ReleaseStatus,
   MemoryInjectionMode,
 } from '../../shared/types';
+import type { AuditEvent, AuditQuery } from '../../shared/auditTypes';
+import type {
+  AuthSessionState,
+  ChangePasswordRequest,
+  CreateUserRequest,
+  LoginRequest,
+  LoginResult,
+  PublicUser,
+  ResetPasswordRequest,
+  ResetPasswordResult,
+  SessionUser,
+  UpdateUserRequest,
+} from '../../shared/authTypes';
 
 // ── Preload API interface ──
 
 interface AgentFlowPreloadAPI {
+  auth?: {
+    bootstrap(): Promise<{ ok: boolean } | { error: string }>;
+    login(request: LoginRequest): Promise<LoginResult | { error: string }>;
+    logout(): Promise<boolean | { error: string }>;
+    session(sessionId?: string, sessionToken?: string): Promise<AuthSessionState | { error: string }>;
+    changePassword(request: ChangePasswordRequest): Promise<SessionUser | { error: string }>;
+  };
+  users?: {
+    list(): Promise<PublicUser[] | { error: string }>;
+    create(request: CreateUserRequest): Promise<PublicUser | { error: string }>;
+    update(request: UpdateUserRequest): Promise<PublicUser | { error: string }>;
+    resetPassword(request: ResetPasswordRequest): Promise<ResetPasswordResult | { error: string }>;
+  };
+  audit?: {
+    list(query?: AuditQuery): Promise<AuditEvent[] | { error: string }>;
+    exportAll(): Promise<{ auditLogs: AuditEvent[]; exportedAt: string } | { error: string }>;
+  };
   storage?: {
     get<T>(key: string): Promise<T | null>;
     set(key: string, value: unknown): Promise<void>;
@@ -268,6 +298,81 @@ function apiCallVoid(
 // ── Typed API object ──
 
 export const api = {
+  auth: {
+    bootstrap: () =>
+      apiCall<{ ok: boolean } | { error: string }>(
+        'auth.bootstrap',
+        (a) => a.auth?.bootstrap() ?? Promise.resolve({ error: 'Auth bridge unavailable.' }),
+        { ok: true },
+      ),
+    login: (request: LoginRequest) =>
+      apiCall<LoginResult | { error: string }>(
+        'auth.login',
+        (a) => a.auth?.login(request) ?? Promise.resolve({ ok: false, error: 'Auth bridge unavailable.' }),
+        { ok: false, error: 'Auth bridge unavailable.' },
+      ),
+    logout: () =>
+      apiCall<boolean | { error: string }>(
+        'auth.logout',
+        (a) => a.auth?.logout() ?? Promise.resolve(false),
+        false,
+      ),
+    session: (sessionId?: string, sessionToken?: string) =>
+      apiCall<AuthSessionState | { error: string }>(
+        'auth.session',
+        (a) => a.auth?.session(sessionId, sessionToken) ?? Promise.resolve({ authenticated: false }),
+        { authenticated: false },
+      ),
+    changePassword: (request: ChangePasswordRequest) =>
+      apiCall<SessionUser | { error: string }>(
+        'auth.changePassword',
+        (a) => a.auth?.changePassword(request) ?? Promise.resolve({ error: 'Auth bridge unavailable.' }),
+        { error: 'Auth bridge unavailable.' },
+      ),
+  },
+
+  users: {
+    list: () =>
+      apiCall<PublicUser[] | { error: string }>(
+        'users.list',
+        (a) => a.users?.list() ?? Promise.resolve([]),
+        [],
+      ),
+    create: (request: CreateUserRequest) =>
+      apiCall<PublicUser | { error: string }>(
+        'users.create',
+        (a) => a.users?.create(request) ?? Promise.resolve({ error: 'User bridge unavailable.' }),
+        { error: 'User bridge unavailable.' },
+      ),
+    update: (request: UpdateUserRequest) =>
+      apiCall<PublicUser | { error: string }>(
+        'users.update',
+        (a) => a.users?.update(request) ?? Promise.resolve({ error: 'User bridge unavailable.' }),
+        { error: 'User bridge unavailable.' },
+      ),
+    resetPassword: (request: ResetPasswordRequest) =>
+      apiCall<ResetPasswordResult | { error: string }>(
+        'users.resetPassword',
+        (a) => a.users?.resetPassword(request) ?? Promise.resolve({ error: 'User bridge unavailable.' }),
+        { error: 'User bridge unavailable.' },
+      ),
+  },
+
+  audit: {
+    list: (query?: AuditQuery) =>
+      apiCall<AuditEvent[] | { error: string }>(
+        'audit.list',
+        (a) => a.audit?.list(query) ?? Promise.resolve([]),
+        [],
+      ),
+    exportAll: () =>
+      apiCall<{ auditLogs: AuditEvent[]; exportedAt: string } | { error: string }>(
+        'audit.exportAll',
+        (a) => a.audit?.exportAll() ?? Promise.resolve({ auditLogs: [], exportedAt: new Date().toISOString() }),
+        { auditLogs: [], exportedAt: new Date().toISOString() },
+      ),
+  },
+
   // ── Storage ──
 
   storage: {

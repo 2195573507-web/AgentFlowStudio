@@ -5,6 +5,7 @@ import { registerIpcHandlers } from './ipc.js';
 import storage from './storage.js';
 import type { Project, Task, Memory } from '../shared/types.js';
 import { isHttpUrl, normalizeDevServerUrl } from './security.js';
+import { bootstrapAuth } from './session.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -367,6 +368,9 @@ app.whenReady().then(async () => {
 
   // Register all IPC handlers before creating the window
   registerIpcHandlers();
+
+  // Ensure local auth has a hashed default admin before the renderer loads.
+  await bootstrapAuth();
 
   // Seed demo data on first launch
   try {

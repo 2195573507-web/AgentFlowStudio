@@ -8,6 +8,22 @@ import storage from './storage.js';
 import { getGitLog, getGitStatus, getGitSummary } from './git.js';
 import { readSkillsFromDir, fileExists } from './filesystem.js';
 import { sanitizeFilePath, sanitizeRealFilePath, validateUserChosenSavePath } from './security.js';
+import type { AuditQuery } from '../shared/auditTypes.js';
+import type { ChangePasswordRequest, CreateUserRequest, LoginRequest, ResetPasswordRequest, UpdateUserRequest } from '../shared/authTypes.js';
+import { canRole, type Permission } from './rbac.js';
+import {
+  bootstrapAuth,
+  changePassword,
+  createUser,
+  listUsers,
+  login,
+  resetPassword,
+  sessionState,
+  updateUser,
+  validateSession,
+  type SessionContext,
+} from './session.js';
+import { listAuditEvents, recordAudit } from './audit.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -16,6 +32,112 @@ import { sanitizeFilePath, sanitizeRealFilePath, validateUserChosenSavePath } fr
 function handleError(err: unknown): { error: string } {
   if (err instanceof Error) return { error: err.message };
   return { error: String(err) };
+}
+
+const PUBLIC_CHANNELS = new Set<string>([
+  IPC_CHANNELS.AUTH_BOOTSTRAP,
+  IPC_CHANNELS.AUTH_LOGIN,
+  IPC_CHANNELS.AUTH_SESSION,
+  IPC_CHANNELS.APP_INFO,
+]);
+
+const CHANNEL_PERMISSIONS: Partial<Record<string, Permission>> = {
+  [IPC_CHANNELS.AUTH_LOGOUT]: 'app:read',
+  [IPC_CHANNELS.AUTH_CHANGE_PASSWORD]: 'app:read',
+  [IPC_CHANNELS.STORAGE_GET]: 'settings:read',
+  [IPC_CHANNELS.STORAGE_GET_ALL]: 'settings:read',
+  [IPC_CHANNELS.STORAGE_SET]: 'settings:write',
+  [IPC_CHANNELS.STORAGE_DELETE]: 'settings:write',
+  [IPC_CHANNELS.PROJECT_LIST]: 'project:read',
+  [IPC_CHANNELS.PROJECT_GET]: 'project:read',
+  [IPC_CHANNELS.PROJECT_CREATE]: 'project:write',
+  [IPC_CHANNELS.PROJECT_UPDATE]: 'project:write',
+  [IPC_CHANNELS.PROJECT_DELETE]: 'project:write',
+  [IPC_CHANNELS.TASK_LIST]: 'project:read',
+  [IPC_CHANNELS.TASK_CREATE]: 'task:write',
+  [IPC_CHANNELS.TASK_UPDATE]: 'task:write',
+  [IPC_CHANNELS.TASK_DELETE]: 'task:write',
+  [IPC_CHANNELS.PROMPT_LIST]: 'project:read',
+  [IPC_CHANNELS.PROMPT_CREATE]: 'prompt:write',
+  [IPC_CHANNELS.PROMPT_UPDATE]: 'prompt:write',
+  [IPC_CHANNELS.PROMPT_DELETE]: 'prompt:write',
+  [IPC_CHANNELS.RUN_LIST]: 'project:read',
+  [IPC_CHANNELS.RUN_CREATE]: 'run:write',
+  [IPC_CHANNELS.GIT_LOG]: 'git:read',
+  [IPC_CHANNELS.GIT_STATUS]: 'git:read',
+  [IPC_CHANNELS.GIT_SUMMARY]: 'git:read',
+  [IPC_CHANNELS.RELEASE_STATUS]: 'git:read',
+  [IPC_CHANNELS.MEMORY_LIST]: 'memory:read',
+  [IPC_CHANNELS.MEMORY_GET]: 'memory:read',
+  [IPC_CHANNELS.MEMORY_CREATE]: 'memory:write',
+  [IPC_CHANNELS.MEMORY_UPDATE]: 'memory:write',
+  [IPC_CHANNELS.MEMORY_DELETE]: 'memory:write',
+  [IPC_CHANNELS.MEMORY_EXPORT]: 'memory:export',
+  [IPC_CHANNELS.MEMORY_IMPORT]: 'memory:write',
+  [IPC_CHANNELS.MEMORY_GENERATE_CONTEXT]: 'memory:read',
+  [IPC_CHANNELS.SETTINGS_GET]: 'settings:read',
+  [IPC_CHANNELS.SETTINGS_GET_ALL]: 'settings:read',
+  [IPC_CHANNELS.SETTINGS_SET]: 'settings:write',
+  [IPC_CHANNELS.PROVIDER_LIST]: 'provider:read',
+  [IPC_CHANNELS.PROVIDER_CREATE]: 'provider:write',
+  [IPC_CHANNELS.PROVIDER_UPDATE]: 'provider:write',
+  [IPC_CHANNELS.PROVIDER_DELETE]: 'provider:write',
+  [IPC_CHANNELS.EXPORT_MARKDOWN]: 'export:write',
+  [IPC_CHANNELS.EXPORT_JSON]: 'export:write',
+  [IPC_CHANNELS.SKILLS_LIST]: 'skill:read',
+  [IPC_CHANNELS.SKILL_READ]: 'skill:read',
+  [IPC_CHANNELS.GET_DATA_PATH]: 'app:read',
+  [IPC_CHANNELS.DIALOG_OPEN]: 'dialog:open',
+  [IPC_CHANNELS.USER_LIST]: 'admin:users',
+  [IPC_CHANNELS.USER_CREATE]: 'admin:users',
+  [IPC_CHANNELS.USER_UPDATE]: 'admin:users',
+  [IPC_CHANNELS.USER_RESET_PASSWORD]: 'admin:users',
+  [IPC_CHANNELS.AUDIT_LIST]: 'admin:audit',
+  [IPC_CHANNELS.AUDIT_EXPORT]: 'admin:audit',
+};
+
+function readAuthHeader(args: unknown[]): { sessionId?: string; sessionToken?: string; rest: unknown[] } {
+  const first = args[0];
+  if (first && typeof first === 'object' && '__auth' in first) {
+    const auth = (first as { __auth?: { sessionId?: unknown; sessionToken?: unknown } }).__auth;
+    return {
+      sessionId: typeof auth?.sessionId === 'string' ? auth.sessionId : undefined,
+      sessionToken: typeof auth?.sessionToken === 'string' ? auth.sessionToken : undefined,
+      rest: args.slice(1),
+    };
+  }
+  return { rest: args };
+}
+
+async function guardIpcCall(channel: string, args: unknown[]): Promise<{ args: unknown[]; context?: SessionContext }> {
+  const { sessionId, sessionToken, rest } = readAuthHeader(args);
+  if (PUBLIC_CHANNELS.has(channel)) return { args };
+  const permission = CHANNEL_PERMISSIONS[channel];
+  if (!permission) throw new Error(`No IPC permission policy for channel: ${channel}`);
+  const context = await validateSession(sessionId, sessionToken);
+  if (!context) {
+    await recordAudit({
+      type: 'permission.denied',
+      action: channel,
+      status: 'denied',
+      severity: 'warning',
+      actor: {},
+      metadata: { reason: 'missing_or_invalid_session', channel },
+    });
+    throw new Error('Authentication required.');
+  }
+  if (!canRole(context.user.role, permission)) {
+    await recordAudit({
+      type: 'permission.denied',
+      action: channel,
+      status: 'denied',
+      severity: 'warning',
+      actor: { userId: context.user.id, email: context.user.email, role: context.user.role, sessionId: context.session.id },
+      metadata: { permission, channel },
+    });
+    throw new Error(`Permission denied: ${permission}`);
+  }
+  return { args: rest, context };
 }
 
 function assertTrustedIpcSender(event: IpcMainInvokeEvent): void {
@@ -35,7 +157,8 @@ function installIpcOriginGuard(): void {
   ipcMain.handle = ((channel: string, listener: (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown) => {
     return originalHandle(channel, async (event, ...args) => {
       assertTrustedIpcSender(event);
-      return listener(event, ...args);
+      const guarded = await guardIpcCall(channel, args);
+      return listener(event, ...guarded.args, guarded.context);
     });
   }) as typeof ipcMain.handle;
 }
@@ -306,6 +429,112 @@ async function generateMemoryContext(options: {
 
 export function registerIpcHandlers(): void {
   installIpcOriginGuard();
+  // Auth and admin channels are explicit and never expose password hashes.
+
+  ipcMain.handle(IPC_CHANNELS.AUTH_BOOTSTRAP, async () => {
+    try {
+      await bootstrapAuth();
+      return { ok: true };
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.AUTH_LOGIN, async (_event, request: LoginRequest) => {
+    try {
+      return await login(request);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.AUTH_SESSION, async (_event, sessionId?: string, sessionToken?: string) => {
+    try {
+      return await sessionState(sessionId, sessionToken);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.AUTH_LOGOUT, async (_event, context?: SessionContext) => {
+    try {
+      if (!context) return false;
+      await storage.update('sessions', context.session.id, { revokedAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as never);
+      await recordAudit({
+        type: 'auth.logout',
+        action: 'auth.logout',
+        status: 'success',
+        severity: 'info',
+        actor: { userId: context.user.id, email: context.user.email, role: context.user.role, sessionId: context.session.id },
+        resource: { type: 'session', id: context.session.id },
+      });
+      return true;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.AUTH_CHANGE_PASSWORD, async (_event, request: ChangePasswordRequest, context?: SessionContext) => {
+    try {
+      if (!context) throw new Error('Authentication required.');
+      return await changePassword(context, request.currentPassword, request.newPassword);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.USER_LIST, async () => {
+    try {
+      return await listUsers();
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.USER_CREATE, async (_event, request: CreateUserRequest, context?: SessionContext) => {
+    try {
+      if (!context) throw new Error('Authentication required.');
+      return await createUser(context, request);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.USER_UPDATE, async (_event, request: UpdateUserRequest, context?: SessionContext) => {
+    try {
+      if (!context) throw new Error('Authentication required.');
+      return await updateUser(context, request);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.USER_RESET_PASSWORD, async (_event, request: ResetPasswordRequest, context?: SessionContext) => {
+    try {
+      if (!context) throw new Error('Authentication required.');
+      return await resetPassword(context, request);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.AUDIT_LIST, async (_event, query?: AuditQuery) => {
+    try {
+      return await listAuditEvents(query ?? {});
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.AUDIT_EXPORT, async () => {
+    try {
+      const events = await listAuditEvents({ limit: 1000 });
+      return { auditLogs: events, exportedAt: new Date().toISOString() };
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
   // ── Storage (generic) ────────────────────────────────────────────────
 
   ipcMain.handle(IPC_CHANNELS.STORAGE_GET, async (_event, collection: string, id: string) => {

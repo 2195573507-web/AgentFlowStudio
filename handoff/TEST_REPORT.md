@@ -1,5 +1,37 @@
 # AgentFlow Studio - Test Report
 
+## Auth, Admin, RBAC, And Audit Pass - 2026-05-10
+
+### What Changed
+
+- Added local authentication with PBKDF2 password hashing, failed-login lockout, persistent opaque sessions, secure logout, and forced first-login password change for the default admin.
+- Added main-process user, session, RBAC, and audit modules with explicit JSON collections for `users`, `sessions`, and `auditLogs`.
+- Added admin-only user management and audit pages in the React renderer.
+- Added route protection and IPC permission checks. The renderer can hide admin routes, but the main process is the authorization source of truth.
+- Added redacted audit event storage and export for login, failed login, logout, password change, user creation, role/status changes, password reset, permission denial, and security initialization.
+- Admin password resets now generate a one-time random temporary password in the main process and store only its hash.
+- Added clean UTF-8 renderer i18n entries for auth/admin navigation labels.
+
+### Results
+
+| Check | Status | Details |
+|---|---:|---|
+| `npm.cmd run typecheck` | PASS | TypeScript passed after auth/session/RBAC/audit additions. |
+| `npm.cmd run test` | PASS | Vitest: 16 files, 149 tests. New tests cover password hash/verify, session validity, lockout helpers, random reset passwords, RBAC, and audit redaction/filtering. |
+| `npm.cmd run test:e2e` | PASS | Playwright: 14/14, including admin login, normal user login, logout, protected routes, admin denial, user creation, and audit UI. |
+| `npm.cmd run lint` | PASS | 0 errors, 28 warnings under configured threshold. |
+| `npm.cmd run build` | PASS | Renderer and Electron builds passed; existing Charts chunk-size warning and api dynamic-import note only. |
+| `npm.cmd run smoke` | PASS | 168/168, now including auth/RBAC/audit file and IPC guard checks. |
+
+### Architecture Debt Report
+
+- JSON local storage is adequate for the local desktop phase but lacks transactional guarantees, migrations, retention, and multi-user conflict handling.
+- Session tokens are opaque and stored hashed in the main process, but the renderer persists the raw token in localStorage. Future desktop hardening should wrap it with Electron `safeStorage`.
+- RBAC is role-based only. Future team collaboration, workflow sharing, MCP, sandbox, and cloud sync need resource-scoped ACLs.
+- Audit logs are redacted and searchable but not tamper-evident and not yet correlated with workflow run traces.
+- Static fallback is not yet protected by the new auth system.
+- Historical mojibake remains in older docs/source; this pass only cleaned the renderer i18n table needed for stable navigation/auth UI.
+
 ## Workflow Structure And Safety Trace Pass - 2026-05-10
 
 ### What Changed

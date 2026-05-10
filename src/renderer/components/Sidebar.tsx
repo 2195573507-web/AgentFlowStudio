@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+﻿import React, { useState, useCallback } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -10,6 +10,8 @@ import {
   Brain,
   Puzzle,
   Settings,
+  Users,
+  ScrollText,
   ChevronLeft,
   ChevronRight,
   PanelLeftClose,
@@ -18,6 +20,8 @@ import {
 import { classNames } from '../lib/utils';
 import type { Language } from '../lib/i18n';
 import { t } from '../lib/i18n';
+import { useAuth } from '../lib/auth';
+import { hasPermission } from '../lib/permissions';
 
 export interface NavItem {
   to: string;
@@ -27,15 +31,17 @@ export interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { to: '/', icon: LayoutDashboard, label: '仪表盘', labelKey: 'nav.dashboard' },
-  { to: '/projects', icon: FolderKanban, label: '项目管理', labelKey: 'nav.projects' },
-  { to: '/prompts', icon: Wand2, label: '提示词实验室', labelKey: 'nav.promptLab' },
-  { to: '/logs', icon: FileSearch, label: '日志分析', labelKey: 'nav.logAnalyzer' },
-  { to: '/git', icon: GitBranch, label: 'Git 时间线', labelKey: 'nav.gitTimeline' },
-  { to: '/safety', icon: Shield, label: '安全检查', labelKey: 'nav.safetyBox' },
-  { to: '/memory', icon: Brain, label: '共享记忆中心', labelKey: 'nav.sharedMemory' },
-  { to: '/skills', icon: Puzzle, label: '技能管理', labelKey: 'nav.skills' },
-  { to: '/settings', icon: Settings, label: '设置', labelKey: 'nav.settings' },
+  { to: '/', icon: LayoutDashboard, label: 'Dashboard', labelKey: 'nav.dashboard' },
+  { to: '/projects', icon: FolderKanban, label: 'Projects', labelKey: 'nav.projects' },
+  { to: '/prompts', icon: Wand2, label: 'Prompt Lab', labelKey: 'nav.promptLab' },
+  { to: '/logs', icon: FileSearch, label: 'Log Analyzer', labelKey: 'nav.logAnalyzer' },
+  { to: '/git', icon: GitBranch, label: 'Git Timeline', labelKey: 'nav.gitTimeline' },
+  { to: '/safety', icon: Shield, label: 'SafetyBox', labelKey: 'nav.safetyBox' },
+  { to: '/memory', icon: Brain, label: 'Shared Memory', labelKey: 'nav.sharedMemory' },
+  { to: '/skills', icon: Puzzle, label: 'Skills', labelKey: 'nav.skills' },
+  { to: '/admin/users', icon: Users, label: 'Admin Users', labelKey: 'nav.adminUsers' },
+  { to: '/admin/audit', icon: ScrollText, label: 'Audit Logs', labelKey: 'nav.adminAudit' },
+  { to: '/settings', icon: Settings, label: '璁剧疆', labelKey: 'nav.settings' },
 ];
 
 export interface SidebarProps {
@@ -48,6 +54,12 @@ export interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, language = 'zh' }) => {
   const location = useLocation();
+  const { user } = useAuth();
+  const visibleNavItems = navItems.filter((item) => {
+    if (item.to.startsWith('/admin/users')) return hasPermission(user, 'admin:users');
+    if (item.to.startsWith('/admin/audit')) return hasPermission(user, 'admin:audit');
+    return true;
+  });
 
   return (
     <aside
@@ -85,7 +97,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, language
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1">
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const Icon = item.icon;
           const label = t(item.labelKey, language);
           const isActive =
@@ -132,14 +144,14 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggleCollapse, language
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/70',
             collapsed ? 'justify-center py-2.5' : 'px-3 py-2.5',
           )}
-          title={collapsed ? '展开侧边栏' : '收起侧边栏'}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? (
             <PanelLeftOpen className="w-4 h-4" />
           ) : (
             <>
               <PanelLeftClose className="w-4 h-4 shrink-0" />
-              <span className="text-sm font-medium truncate">收起</span>
+              <span className="text-sm font-medium truncate">Collapse</span>
             </>
           )}
         </button>

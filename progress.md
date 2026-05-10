@@ -56,3 +56,19 @@
 - Validation passed so far: `typecheck`, `lint` (0 errors / 25 warnings), focused unit tests (30/30), full unit tests (116/116), `build`, `smoke` (138/138), `verify` (100/100 + smoke 138/138), `test:electron-startup`, concurrent `test:e2e` + `test:electron-startup`, and `test:e2e` (9/9).
 - Final static validation passed: `test:long-run` completed 30.07 minutes with 31 samples, no console/page/network errors, no crash, and 0 MB heap delta.
 - Final static validation passed: `test:launch-static` and `test:static-browser` both passed after long-run released the static port.
+
+## 2026-05-10 Auth/Admin/RBAC Round
+
+- Started from clean branch `codex-liquid-glass-ui-agent-optimization` at `7022fd8 feat: improve workflow structure and safety tracing`.
+- Read AGENTS, README, PROJECT_PROGRESS, CHANGELOG, TEST_REPORT, package.json, planning files, main/shared/renderer/test structure.
+- Spawned read-only reconnaissance agents for IPC/security, renderer routes, tests, and logging/redaction/storage.
+- Confirmed current app has IPC origin guard but no authenticated session guard, no RBAC policy, no user store, and no admin routes.
+- Decision: implement local-first auth with hashed passwords, opaque persisted session IDs, main-process RBAC enforcement, audit log storage, and renderer route guards.
+- Implemented auth/session/RBAC/audit modules and shared auth/audit types.
+- Implemented renderer Login, AdminUsers, AdminAudit, AuthProvider, protected routes, and Topbar user/logout display.
+- Tightened admin password reset so it generates a one-time random temporary password instead of reusing the default bootstrap password.
+- Implemented preload auth envelope and main-process IPC permission policy.
+- Added unit tests for auth, RBAC, and audit; added E2E tests for login/logout, protected routes, admin denial, user creation, and audit UI.
+- Fixed E2E auth gating by adding authenticated preload mocks to existing app E2E tests.
+- Replaced renderer `i18n.ts` with valid UTF-8 translations to remove a Vite parse failure from historical mojibake.
+- Validation passed: `typecheck`, `test` 149/149, `test:e2e` 14/14, `lint` 0 errors / 28 warnings, `build`, and `smoke` 168/168.

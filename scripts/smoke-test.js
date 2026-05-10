@@ -77,9 +77,15 @@ const coreFiles = [
   'src/renderer/routes/SafetyBox.tsx',
   'src/renderer/routes/SharedMemoryHub.tsx',
   'src/renderer/routes/Settings.tsx',
+  'src/renderer/routes/Login.tsx',
+  'src/renderer/routes/AdminUsers.tsx',
+  'src/renderer/routes/AdminAudit.tsx',
   'src/renderer/components/ErrorBoundary.tsx',
   'src/renderer/lib/i18n.ts',
   'src/renderer/lib/theme.ts',
+  'src/renderer/lib/auth.tsx',
+  'src/renderer/lib/session.ts',
+  'src/renderer/lib/permissions.ts',
   'src/renderer/lib/memoryInjection.ts',
   'src/renderer/lib/secretRedaction.ts',
 ]
@@ -173,6 +179,11 @@ check('external URLs are protocol checked', main.includes('isHttpUrl(url)') && m
 check('release status IPC is exposed through preload', preload.includes('RELEASE_STATUS') && preload.includes('release:'))
 check('dev server URL is localhost-only', main.includes('normalizeDevServerUrl') && security.includes('isTrustedDevServerUrl'))
 check('IPC handlers validate sender origin', mainIpc.includes('assertTrustedIpcSender') && mainIpc.includes('Blocked IPC call from untrusted origin'))
+check('auth modules exist', ['src/main/auth.ts', 'src/main/session.ts', 'src/main/rbac.ts', 'src/main/audit.ts', 'src/shared/authTypes.ts', 'src/shared/auditTypes.ts'].every(fileExists))
+check('auth IPC channels exposed through preload', preload.includes('AUTH_LOGIN') && preload.includes('USER_CREATE') && preload.includes('AUDIT_LIST'))
+check('RBAC guard enforces channel permissions', mainIpc.includes('CHANNEL_PERMISSIONS') && mainIpc.includes('Permission denied') && mainIpc.includes('admin:users'))
+check('default admin is hashed and must change password', readText('src/shared/authCore.ts').includes('123@admin.com') && readText('src/shared/authCore.ts').includes('mustChangePassword: true') && readText('src/shared/authCore.ts').includes('pbkdf2Sync'))
+check('audit logging records permission denials', mainIpc.includes('permission.denied') && mainIpc.includes('recordAudit'))
 
 console.log('\n[Shared Memory Safety]')
 const secretRedaction = readText('src/renderer/lib/secretRedaction.ts')

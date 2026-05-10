@@ -15,7 +15,10 @@ type CollectionName =
   | 'runs'
   | 'riskChecks'
   | 'providerSettings'
-  | 'settings';
+  | 'settings'
+  | 'users'
+  | 'sessions'
+  | 'auditLogs';
 
 type Identifiable = { id: string };
 type DataRecord = Identifiable;

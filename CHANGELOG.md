@@ -3,6 +3,11 @@
 ## [Unreleased] - 2026-05-10
 
 ### Added
+- Added local authentication with PBKDF2 password hashing, persistent opaque sessions, secure logout, failed-login lockout, and forced default-admin password rotation.
+- Added admin user management for listing users, creating users, changing roles, enabling/disabling users, and resetting passwords with one-time random temporary passwords.
+- Added RBAC policy enforcement across renderer routes and Electron IPC channels, including admin-only user/audit operations and provider write restrictions.
+- Added redacted audit logging for login, failed login, logout, password change, admin operations, permission denial, export, and security events.
+- Added admin audit UI with search, security-event summary, and redacted audit export.
 - Added workflow template metadata for category, difficulty, risk level, beginner recommendation, and human approval.
 - Added Prompt Lab workflow search/filter controls and a knowledge retrieval node type.
 - Added run log serialization utilities, redacted run copy/export, quality checklist, and retry advice.
@@ -16,11 +21,20 @@
 - Fixed duplicate React key risks in GitTimeline and SharedMemoryHub repeated values.
 
 ### Changed
+- Login is now the public entry point, with authenticated app routes rendered behind a protected Liquid Glass shell.
+- Renderer API calls now attach an opaque session envelope through preload; authorization is still decided only in the main process.
+- Replaced the renderer i18n table with a clean UTF-8 translation map for nav/admin labels.
 - Moved workflow template filtering into `src/renderer/lib/templates.ts`.
 - Moved run log parsing/serialization/checklist logic into `src/renderer/lib/runLogs.ts`.
 - Unified workflow template types through `src/shared/types.ts`.
 
 ### Validation
+- `npm.cmd run typecheck`: PASS.
+- `npm.cmd run test`: PASS, 16 files, 149 tests.
+- `npm.cmd run test:e2e`: PASS, 14/14.
+- `npm.cmd run lint`: PASS, 0 errors / 28 warnings under threshold.
+- `npm.cmd run build`: PASS, existing Charts chunk-size warning plus api dynamic-import note.
+- `npm.cmd run smoke`: PASS, 168/168.
 - `npm.cmd run test -- templates safety theme apiRuns runLogs utils secretRedaction`: PASS, 72/72.
 - `npm.cmd run typecheck`: PASS.
 - `npm.cmd run smoke`: PASS, 157/157.

@@ -64,3 +64,12 @@
 - Playwright now reads `AGENTFLOW_E2E_PORT`/`AGENTFLOW_E2E_BASE_URL` and defaults `AGENTFLOW_E2E_REUSE_SERVER` to `0`, avoiding accidental reuse of an unrelated dev server.
 - Electron startup smoke now reads `AGENTFLOW_ELECTRON_SMOKE_PORT`, passes `--strictPort`, and logs the actual dev server URL.
 - Validation evidence: one intentional concurrent run reproduced the old collision; after port reservation, concurrent `npm.cmd run test:e2e` and `npm.cmd run test:electron-startup` passed with E2E on `5173` and Electron on `5200`.
+
+## Auth/Admin/RBAC Reconnaissance - 2026-05-10
+
+- Electron main currently acts as the local privileged backend. IPC handlers are centralized in `src/main/ipc.ts`, storage is JSON-backed in `src/main/storage.ts`, preload exposes `window.agentflow`, and shared IPC channel constants live in `src/shared/types.ts`.
+- Existing IPC protection validates sender origin (`file://`, `localhost`, `127.0.0.1`) but has no session validation or role policy. The global `ipcMain.handle` wrapper is the right guard insertion point for session/RBAC/audit.
+- Renderer routing is flat under HashRouter. `App.tsx` always renders `Layout`, so login should be a public route outside the protected shell, with the rest wrapped by an auth gate.
+- State management is local React state plus preload-backed API wrapper; add a small AuthProvider rather than introducing a global state library.
+- High-risk IPC surfaces for RBAC/audit: generic storage, provider settings, memory import/export/context, export markdown/json, git status/log, skill read, dialog open, app data path.
+- Unit tests should target pure auth/session/RBAC/audit helpers and the renderer API wrapper. E2E can mock `window.agentflow.auth/users/audit` and validate protected routes, admin denial, login/logout, create user, and audit UI.

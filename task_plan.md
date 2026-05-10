@@ -17,6 +17,7 @@ Starting from baseline commit `cec7dfb`, preserve the working Static fallback wh
 | 7. Fix launcher log file locking | complete | Static launcher now uses per-run logs and no longer redirects the long-running server output into `launcher-static.log`; locked legacy log regression passed. |
 | 8. Liquid Glass UI and workflow onboarding | complete | React/static glass tokens unified, Dashboard next-step CTA and lifecycle rail added, reports updated, and full validation passed. |
 | 9. Commit and push Liquid Glass round | in_progress | Stage, commit, and push `codex-liquid-glass-ui-agent-optimization`. |
+| 10. Auth/admin/RBAC/audit platform phase | complete | Local hashed users, sessions, RBAC-gated IPC, admin UI, audit logs, tests, docs, and validation completed. Commit/push remains in git phase. |
 
 ## Acceptance Checklist
 
