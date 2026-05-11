@@ -19,7 +19,7 @@ Complete the active LocalAI Nexus roadmap in `docs/LOCALAI_NEXUS_ITERATION_PLAN.
 | 5. Iteration 8-10: skills, agents, workflows, memory, security | complete | Skill bundle registry, Agent/Workflow records, context-pack preview, security report surface, audit/risk signals, and Shared Memory extensions were added or connected. |
 | 6. Iteration 11-12: reliability, packaging, extensibility | complete with environment-limited packaging | Startup, auth bridge, static fallback, shortcut, E2E, long-run, gateway smoke, local bundle registry, and docs passed. `npm.cmd run dist` reached the build step but electron-builder download failed on network timeout. |
 | 7. Documentation and next-stage plan | complete | Added `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md` and updated progress, findings, test report, next steps, changelog, architecture/worklog docs. |
-| 8. Git stage, commit, push | in_progress | Final light verification passed after resume; staging, commit, and push remain. |
+| 8. Git stage, commit, push | complete | Final light verification passed after resume; committed `b7e6c51` and pushed `refactor-localai-nexus` to origin. |
 
 ## Completed
 
@@ -69,4 +69,4 @@ Complete the active LocalAI Nexus roadmap in `docs/LOCALAI_NEXUS_ITERATION_PLAN.
 
 ## Completion Rule
 
-Do not mark this run fully closed until final light verification passes, all accepted changes are staged, a conventional commit is created, and `refactor-localai-nexus` is pushed.
+Closed after final light verification passed, all accepted changes were staged, conventional commit `b7e6c51` was created, and `refactor-localai-nexus` was pushed.
