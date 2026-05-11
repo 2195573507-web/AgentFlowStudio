@@ -1,9 +1,9 @@
 import React from 'react';
 import { classNames } from '../lib/utils';
 
-export type GlassCardPadding = 'none' | 'sm' | 'md' | 'lg';
+export type SurfaceCardPadding = 'none' | 'sm' | 'md' | 'lg';
 
-export interface GlassCardProps extends Omit<React.HTMLAttributes<HTMLElement>, 'onClick'> {
+export interface SurfaceCardProps extends Omit<React.HTMLAttributes<HTMLElement>, 'onClick'> {
   /** Card content. */
   children: React.ReactNode;
   /** Additional className applied to the card wrapper. */
@@ -13,17 +13,17 @@ export interface GlassCardProps extends Omit<React.HTMLAttributes<HTMLElement>, 
   /** When true, adds hover scale and shadow effects. */
   hoverable?: boolean;
   /** Inner padding preset. */
-  padding?: GlassCardPadding;
+  padding?: SurfaceCardPadding;
 }
 
-const paddingClasses: Record<GlassCardPadding, string> = {
+const paddingClasses: Record<SurfaceCardPadding, string> = {
   none: '',
   sm: 'p-3',
   md: 'p-4',
   lg: 'p-5',
 };
 
-const GlassCard: React.FC<GlassCardProps> = ({
+const SurfaceCard: React.FC<SurfaceCardProps> = ({
   children,
   className,
   onClick,
@@ -38,11 +38,11 @@ const GlassCard: React.FC<GlassCardProps> = ({
         onClick={onClick as React.MouseEventHandler<HTMLButtonElement>}
         {...rest}
         className={classNames(
-          'liquid-glass-card liquid-focus',
+          'surface-card focus-ring',
           // Padding
           paddingClasses[padding],
           // Hoverable
-          hoverable && 'hover:-translate-y-0.5',
+          hoverable && 'surface-card-hover',
           // Clickable
           'cursor-pointer active:scale-[0.98]',
           // Layout
@@ -59,11 +59,11 @@ const GlassCard: React.FC<GlassCardProps> = ({
     <div
       {...rest}
       className={classNames(
-        'liquid-glass-card',
+        'surface-card',
         // Padding
         paddingClasses[padding],
         // Hoverable
-        hoverable && 'hover:-translate-y-0.5',
+        hoverable && 'surface-card-hover',
         // Layout
         'block w-full text-left',
         className,
@@ -74,4 +74,4 @@ const GlassCard: React.FC<GlassCardProps> = ({
   );
 };
 
-export default GlassCard;
+export default SurfaceCard;

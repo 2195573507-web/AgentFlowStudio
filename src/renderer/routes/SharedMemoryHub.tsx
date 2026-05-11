@@ -40,7 +40,7 @@ import { generateSharedMemoryContext } from '../lib/memoryInjection';
 import { injectMemoryIntoPrompt } from '../lib/memoryInjection';
 import { containsSecret, redactSecrets } from '../lib/secretRedaction';
 import { exportMemoriesToMarkdown, exportJSON } from '../lib/exporters';
-import { GlassCard, EmptyState, Button, Input, Textarea, Badge, Modal } from '../components/';
+import { SurfaceCard, EmptyState, Button, Input, Textarea, Badge, Modal } from '../components/';
 import type {
   Memory, MemoryType, MemoryStatus, MemoryInjectionMode, Project,
 } from '../lib/types';
@@ -186,7 +186,7 @@ const TYPE_COLORS: Record<string, string> = {
 const STATUS_COLORS: Record<string, string> = {
   active: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
   pending: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-  archived: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/20',
+  archived: 'bg-[var(--surface-muted)] text-[var(--text-muted)] border-[var(--border)]',
 };
 
 function normalizeMemoryImportItem(item: Partial<Memory>): Memory {
@@ -601,7 +601,7 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
           key={s}
           className={classNames(
             'w-3 h-3',
-            s <= importance ? 'text-amber-400 fill-amber-400' : 'text-zinc-700'
+            s <= importance ? 'text-amber-400 fill-amber-400' : 'text-[var(--text-muted)]'
           )}
         />
       ))}
@@ -613,28 +613,28 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">类型</label>
+          <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5">类型</label>
           <select
             value={form.type}
             onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as MemoryType }))}
-            className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-zinc-200 text-sm
+            className="w-full px-3 py-2 rounded-panel bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--text-primary)] text-sm
                        focus:outline-none focus:ring-2 focus:ring-blue-500/50"
           >
             {MEMORY_TYPES.map((t) => (
-              <option key={t} value={t} className="bg-zinc-900">{MEMORY_TYPE_LABELS[t] ?? t}</option>
+              <option key={t} value={t} className="bg-[var(--surface)]">{MEMORY_TYPE_LABELS[t] ?? t}</option>
             ))}
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">状态</label>
+          <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5">状态</label>
           <select
             value={form.status}
             onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as MemoryStatus }))}
-            className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-zinc-200 text-sm
+            className="w-full px-3 py-2 rounded-panel bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--text-primary)] text-sm
                        focus:outline-none focus:ring-2 focus:ring-blue-500/50"
           >
             {MEMORY_STATUSES.map((s) => (
-              <option key={s} value={s} className="bg-zinc-900">
+              <option key={s} value={s} className="bg-[var(--surface)]">
                 {MEMORY_STATUS_LABELS[s]}
               </option>
             ))}
@@ -643,7 +643,7 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-zinc-400 mb-1.5">标题 *</label>
+        <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5">标题 *</label>
         <Input
           value={form.title}
           onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
@@ -653,7 +653,7 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-zinc-400 mb-1.5">内容 *</label>
+        <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5">内容 *</label>
         <Textarea
           value={form.content}
           onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
@@ -665,7 +665,7 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">标签 (逗号分隔)</label>
+          <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5">标签 (逗号分隔)</label>
           <Input
             value={form.tags}
             onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
@@ -673,16 +673,16 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">关联项目</label>
+          <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5">关联项目</label>
           <select
             value={form.projectId}
             onChange={(e) => setForm((f) => ({ ...f, projectId: e.target.value }))}
-            className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-zinc-200 text-sm
+            className="w-full px-3 py-2 rounded-panel bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--text-primary)] text-sm
                        focus:outline-none focus:ring-2 focus:ring-blue-500/50"
           >
-            <option value="" className="bg-zinc-900">无</option>
+            <option value="" className="bg-[var(--surface)]">无</option>
             {projects.map((p) => (
-              <option key={p.id} value={p.id} className="bg-zinc-900">{p.name}</option>
+              <option key={p.id} value={p.id} className="bg-[var(--surface)]">{p.name}</option>
             ))}
           </select>
         </div>
@@ -690,7 +690,7 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">接口范围</label>
+          <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5">接口范围</label>
           <Input
             value={form.providerScope}
             onChange={(e) => setForm((f) => ({ ...f, providerScope: e.target.value }))}
@@ -698,7 +698,7 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-zinc-400 mb-1.5">模型范围</label>
+          <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5">模型范围</label>
           <Input
             value={form.modelScope}
             onChange={(e) => setForm((f) => ({ ...f, modelScope: e.target.value }))}
@@ -708,7 +708,7 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+        <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5">
           重要性: {form.importance} / 5
         </label>
         <input
@@ -717,7 +717,7 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
           max={5}
           value={form.importance}
           onChange={(e) => setForm((f) => ({ ...f, importance: Number(e.target.value) }))}
-          className="w-full h-1.5 rounded-full appearance-none bg-white/10 cursor-pointer
+          className="w-full h-1.5 rounded-full appearance-none bg-[var(--surface-muted)] cursor-pointer
                      [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4
                      [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full
                      [&::-webkit-slider-thumb]:bg-amber-400 [&::-webkit-slider-thumb]:cursor-pointer"
@@ -730,15 +730,15 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-6 animate-pulse">
-        <div className="h-10 w-48 rounded-xl bg-white/5" />
+        <div className="h-10 w-48 rounded-panel bg-[var(--surface-muted)]" />
         <div className="flex gap-3">
-          <div className="h-10 flex-1 rounded-xl bg-white/5" />
-          <div className="h-10 w-28 rounded-xl bg-white/5" />
-          <div className="h-10 w-28 rounded-xl bg-white/5" />
+          <div className="h-10 flex-1 rounded-panel bg-[var(--surface-muted)]" />
+          <div className="h-10 w-28 rounded-panel bg-[var(--surface-muted)]" />
+          <div className="h-10 w-28 rounded-panel bg-[var(--surface-muted)]" />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-44 rounded-2xl bg-white/5 border border-white/10" />
+            <div key={i} className="h-44 rounded-panel bg-[var(--surface-muted)] border border-[var(--border)]" />
           ))}
         </div>
       </div>
@@ -749,12 +749,12 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
   if (error && memories.length === 0) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-8">
-        <GlassCard className="p-12 text-center">
+        <SurfaceCard className="p-12 text-center">
           <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-zinc-100 mb-2">加载失败</h2>
-          <p className="text-zinc-400 mb-4">{error}</p>
+          <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-2">加载失败</h2>
+          <p className="text-[var(--text-muted)] mb-4">{error}</p>
           <Button onClick={fetchData} icon={<RefreshCw className="w-4 h-4" />}>重试</Button>
-        </GlassCard>
+        </SurfaceCard>
       </div>
     );
   }
@@ -765,8 +765,8 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-zinc-100 tracking-tight">共享记忆中心</h1>
-          <p className="text-zinc-400 text-sm mt-1">
+          <h1 className="text-3xl font-bold text-[var(--text-primary)] tracking-tight">共享记忆中心</h1>
+          <p className="text-[var(--text-muted)] text-sm mt-1">
             {filteredMemories.length} / {memories.length} 条记忆
           </p>
         </div>
@@ -792,19 +792,19 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
       </div>
 
       {/* Search & filters */}
-      <GlassCard className="p-4">
+      <SurfaceCard className="p-4">
         <div className="flex flex-wrap gap-3 items-center">
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="搜索记忆标题、内容、标签..."
-              className="w-full pl-10 pr-4 py-2 rounded-xl bg-white/5 border border-white/10 text-zinc-200 text-sm
-                         placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              className="w-full pl-10 pr-4 py-2 rounded-panel bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--text-primary)] text-sm
+                         placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-blue-500/50"
             />
             {search && (
-              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300">
+              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)]">
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
@@ -813,44 +813,44 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-zinc-300 text-xs
+            className="px-3 py-2 rounded-panel bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--text-secondary)] text-xs
                        focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-w-[100px]"
           >
-            <option value="all" className="bg-zinc-900">全部类型</option>
+            <option value="all" className="bg-[var(--surface)]">全部类型</option>
             {MEMORY_TYPES.map((t) => (
-              <option key={t} value={t} className="bg-zinc-900">{MEMORY_TYPE_LABELS[t] ?? t}</option>
+              <option key={t} value={t} className="bg-[var(--surface)]">{MEMORY_TYPE_LABELS[t] ?? t}</option>
             ))}
           </select>
 
           <select
             value={projectFilter}
             onChange={(e) => setProjectFilter(e.target.value)}
-            className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-zinc-300 text-xs
+            className="px-3 py-2 rounded-panel bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--text-secondary)] text-xs
                        focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-w-[120px]"
           >
-            <option value="all" className="bg-zinc-900">全部项目</option>
+            <option value="all" className="bg-[var(--surface)]">全部项目</option>
             {projects.map((p) => (
-              <option key={p.id} value={p.id} className="bg-zinc-900">{p.name}</option>
+              <option key={p.id} value={p.id} className="bg-[var(--surface)]">{p.name}</option>
             ))}
           </select>
 
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-zinc-300 text-xs
+            className="px-3 py-2 rounded-panel bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--text-secondary)] text-xs
                        focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-w-[100px]"
           >
-            <option value="all" className="bg-zinc-900">全部状态</option>
-            <option value="active" className="bg-zinc-900">进行中</option>
-            <option value="pending" className="bg-zinc-900">待确认</option>
-            <option value="archived" className="bg-zinc-900">已归档</option>
+            <option value="all" className="bg-[var(--surface)]">全部状态</option>
+            <option value="active" className="bg-[var(--surface)]">进行中</option>
+            <option value="pending" className="bg-[var(--surface)]">待确认</option>
+            <option value="archived" className="bg-[var(--surface)]">已归档</option>
           </select>
         </div>
-      </GlassCard>
+      </SurfaceCard>
 
       {/* Pending memories alert */}
       {pendingMemories.length > 0 && (
-        <GlassCard className="p-4 border-amber-500/20 bg-amber-500/5">
+        <SurfaceCard className="p-4 border-amber-500/20 bg-amber-500/5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-amber-300 text-sm">
               <AlertCircle className="w-4 h-4" />
@@ -869,10 +869,10 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
             {pendingMemories.slice(0, 3).map((m) => (
               <div key={m.id} className="flex items-center justify-between p-2 rounded-lg bg-amber-500/5 border border-amber-500/10">
                 <div className="flex items-center gap-2 min-w-0">
-                  <Badge className={TYPE_COLORS[m.type] || 'bg-zinc-500/20 text-zinc-400'}>
+                  <Badge className={TYPE_COLORS[m.type] || 'bg-[var(--surface-muted)] text-[var(--text-muted)]'}>
                     {MEMORY_TYPE_LABELS[m.type] ?? m.type}
                   </Badge>
-                  <span className="text-sm text-zinc-300 truncate">{m.title}</span>
+                  <span className="text-sm text-[var(--text-secondary)] truncate">{m.title}</span>
                 </div>
                 <Button
                   size="sm"
@@ -884,12 +884,12 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
               </div>
             ))}
             {pendingMemories.length > 3 && (
-              <p className="text-xs text-zinc-500 text-center">
+              <p className="text-xs text-[var(--text-muted)] text-center">
                 还有 {pendingMemories.length - 3} 条待确认...
               </p>
             )}
           </div>
-        </GlassCard>
+        </SurfaceCard>
       )}
 
       {/* Memory cards grid */}
@@ -901,7 +901,7 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
               : null;
 
             return (
-              <GlassCard
+              <SurfaceCard
                 key={memory.id}
                 className={classNames(
                   'p-4 flex flex-col group transition-all',
@@ -910,19 +910,19 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
               >
                 {/* Top row: type + actions */}
                 <div className="flex items-start justify-between mb-2">
-                  <Badge className={TYPE_COLORS[memory.type] || 'bg-zinc-500/20 text-zinc-400'}>
+                  <Badge className={TYPE_COLORS[memory.type] || 'bg-[var(--surface-muted)] text-[var(--text-muted)]'}>
                     {MEMORY_TYPE_LABELS[memory.type] ?? memory.type}
                   </Badge>
                   <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => openEdit(memory)}
-                      className="p-1 rounded hover:bg-white/10 text-zinc-500 hover:text-zinc-300"
+                      className="p-1 rounded hover:bg-[var(--surface-muted)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                     >
                       <Pencil className="w-3 h-3" />
                     </button>
                     <button
                       onClick={() => handleToggleStatus(memory)}
-                      className="p-1 rounded hover:bg-white/10 text-zinc-500 hover:text-zinc-300"
+                      className="p-1 rounded hover:bg-[var(--surface-muted)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                       title={memory.status === 'active' ? '归档' : '恢复为进行中'}
                     >
                       {memory.status === 'archived' ? (
@@ -933,7 +933,7 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
                     </button>
                     <button
                       onClick={() => setDeleteTarget(memory)}
-                      className="p-1 rounded hover:bg-red-500/20 text-zinc-500 hover:text-red-400"
+                      className="p-1 rounded hover:bg-red-500/20 text-[var(--text-muted)] hover:text-red-400"
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
@@ -941,12 +941,12 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
                 </div>
 
                 {/* Title */}
-                <h3 className="text-sm font-semibold text-zinc-200 mb-1.5 line-clamp-1">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1.5 line-clamp-1">
                   {memory.title}
                 </h3>
 
                 {/* Content preview */}
-                <p className="text-xs text-zinc-400 mb-3 line-clamp-2 leading-relaxed flex-1">
+                <p className="text-xs text-[var(--text-muted)] mb-3 line-clamp-2 leading-relaxed flex-1">
                   {memory.content}
                 </p>
 
@@ -954,12 +954,12 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
                 {memory.tags && memory.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-3">
                     {memory.tags.slice(0, 4).map((tag, tagIndex) => (
-                      <Badge key={`${memory.id}-${tag}-${tagIndex}`} className="text-[10px] bg-white/5 text-zinc-500 border-white/10">
+                      <Badge key={`${memory.id}-${tag}-${tagIndex}`} className="text-[10px] bg-[var(--surface-muted)] text-[var(--text-muted)] border-[var(--border)]">
                         {tag}
                       </Badge>
                     ))}
                     {memory.tags.length > 4 && (
-                      <Badge className="text-[10px] bg-white/5 text-zinc-500 border-white/10">
+                      <Badge className="text-[10px] bg-[var(--surface-muted)] text-[var(--text-muted)] border-[var(--border)]">
                         +{memory.tags.length - 4}
                       </Badge>
                     )}
@@ -967,9 +967,9 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
                 )}
 
                 {/* Bottom metadata row */}
-                <div className="flex items-center justify-between text-[11px] text-zinc-600 mt-auto pt-2 border-t border-white/5">
+                <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] mt-auto pt-2 border-t border-[var(--border)]">
                   <div className="flex items-center gap-2">
-                    <Badge className={STATUS_COLORS[memory.status] || 'bg-zinc-500/20'}>
+                    <Badge className={STATUS_COLORS[memory.status] || 'bg-[var(--surface-muted)]'}>
                       {MEMORY_STATUS_LABELS[memory.status] ?? memory.status}
                     </Badge>
                     {project && (
@@ -985,17 +985,17 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
 
                 {/* Last used */}
                 {memory.lastUsedAt && (
-                  <div className="flex items-center gap-1 mt-1.5 text-[10px] text-zinc-600">
+                  <div className="flex items-center gap-1 mt-1.5 text-[10px] text-[var(--text-muted)]">
                     <Clock className="w-3 h-3" />
                     上次使用: {formatRelativeDate(memory.lastUsedAt)}
                   </div>
                 )}
-              </GlassCard>
+              </SurfaceCard>
             );
           })}
         </div>
       ) : (
-        <GlassCard className="p-12">
+        <SurfaceCard className="p-12">
           <EmptyState
             icon={Brain}
             title={search || typeFilter !== 'all' || statusFilter !== 'all' ? '没有匹配的记忆' : '暂无共享记忆'}
@@ -1007,7 +1007,7 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
             actionLabel="创建第一条记忆"
             onAction={() => { resetForm(); setShowCreateModal(true); }}
           />
-        </GlassCard>
+        </SurfaceCard>
       )}
 
       {/* ── Create/Edit Modal ─────────────────────────────────────────────── */}
@@ -1018,7 +1018,7 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
         size="lg"
       >
         {renderFormFields()}
-        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-white/10">
+        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[var(--border)]">
           <Button variant="ghost" onClick={() => { setShowCreateModal(false); setEditingMemory(null); resetForm(); }}>
             取消
           </Button>
@@ -1036,10 +1036,10 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
       <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="确认删除" size="sm">
         <div className="text-center py-4">
           <Trash2 className="w-12 h-12 text-red-400 mx-auto mb-3" />
-          <p className="text-zinc-200 font-medium mb-1">删除记忆 &ldquo;{deleteTarget?.title}&rdquo;？</p>
-          <p className="text-sm text-zinc-500">此操作不可撤销。</p>
+          <p className="text-[var(--text-primary)] font-medium mb-1">删除记忆 &ldquo;{deleteTarget?.title}&rdquo;？</p>
+          <p className="text-sm text-[var(--text-muted)]">此操作不可撤销。</p>
         </div>
-        <div className="flex justify-center gap-3 mt-4 pt-4 border-t border-white/10">
+        <div className="flex justify-center gap-3 mt-4 pt-4 border-t border-[var(--border)]">
           <Button variant="ghost" onClick={() => setDeleteTarget(null)}>取消</Button>
           <Button variant="danger" onClick={handleDelete} icon={<Trash2 className="w-4 h-4" />}>
             确认删除
@@ -1052,20 +1052,20 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
         <div className="space-y-4">
           {!importResult ? (
             <>
-              <p className="text-sm text-zinc-400">
+              <p className="text-sm text-[var(--text-muted)]">
                 选择一个 JSON 文件导入共享记忆。导入过程中会自动过滤包含敏感信息的记忆条目。
               </p>
-              <div className="flex flex-col items-center gap-3 p-8 border-2 border-dashed border-white/10 rounded-2xl bg-white/5">
-                <Upload className="w-8 h-8 text-zinc-500" />
-                <p className="text-sm text-zinc-400">拖拽文件到此处或点击选择</p>
+              <div className="flex flex-col items-center gap-3 p-8 border-2 border-dashed border-[var(--border)] rounded-panel bg-[var(--surface-muted)]">
+                <Upload className="w-8 h-8 text-[var(--text-muted)]" />
+                <p className="text-sm text-[var(--text-muted)]">拖拽文件到此处或点击选择</p>
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept=".json"
                   onChange={handleImportJSON}
-                  className="block text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl
-                             file:border-0 file:text-sm file:font-medium file:bg-white/10 file:text-zinc-200
-                             hover:file:bg-white/20 file:cursor-pointer"
+                  className="block text-sm text-[var(--text-muted)] file:mr-4 file:py-2 file:px-4 file:rounded-panel
+                             file:border-0 file:text-sm file:font-medium file:bg-[var(--surface-muted)] file:text-[var(--text-primary)]
+                             hover:file:bg-[var(--surface-muted)] file:cursor-pointer"
                 />
               </div>
             </>
@@ -1075,7 +1075,7 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
                 <CheckCircle className="w-12 h-12" />
               </div>
               <div className="text-center space-y-2">
-                <p className="text-lg font-semibold text-zinc-200">导入完成</p>
+                <p className="text-lg font-semibold text-[var(--text-primary)]">导入完成</p>
                 <div className="flex justify-center gap-6 text-sm">
                   <span className="text-emerald-400">导入 {importResult.imported} 条</span>
                   <span className="text-amber-400">跳过 {importResult.skipped} 条</span>
@@ -1091,7 +1091,7 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
             </div>
           )}
         </div>
-        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-white/10">
+        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[var(--border)]">
           <Button variant="ghost" onClick={() => { setShowImportModal(false); setImportResult(null); }}>
             {importResult ? '完成' : '取消'}
           </Button>
@@ -1106,12 +1106,12 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
         size="lg"
       >
         <div className="space-y-4">
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-[var(--text-muted)]">
             生成的 Prompt 包含所有活跃共享记忆的上下文，可以粘贴到任何 AI 模型中以恢复完整的项目知识。
           </p>
 
           <div className="flex items-center gap-3">
-            <label className="text-xs text-zinc-400">注入模式:</label>
+            <label className="text-xs text-[var(--text-muted)]">注入模式:</label>
             <div className="flex gap-1">
               {INJECTION_MODES.filter((m) => m !== 'off').map((mode) => (
                 <button
@@ -1121,7 +1121,7 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
                     'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
                     contextInjectionMode === mode
                       ? 'bg-pink-500/20 text-pink-300 border border-pink-500/30'
-                      : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-muted)]'
                   )}
                 >
                   {INJECTION_MODE_LABELS[mode]}
@@ -1142,7 +1142,7 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
           {generatedContext && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
                   生成的 Prompt
                 </h4>
                 <button
@@ -1151,7 +1151,7 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
                     setCopiedContext(true);
                     setTimeout(() => setCopiedContext(false), 2000);
                   }}
-                  className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                  className="flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                 >
                   {copiedContext ? (
                     <>
@@ -1164,13 +1164,13 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
                   )}
                 </button>
               </div>
-              <pre className="px-4 py-3 rounded-xl bg-zinc-900/50 text-xs text-zinc-300 font-mono whitespace-pre-wrap border border-white/5 max-h-96 overflow-y-auto">
+              <pre className="px-4 py-3 rounded-panel bg-[var(--surface-muted)] text-xs text-[var(--text-secondary)] font-mono whitespace-pre-wrap border border-[var(--border)] max-h-96 overflow-y-auto">
                 {generatedContext}
               </pre>
             </div>
           )}
         </div>
-        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-white/10">
+        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[var(--border)]">
           <Button variant="ghost" onClick={() => { setShowContextModal(false); setGeneratedContext(''); }}>
             关闭
           </Button>

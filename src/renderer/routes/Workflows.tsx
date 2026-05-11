@@ -27,7 +27,7 @@ function nodeColor(type: string) {
     tool: 'border-amber-400/30 bg-amber-500/10 text-amber-700 dark:text-amber-200',
     condition: 'border-cyan-400/30 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200',
     human_approval: 'border-rose-400/30 bg-rose-500/10 text-rose-700 dark:text-rose-200',
-    output: 'border-slate-400/30 bg-slate-500/10 text-slate-700 dark:text-slate-200',
+    output: 'border-slate-400/30 bg-slate-500/10 text-[var(--text-primary)] dark:text-[var(--text-primary)]',
   };
   return map[type] ?? map.output;
 }
@@ -190,17 +190,17 @@ export default function Workflows() {
   if (loading) {
     return (
       <div className="mx-auto max-w-7xl p-6">
-        <div className="liquid-glass-card p-6 text-sm text-[var(--text-secondary)]">正在加载 Workflow Studio...</div>
+        <div className="surface-card p-6 text-sm text-[var(--text-secondary)]">正在加载 Workflow Studio...</div>
       </div>
     );
   }
 
   return (
     <div className="mx-auto max-w-7xl space-y-5 p-6">
-      <section className="liquid-glass-card p-6">
+      <section className="surface-card p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-surface)] px-3 py-1 text-xs font-semibold text-accent-600 dark:text-accent-300">
+            <div className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-xs font-semibold text-accent-600 dark:text-accent-300">
               <WorkflowIcon className="h-4 w-4" />
               本地优先 Agent Workflow Studio
             </div>
@@ -217,7 +217,7 @@ export default function Workflows() {
       </section>
 
       {error && (
-        <div className="liquid-glass-card border-red-400/40 bg-red-500/10 p-4 text-sm text-red-700 dark:text-red-200">
+        <div className="surface-card border-red-400/40 bg-red-500/10 p-4 text-sm text-red-700 dark:text-red-200">
           <div className="flex items-start gap-2">
             <AlertTriangle className="mt-0.5 h-4 w-4" />
             <span>{error}</span>
@@ -225,7 +225,7 @@ export default function Workflows() {
         </div>
       )}
       {status && (
-        <div className="liquid-glass-card border-emerald-400/30 bg-emerald-500/10 p-4 text-sm text-emerald-700 dark:text-emerald-200">
+        <div className="surface-card border-emerald-400/30 bg-emerald-500/10 p-4 text-sm text-emerald-700 dark:text-emerald-200">
           <div className="flex items-start gap-2">
             <CheckCircle2 className="mt-0.5 h-4 w-4" />
             <span>{status}</span>
@@ -235,23 +235,23 @@ export default function Workflows() {
 
       <div className="grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
         <aside className="space-y-5">
-          <div className="liquid-glass-card p-5">
+          <div className="surface-card p-5">
             <h2 className="flex items-center gap-2 text-base font-semibold text-[var(--text-primary)]">
               <Plus className="h-4 w-4 text-accent-500" />
               1. 选择入口
             </h2>
             <div className="mt-4 space-y-3">
               <label className="block text-xs font-semibold text-[var(--text-secondary)]">项目</label>
-              <select className="input-glass" value={selectedProjectId} onChange={(event) => setSelectedProjectId(event.target.value)}>
+              <select className="control-input" value={selectedProjectId} onChange={(event) => setSelectedProjectId(event.target.value)}>
                 <option value="">请选择项目</option>
                 {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
               </select>
               <label className="block text-xs font-semibold text-[var(--text-secondary)]">模板</label>
-              <select className="input-glass" value={selectedTemplateId} onChange={(event) => setSelectedTemplateId(event.target.value)}>
+              <select className="control-input" value={selectedTemplateId} onChange={(event) => setSelectedTemplateId(event.target.value)}>
                 {templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}
               </select>
               {selectedTemplate && (
-                <p className="rounded-lg border border-[var(--glass-border)] bg-[var(--glass-surface)] p-3 text-xs leading-5 text-[var(--text-secondary)]">
+                <p className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 text-xs leading-5 text-[var(--text-secondary)]">
                   {selectedTemplate.description}
                 </p>
               )}
@@ -262,21 +262,21 @@ export default function Workflows() {
             </div>
           </div>
 
-          <div className="liquid-glass-card p-5">
+          <div className="surface-card p-5">
             <h2 className="flex items-center gap-2 text-base font-semibold text-[var(--text-primary)]">
               <Layers className="h-4 w-4 text-accent-500" />
               已有 Workflow
             </h2>
             <div className="mt-3 space-y-2">
               {workflows.length === 0 ? (
-                <p className="rounded-lg border border-dashed border-[var(--glass-border)] p-3 text-sm text-[var(--text-secondary)]">
+                <p className="rounded-lg border border-dashed border-[var(--border)] p-3 text-sm text-[var(--text-secondary)]">
                   还没有 Workflow。下一步：选择一个模板并创建。
                 </p>
               ) : workflows.map((workflow) => (
                 <button
                   key={workflow.id}
                   onClick={() => setSelectedWorkflowId(workflow.id)}
-                  className={`w-full rounded-lg border p-3 text-left text-sm transition-colors ${selectedWorkflowId === workflow.id ? 'border-accent-400 bg-accent-500/10' : 'border-[var(--glass-border)] bg-[var(--glass-surface)] hover:bg-[var(--glass-surface-hover)]'}`}
+                  className={`w-full rounded-lg border p-3 text-left text-sm transition-colors ${selectedWorkflowId === workflow.id ? 'border-accent-400 bg-accent-500/10' : 'border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-hover)]'}`}
                 >
                   <div className="font-semibold text-[var(--text-primary)]">{workflow.name}</div>
                   <div className="mt-1 text-xs text-[var(--text-secondary)]">v{workflow.version} · {workflow.nodes.length} 节点</div>
@@ -287,7 +287,7 @@ export default function Workflows() {
         </aside>
 
         <main className="space-y-5">
-          <section className="liquid-glass-card p-5">
+          <section className="surface-card p-5">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-[var(--text-primary)]">2. 编辑基础节点</h2>
@@ -315,7 +315,7 @@ export default function Workflows() {
                   <label key={node.id} className="block">
                     <span className="text-xs font-semibold text-[var(--text-secondary)]">{node.title} 配置</span>
                     <textarea
-                      className="input-glass mt-1 min-h-[96px]"
+                      className="control-input mt-1 min-h-[96px]"
                       value={node.config.prompt || node.config.model || ''}
                       onChange={(event) => updateNodePrompt(node.id, event.target.value)}
                       placeholder="填写 Prompt 或模型说明"
@@ -324,13 +324,13 @@ export default function Workflows() {
                 ))}
               </div>
             ) : (
-              <div className="mt-5 rounded-lg border border-dashed border-[var(--glass-border)] p-5 text-sm text-[var(--text-secondary)]">
+              <div className="mt-5 rounded-lg border border-dashed border-[var(--border)] p-5 text-sm text-[var(--text-secondary)]">
                 请选择或创建一个 Workflow。下一步：左侧点击“从模板创建”。
               </div>
             )}
           </section>
 
-          <section className="liquid-glass-card p-5">
+          <section className="surface-card p-5">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-[var(--text-primary)]">3. 运行并查看 Trace</h2>
@@ -341,7 +341,7 @@ export default function Workflows() {
                 运行 Workflow
               </button>
             </div>
-            <textarea className="input-glass mt-4 min-h-[80px]" value={runInput} onChange={(event) => setRunInput(event.target.value)} />
+            <textarea className="control-input mt-4 min-h-[80px]" value={runInput} onChange={(event) => setRunInput(event.target.value)} />
 
             <div className="mt-5 grid gap-4 xl:grid-cols-2">
               <div>
@@ -351,9 +351,9 @@ export default function Workflows() {
                 </h3>
                 <div className="space-y-2">
                   {recentWorkflowRuns.length === 0 ? (
-                    <p className="rounded-lg border border-dashed border-[var(--glass-border)] p-3 text-sm text-[var(--text-secondary)]">暂无运行记录。下一步：点击运行。</p>
+                    <p className="rounded-lg border border-dashed border-[var(--border)] p-3 text-sm text-[var(--text-secondary)]">暂无运行记录。下一步：点击运行。</p>
                   ) : recentWorkflowRuns.map((run) => (
-                    <article key={run.id} className="rounded-lg border border-[var(--glass-border)] bg-[var(--glass-surface)] p-3">
+                    <article key={run.id} className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
                       <div className="flex items-center justify-between gap-3">
                         <span className="text-sm font-semibold text-[var(--text-primary)]">{run.title}</span>
                         <span className="text-xs text-[var(--text-secondary)]">{run.status}</span>
@@ -372,7 +372,7 @@ export default function Workflows() {
                 </h3>
                 <div className="space-y-2">
                   {runEvents.slice(0, 8).map((event) => (
-                    <div key={event.id} className="rounded-lg border border-[var(--glass-border)] bg-[var(--glass-surface)] p-3">
+                    <div key={event.id} className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
                       <div className="flex items-center gap-2">
                         <Settings className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
                         <span className="text-sm font-semibold text-[var(--text-primary)]">{event.title || 'Run event'}</span>
@@ -382,20 +382,20 @@ export default function Workflows() {
                     </div>
                   ))}
                   {runEvents.length === 0 && (
-                    <p className="rounded-lg border border-dashed border-[var(--glass-border)] p-3 text-sm text-[var(--text-secondary)]">暂无 Trace。运行后会在这里显示节点级事件。</p>
+                    <p className="rounded-lg border border-dashed border-[var(--border)] p-3 text-sm text-[var(--text-secondary)]">暂无 Trace。运行后会在这里显示节点级事件。</p>
                   )}
                 </div>
               </div>
             </div>
           </section>
 
-          <section className="liquid-glass-card p-5">
+          <section className="surface-card p-5">
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">4. 版本记录</h2>
             <div className="mt-3 flex flex-wrap gap-2">
               {versions.length === 0 ? (
                 <span className="text-sm text-[var(--text-secondary)]">暂无版本。保存后会自动生成 WorkflowVersion。</span>
               ) : versions.map((version) => (
-                <span key={version.id} className="rounded-lg border border-[var(--glass-border)] bg-[var(--glass-surface)] px-3 py-2 text-xs text-[var(--text-secondary)]">
+                <span key={version.id} className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-secondary)]">
                   v{version.version} · {version.message}
                 </span>
               ))}

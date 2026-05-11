@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+﻿import React, { useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { classNames } from '../lib/utils';
@@ -97,9 +97,9 @@ const Modal: React.FC<ModalProps> = ({
       className={classNames(
         'fixed inset-0 z-50 flex items-center justify-center p-4',
         // Backdrop
-        'bg-black/40 dark:bg-black/60 backdrop-blur-sm',
+        'bg-black/40 dark:bg-black/60 ',
         // Enter animation
-        'animate-in fade-in duration-200',
+        'animate-fade-in',
       )}
       role="dialog"
       aria-modal="true"
@@ -109,24 +109,24 @@ const Modal: React.FC<ModalProps> = ({
         className={classNames(
           'relative w-full',
           sizeClasses[size],
-          'liquid-glass-card',
+          'surface-card',
           // Enter animation
-          'animate-in zoom-in-95 fade-in slide-in-from-bottom-2 duration-300',
+          'animate-fade-in',
           className,
         )}
       >
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/60 dark:border-slate-700/40">
-            <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100 tracking-tight">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] dark:border-[var(--border)]">
+            <h2 className="text-base font-semibold text-[var(--text-primary)] dark:text-slate-100 tracking-tight">
               {title}
             </h2>
             <button
               onClick={onClose}
               className={classNames(
                 'p-1.5 rounded-lg transition-colors duration-150',
-                'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300',
-                'hover:bg-slate-200/60 dark:hover:bg-white/10',
+                'text-[var(--text-muted)] hover:text-[var(--text-secondary)] dark:text-[var(--text-muted)] dark:hover:text-slate-300',
+                'hover:bg-slate-200/60 dark:hover:bg-[var(--surface-hover)]',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/70',
               )}
               aria-label="Close"
@@ -142,8 +142,8 @@ const Modal: React.FC<ModalProps> = ({
             onClick={onClose}
             className={classNames(
               'absolute top-3 right-3 p-1.5 rounded-lg transition-colors duration-150 z-10',
-              'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300',
-              'hover:bg-slate-200/60 dark:hover:bg-white/10',
+              'text-[var(--text-muted)] hover:text-[var(--text-secondary)] dark:text-[var(--text-muted)] dark:hover:text-slate-300',
+              'hover:bg-slate-200/60 dark:hover:bg-[var(--surface-hover)]',
               'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/70',
             )}
             aria-label="Close"
@@ -153,13 +153,13 @@ const Modal: React.FC<ModalProps> = ({
         )}
 
         {/* Body */}
-        <div className="px-6 py-5 text-slate-700 dark:text-slate-200 text-sm">
+        <div className="px-6 py-5 text-[var(--text-primary)] dark:text-slate-200 text-sm">
           {children}
         </div>
 
         {/* Footer */}
         {footer && (
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200/60 dark:border-slate-700/40">
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border)] dark:border-[var(--border)]">
             {footer}
           </div>
         )}

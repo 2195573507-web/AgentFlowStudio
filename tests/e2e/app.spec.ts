@@ -44,7 +44,7 @@ function installAgentflowMock() {
     idea: 'Build a beginner friendly local workflow studio.',
     platform: 'Desktop',
     techStack: 'Electron, React, TypeScript',
-    uiStyle: 'Liquid Glass',
+    uiStyle: 'Flat UI',
     difficulty: 'Medium',
     status: 'active',
     createdAt: now(),
@@ -204,7 +204,7 @@ test.describe('LocalAI Nexus React web entry', () => {
     }, { consoleErrors, pageErrors, networkFailures })
   })
 
-  test('loads dashboard with beginner navigation and Liquid Glass shell', async ({ page }) => {
+  test('loads dashboard with beginner navigation and Flat UI shell', async ({ page }) => {
     await expect(page).toHaveTitle(/LocalAI Nexus/)
     await expect(page.locator('main').getByRole('heading', { name: /LocalAI Nexus/ })).toBeVisible()
     await expect(page.getByRole('navigation')).toBeVisible()
@@ -215,11 +215,16 @@ test.describe('LocalAI Nexus React web entry', () => {
     }
 
     const sidebarBackdrop = await page.locator('aside').evaluate((el) => getComputedStyle(el).backdropFilter)
-    expect(sidebarBackdrop).toContain('blur')
-    const glassShadow = await page.locator('.liquid-glass-card').first().evaluate((el) => getComputedStyle(el).boxShadow)
-    expect(glassShadow).not.toBe('none')
+    expect(sidebarBackdrop === '' || sidebarBackdrop === 'none').toBeTruthy()
+    await expect(page.locator('.surface-card').first()).toBeVisible()
+    const surfaceRule = await page.evaluate(() =>
+      Array.from(document.styleSheets).some((sheet) =>
+        Array.from(sheet.cssRules ?? []).some((rule) => rule.cssText.includes('.surface-card') && rule.cssText.includes('var(--surface)')),
+      ),
+    )
+    expect(surfaceRule).toBeTruthy()
     const bodyFont = await page.locator('body').evaluate((el) => getComputedStyle(el).fontFamily)
-    expect(bodyFont).toMatch(/KaiTi|STKaiti|Kaiti SC|Microsoft YaHei|serif/i)
+    expect(bodyFont).toMatch(/Segoe UI|Microsoft YaHei|PingFang|Noto Sans|Arial/i)
   })
 
   test('settings exposes provider presets, MCP skills, and safe config export', async ({ page }) => {
@@ -358,14 +363,14 @@ test.describe('LocalAI Nexus React web entry', () => {
     })
 
     await page.goto('/#/projects', { waitUntil: 'networkidle' })
-    await page.locator('main').getByRole('button', { name: /新建项目/ }).first().click()
-    await page.getByLabel('项目名称 *').fill('E2E 新手闭环项目')
-    await page.getByLabel(/项目描述/).fill('E2E project description')
-    await page.getByLabel('技术栈').fill('React, Electron, TypeScript')
-    await page.getByRole('button', { name: /创建项目/ }).click()
+    await page.locator('main').getByRole('button', { name: /New project|新建项目/ }).first().click()
+    await page.getByLabel(/Project name|项目名称/).fill('E2E New Project')
+    await page.getByLabel(/Goal|Project goal|项目描述/).fill('E2E project description')
+    await page.getByLabel(/Tech stack|技术栈/).fill('React, Electron, TypeScript')
+    await page.getByRole('button', { name: /Create project|创建项目/ }).click()
 
     await expect(page).toHaveURL(/#\/projects\/.+\?next=plan/)
-    await expect(page.getByRole('heading', { name: 'E2E 新手闭环项目' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'E2E New Project' })).toBeVisible()
     const nextStep = page.getByTestId('plan-next-step')
     await expect(nextStep.getByRole('heading', { name: /下一步：生成项目规划/ })).toBeVisible()
     await nextStep.getByRole('button', { name: /生成规划/ }).click()
@@ -389,14 +394,14 @@ test.describe('LocalAI Nexus React web entry', () => {
     })
 
     await page.goto('/#/projects', { waitUntil: 'networkidle' })
-    await page.locator('main').getByRole('button', { name: /新建项目/ }).first().click()
-    await page.getByLabel('项目名称 *').fill('E2E 创建失败项目')
-    await page.getByLabel(/项目描述/).fill('E2E create failed description')
-    await page.getByRole('button', { name: /创建项目/ }).click()
+    await page.locator('main').getByRole('button', { name: /New project|新建项目/ }).first().click()
+    await page.getByLabel(/Project name|项目名称/).fill('E2E Create Failed Project')
+    await page.getByLabel(/Goal|Project goal|项目描述/).fill('E2E create failed description')
+    await page.getByRole('button', { name: /Create project|创建项目/ }).click()
 
     await expect(page).toHaveURL(/#\/projects$/)
     await expect(page.getByText('E2E create failed', { exact: true })).toBeVisible()
-    await expect(page.getByRole('button', { name: /创建项目/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Create project|创建项目/ })).toBeVisible()
   })
 
   test('records a safe Agent run on project detail', async ({ page }) => {

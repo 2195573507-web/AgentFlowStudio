@@ -46,7 +46,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
             {label && (
               <label
                 htmlFor={textareaId}
-                className="text-xs font-medium text-slate-600 dark:text-slate-400 tracking-wide uppercase select-none"
+                className="text-xs font-semibold text-[var(--text-secondary)] tracking-wide uppercase select-none"
               >
                 {label}
               </label>
@@ -59,7 +59,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
                     ? 'text-red-500'
                     : isNearLimit
                       ? 'text-amber-500'
-                      : 'text-slate-400 dark:text-slate-500',
+                      : 'text-[var(--text-muted)]',
                 )}
               >
                 {charCount}/{maxChars}
@@ -75,19 +75,18 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           value={value}
           className={classNames(
             // Base
-            'w-full border outline-none transition-all duration-200 resize-y min-h-[80px]',
-            // Glass styling
-            'bg-[var(--glass-surface)] backdrop-blur-md',
-            'border-[var(--glass-border)] shadow-[var(--glass-inner)]',
+            'w-full border outline-none transition-colors duration-150 resize-y min-h-[80px]',
+            'bg-[var(--surface)]',
+            'border-[var(--border)]',
             // Text
-            'text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500',
+            'text-[var(--text-primary)] placeholder:text-[var(--text-muted)]',
             // Spacing
-            'rounded-xl px-3.5 py-2.5 text-sm',
+            'rounded-tool px-3 py-2.5 text-sm',
             // Focus
-            'focus:ring-2 focus:ring-accent-400/60 focus:border-accent-400/70',
+            'focus:ring-2 focus:ring-[var(--focus-ring)] focus:border-[var(--accent)]',
             // Error
             error &&
-              'border-red-400 dark:border-red-500 focus:ring-red-400/40 focus:border-red-400',
+              'border-[var(--danger)] focus:ring-[var(--focus-ring)] focus:border-[var(--danger)]',
             // Disabled
             disabled && 'opacity-50 cursor-not-allowed',
             className,
@@ -96,10 +95,10 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         />
 
         {error && (
-          <p className="text-xs text-red-500 dark:text-red-400 mt-0.5">{error}</p>
+          <p className="text-xs text-[var(--danger)] mt-0.5">{error}</p>
         )}
         {!error && hint && (
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{hint}</p>
+          <p className="text-xs text-[var(--text-muted)] mt-0.5">{hint}</p>
         )}
       </div>
     );

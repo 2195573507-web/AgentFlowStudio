@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Shield, ShieldAlert, ShieldCheck, ShieldOff, ShieldQuestion } from 'lucide-react';
 import { classNames } from '../lib/utils';
 import type { RiskLevel } from '../lib/types';
@@ -97,7 +97,7 @@ const RiskMeter: React.FC<RiskMeterProps> = ({
       <div
         className={classNames(
           'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full',
-          'border backdrop-blur-sm',
+          'border ',
           config.bgColor,
           config.color,
           config.textColor,
@@ -113,15 +113,15 @@ const RiskMeter: React.FC<RiskMeterProps> = ({
   return (
     <div className={classNames('flex flex-col gap-2', className)}>
       {label && (
-        <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+        <span className="text-xs font-medium text-[var(--text-muted)] dark:text-[var(--text-muted)] uppercase tracking-wide">
           {label}
         </span>
       )}
 
       <div
         className={classNames(
-          'flex items-center gap-3 p-3.5 rounded-xl',
-          'border backdrop-blur-md',
+          'flex items-center gap-3 p-3.5 rounded-panel',
+          'border ',
           config.bgColor,
           config.color,
         )}
@@ -130,7 +130,7 @@ const RiskMeter: React.FC<RiskMeterProps> = ({
         <div
           className={classNames(
             'flex items-center justify-center w-9 h-9 rounded-lg shrink-0',
-            'bg-white/50 dark:bg-black/20',
+            'bg-[var(--surface-muted)]',
             config.textColor,
           )}
         >
@@ -148,13 +148,13 @@ const RiskMeter: React.FC<RiskMeterProps> = ({
             >
               {config.label}
             </span>
-            <span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums">
+            <span className="text-xs text-[var(--text-muted)] dark:text-[var(--text-muted)] tabular-nums">
               {config.percentage}%
             </span>
           </div>
 
           {/* Meter bar */}
-          <div className="w-full h-2 rounded-full bg-white/40 dark:bg-black/20 overflow-hidden">
+          <div className="w-full h-2 rounded-full bg-[var(--surface-muted)] dark:bg-[var(--surface-muted)] overflow-hidden">
             <div
               className={classNames(
                 'h-full rounded-full transition-all duration-700 ease-out',

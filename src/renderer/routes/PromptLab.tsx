@@ -31,7 +31,7 @@ import {
 } from '../lib/templates';
 import { generateSharedMemoryContext, injectMemoryIntoPrompt } from '../lib/memoryInjection';
 import { exportMarkdown } from '../lib/exporters';
-import { GlassCard, EmptyState, Button, Input, Textarea, Badge, PromptPreview, Modal } from '../components/';
+import { SurfaceCard, EmptyState, Button, Input, Textarea, Badge, PromptPreview, Modal } from '../components/';
 import type {
   Memory, SavedPrompt, MemoryInjectionMode, PromptTemplate,
 } from '../lib/types';
@@ -268,10 +268,10 @@ export default function PromptLab() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-4 animate-pulse">
-        <div className="h-10 w-48 rounded-xl bg-white/5" />
+        <div className="h-10 w-48 rounded-panel bg-[var(--surface-muted)]" />
         <div className="flex gap-4 h-[70vh]">
-          <div className="w-[30%] rounded-2xl bg-white/5 border border-white/10" />
-          <div className="flex-1 rounded-2xl bg-white/5 border border-white/10" />
+          <div className="w-[30%] rounded-panel bg-[var(--surface-muted)] border border-[var(--border)]" />
+          <div className="flex-1 rounded-panel bg-[var(--surface-muted)] border border-[var(--border)]" />
         </div>
       </div>
     );
@@ -281,14 +281,14 @@ export default function PromptLab() {
   if (error && templates.length === 0) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-8">
-        <GlassCard className="p-12 text-center">
+        <SurfaceCard className="p-12 text-center">
           <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-zinc-100 mb-2">加载模板失败</h2>
-          <p className="text-zinc-400 mb-4">{error}</p>
+          <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-2">加载模板失败</h2>
+          <p className="text-[var(--text-muted)] mb-4">{error}</p>
           <Button onClick={() => window.location.reload()} icon={<RefreshCw className="w-4 h-4" />}>
             重试
           </Button>
-        </GlassCard>
+        </SurfaceCard>
       </div>
     );
   }
@@ -314,12 +314,12 @@ export default function PromptLab() {
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-zinc-100 tracking-tight">Prompt Lab</h1>
-          <p className="text-zinc-400 text-sm mt-1">
+          <h1 className="text-3xl font-bold text-[var(--text-primary)] tracking-tight">Prompt Lab</h1>
+          <p className="text-[var(--text-muted)] text-sm mt-1">
             模板化 Prompt 生成、工作流模板库和新手下一步指引
           </p>
         </div>
-        <div className="inline-flex rounded-xl border border-[var(--glass-border)] bg-[var(--glass-surface)] p-1 shadow-[var(--glass-inner)]">
+        <div className="inline-flex rounded-panel border border-[var(--border)] bg-[var(--surface)] p-1 shadow-[var(--shadow-sm)]">
           {[
             { key: 'prompt' as const, label: 'Prompt 模板', icon: Wand2 },
             { key: 'workflow' as const, label: '工作流模板', icon: GitBranch },
@@ -332,7 +332,7 @@ export default function PromptLab() {
                 'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
                 templateMode === item.key
                   ? 'bg-accent-500/15 text-accent-500 dark:text-accent-300'
-                  : 'text-zinc-500 hover:bg-white/5 hover:text-zinc-300',
+                  : 'text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]',
               )}
             >
               <item.icon className="h-3.5 w-3.5" />
@@ -342,36 +342,36 @@ export default function PromptLab() {
         </div>
       </div>
 
-      <GlassCard className="p-4">
+      <SurfaceCard className="p-4">
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <Badge variant="info">新手路径</Badge>
-          <span className="text-slate-700 dark:text-zinc-300">创建工作流</span>
-          <ArrowRight className="h-4 w-4 text-zinc-500" />
-          <span className="text-slate-700 dark:text-zinc-300">添加节点</span>
-          <ArrowRight className="h-4 w-4 text-zinc-500" />
-          <span className="text-slate-700 dark:text-zinc-300">配置模型/API</span>
-          <ArrowRight className="h-4 w-4 text-zinc-500" />
-          <span className="text-slate-700 dark:text-zinc-300">运行</span>
-          <ArrowRight className="h-4 w-4 text-zinc-500" />
-          <span className="text-slate-700 dark:text-zinc-300">查看结果和日志</span>
+          <span className="text-[var(--text-primary)] dark:text-[var(--text-secondary)]">创建工作流</span>
+          <ArrowRight className="h-4 w-4 text-[var(--text-muted)]" />
+          <span className="text-[var(--text-primary)] dark:text-[var(--text-secondary)]">添加节点</span>
+          <ArrowRight className="h-4 w-4 text-[var(--text-muted)]" />
+          <span className="text-[var(--text-primary)] dark:text-[var(--text-secondary)]">配置模型/API</span>
+          <ArrowRight className="h-4 w-4 text-[var(--text-muted)]" />
+          <span className="text-[var(--text-primary)] dark:text-[var(--text-secondary)]">运行</span>
+          <ArrowRight className="h-4 w-4 text-[var(--text-muted)]" />
+          <span className="text-[var(--text-primary)] dark:text-[var(--text-secondary)]">查看结果和日志</span>
         </div>
-        <p className="mt-2 text-xs text-slate-500 dark:text-zinc-500">
+        <p className="mt-2 text-xs text-[var(--text-muted)] dark:text-[var(--text-muted)]">
           不懂 Agent 也可以从“工作流模板”开始：选一个场景，看节点结构，再把生成的 Prompt 复制给 Codex、Claude Code 或 Cursor。
         </p>
-      </GlassCard>
+      </SurfaceCard>
 
       {/* Main two-panel layout */}
       <div className="flex gap-4 lg:h-[calc(100vh-16rem)] min-h-[600px]">
         {/* ── Left panel: Template list ────────────────────────────────── */}
         <div className="w-[30%] min-w-[240px] flex flex-col gap-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" />
             <input
               value={templateSearch}
               onChange={(e) => setTemplateSearch(e.target.value)}
               placeholder="搜索模板..."
-              className="w-full pl-9 pr-3 py-2 rounded-xl bg-white/5 border border-white/10 text-zinc-200 text-xs
-                         placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              className="w-full pl-9 pr-3 py-2 rounded-panel bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--text-primary)] text-xs
+                         placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-blue-500/50"
             />
           </div>
 
@@ -380,7 +380,7 @@ export default function PromptLab() {
               <select
                 value={workflowCategory}
                 onChange={(event) => setWorkflowCategory(event.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-zinc-300 focus:outline-none focus:ring-2 focus:ring-accent-400/50"
+                className="w-full rounded-panel border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-xs text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-accent-400/50"
                 aria-label="模板分类"
               >
                 <option value="all">全部分类</option>
@@ -394,7 +394,7 @@ export default function PromptLab() {
               <select
                 value={workflowRisk}
                 onChange={(event) => setWorkflowRisk(event.target.value as typeof workflowRisk)}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-zinc-300 focus:outline-none focus:ring-2 focus:ring-accent-400/50"
+                className="w-full rounded-panel border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-xs text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-accent-400/50"
                 aria-label="风险等级"
               >
                 <option value="all">全部风险</option>
@@ -402,19 +402,19 @@ export default function PromptLab() {
                 <option value="medium">中风险</option>
                 <option value="high">高风险</option>
               </select>
-              <label className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-zinc-400">
+              <label className="flex items-center gap-2 rounded-panel border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-xs text-[var(--text-muted)]">
                 <input
                   type="checkbox"
                   checked={beginnerOnly}
                   onChange={(event) => setBeginnerOnly(event.target.checked)}
-                  className="h-3.5 w-3.5 rounded border-white/20 bg-white/10 accent-[var(--accent)]"
+                  className="h-3.5 w-3.5 rounded border-[var(--border)] bg-[var(--surface-muted)] accent-[var(--accent)]"
                 />
                 只看新手推荐
               </label>
             </div>
           )}
 
-          <GlassCard className="flex-1 overflow-y-auto p-2 space-y-1">
+          <SurfaceCard className="flex-1 overflow-y-auto p-2 space-y-1">
             {templateMode === 'workflow' ? (
               filteredWorkflowTemplates.length > 0 ? (
                 filteredWorkflowTemplates.map((template) => (
@@ -426,18 +426,18 @@ export default function PromptLab() {
                       setGeneratedContent(null);
                     }}
                     className={classNames(
-                      'w-full text-left p-3 rounded-xl transition-all text-sm',
+                      'w-full text-left p-3 rounded-panel transition-all text-sm',
                       selectedWorkflowTemplate?.id === template.id
-                        ? 'bg-accent-500/10 border border-accent-500/20 text-zinc-200'
-                        : 'hover:bg-white/5 text-zinc-400 hover:text-zinc-300',
+                        ? 'bg-accent-500/10 border border-accent-500/20 text-[var(--text-primary)]'
+                        : 'hover:bg-[var(--surface-muted)] text-[var(--text-muted)] hover:text-[var(--text-primary)]',
                     )}
                   >
                     <div className="font-medium text-xs">{template.name}</div>
-                    <div className="text-[11px] text-zinc-500 mt-0.5 line-clamp-2">
+                    <div className="text-[11px] text-[var(--text-muted)] mt-0.5 line-clamp-2">
                       {template.purpose}
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                      <Badge className="text-[10px] bg-white/5 text-zinc-500 border-white/10">
+                      <Badge className="text-[10px] bg-[var(--surface-muted)] text-[var(--text-muted)] border-[var(--border)]">
                         {template.nodes.length} 节点
                       </Badge>
                       <Badge className="text-[10px] bg-blue-500/10 text-blue-400 border-blue-500/20">
@@ -465,7 +465,7 @@ export default function PromptLab() {
                   </button>
                 ))
               ) : (
-                <div className="p-4 text-center text-xs text-zinc-500">没有匹配的工作流模板</div>
+                <div className="p-4 text-center text-xs text-[var(--text-muted)]">没有匹配的工作流模板</div>
               )
             ) : filteredTemplates.length > 0 ? (
               filteredTemplates.map((t) => (
@@ -473,18 +473,18 @@ export default function PromptLab() {
                   key={t.id}
                   onClick={() => setSelectedTemplate(t)}
                   className={classNames(
-                    'w-full text-left p-3 rounded-xl transition-all text-sm',
+                    'w-full text-left p-3 rounded-panel transition-all text-sm',
                     selectedTemplate?.id === t.id
-                      ? 'bg-blue-500/10 border border-blue-500/20 text-zinc-200'
-                      : 'hover:bg-white/5 text-zinc-400 hover:text-zinc-300'
+                      ? 'bg-blue-500/10 border border-blue-500/20 text-[var(--text-primary)]'
+                      : 'hover:bg-[var(--surface-muted)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                   )}
                 >
                   <div className="font-medium text-xs">{t.name}</div>
-                  <div className="text-[11px] text-zinc-500 mt-0.5 line-clamp-2">
+                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5 line-clamp-2">
                     {t.description}
                   </div>
                   <div className="flex items-center gap-1.5 mt-1.5">
-                    <Badge className="text-[10px] bg-white/5 text-zinc-500 border-white/10">
+                    <Badge className="text-[10px] bg-[var(--surface-muted)] text-[var(--text-muted)] border-[var(--border)]">
                       {t.variables.length} 变量
                     </Badge>
                     {t.category && (
@@ -496,19 +496,19 @@ export default function PromptLab() {
                 </button>
               ))
             ) : (
-              <div className="p-4 text-center text-xs text-zinc-500">没有匹配的模板</div>
+              <div className="p-4 text-center text-xs text-[var(--text-muted)]">没有匹配的模板</div>
             )}
-          </GlassCard>
+          </SurfaceCard>
         </div>
 
         {/* ── Right panel: Editor ──────────────────────────────────────── */}
         <div className="flex-1 flex flex-col gap-4 overflow-hidden">
-          <GlassCard className="p-5 flex-1 overflow-y-auto">
+          <SurfaceCard className="p-5 flex-1 overflow-y-auto">
             {templateMode === 'workflow' && selectedWorkflowTemplate ? (
               <div className="space-y-5">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-lg font-semibold text-zinc-200">
+                    <h3 className="text-lg font-semibold text-[var(--text-primary)]">
                       {selectedWorkflowTemplate.name}
                     </h3>
                     <Badge variant="info">{selectedWorkflowTemplate.nodes.length} 个节点</Badge>
@@ -524,8 +524,8 @@ export default function PromptLab() {
                       </Badge>
                     )}
                   </div>
-                  <p className="mt-1 text-sm text-zinc-400">{selectedWorkflowTemplate.description}</p>
-                  <p className="mt-2 text-xs text-zinc-500">
+                  <p className="mt-1 text-sm text-[var(--text-muted)]">{selectedWorkflowTemplate.description}</p>
+                  <p className="mt-2 text-xs text-[var(--text-muted)]">
                     适用场景：{selectedWorkflowTemplate.scenario}
                   </p>
                 </div>
@@ -534,46 +534,46 @@ export default function PromptLab() {
                   {selectedWorkflowTemplate.nodes.map((node, index) => (
                     <div
                       key={node.id}
-                      className="rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-surface)] p-4 shadow-[var(--glass-inner)]"
+                      className="rounded-panel border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-sm)]"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="flex items-start gap-3">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-accent-400/30 bg-accent-400/15 text-xs font-semibold text-accent-400">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-panel border border-accent-400/30 bg-accent-400/15 text-xs font-semibold text-accent-400">
                             {index + 1}
                           </div>
                           <div>
                             <div className="flex flex-wrap items-center gap-2">
-                              <h4 className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
+                              <h4 className="text-sm font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
                                 {node.name}
                               </h4>
-                              <Badge className="bg-white/5 text-zinc-500 border-white/10">{node.type}</Badge>
+                              <Badge className="bg-[var(--surface-muted)] text-[var(--text-muted)] border-[var(--border)]">{node.type}</Badge>
                             </div>
-                            <p className="mt-1 text-sm text-slate-600 dark:text-zinc-400">
+                            <p className="mt-1 text-sm text-[var(--text-secondary)] dark:text-[var(--text-muted)]">
                               {node.description}
                             </p>
                           </div>
                         </div>
-                        <MousePointerClick className="h-4 w-4 text-zinc-500" />
+                        <MousePointerClick className="h-4 w-4 text-[var(--text-muted)]" />
                       </div>
                       {(node.input || node.output || node.safetyNote) && (
                         <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
                           {node.input && (
-                            <div className="rounded-xl bg-white/35 p-2 text-slate-600 dark:bg-zinc-950/25 dark:text-zinc-400">
+                            <div className="rounded-panel bg-[var(--surface-muted)] p-2 text-[var(--text-secondary)] dark:bg-[var(--surface-muted)] dark:text-[var(--text-muted)]">
                               输入：{node.input}
                             </div>
                           )}
                           {node.output && (
-                            <div className="rounded-xl bg-white/35 p-2 text-slate-600 dark:bg-zinc-950/25 dark:text-zinc-400">
+                            <div className="rounded-panel bg-[var(--surface-muted)] p-2 text-[var(--text-secondary)] dark:bg-[var(--surface-muted)] dark:text-[var(--text-muted)]">
                               输出：{node.output}
                             </div>
                           )}
                           {node.safetyNote && (
-                            <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-2 text-amber-600 dark:text-amber-300 sm:col-span-2">
+                            <div className="rounded-panel border border-amber-400/20 bg-amber-400/10 p-2 text-amber-600 dark:text-amber-300 sm:col-span-2">
                               安全提示：{node.safetyNote}
                             </div>
                           )}
                           {node.retryAdvice && (
-                            <div className="rounded-xl border border-blue-400/20 bg-blue-400/10 p-2 text-blue-600 dark:text-blue-300 sm:col-span-2">
+                            <div className="rounded-panel border border-blue-400/20 bg-blue-400/10 p-2 text-blue-600 dark:text-blue-300 sm:col-span-2">
                               重试建议：{node.retryAdvice}
                             </div>
                           )}
@@ -583,23 +583,23 @@ export default function PromptLab() {
                   ))}
                 </div>
 
-                <GlassCard className="p-4">
-                  <h4 className="text-sm font-semibold text-zinc-200">怎么使用这个模板</h4>
-                  <ol className="mt-2 space-y-1 text-sm text-slate-600 dark:text-zinc-400">
+                <SurfaceCard className="p-4">
+                  <h4 className="text-sm font-semibold text-[var(--text-primary)]">怎么使用这个模板</h4>
+                  <ol className="mt-2 space-y-1 text-sm text-[var(--text-secondary)] dark:text-[var(--text-muted)]">
                     <li>1. 先把输入节点需要的信息准备好。</li>
                     <li>2. 按节点顺序让 Agent 执行，每个节点完成后保存执行记录。</li>
                     <li>3. 出错时查看 Project Detail 的节点追踪，复制日志给 Log Analyzer。</li>
                   </ol>
-                </GlassCard>
+                </SurfaceCard>
               </div>
             ) : selectedTemplate ? (
               <div className="space-y-5">
                 {/* Template header */}
                 <div>
-                  <h3 className="text-lg font-semibold text-zinc-200">
+                  <h3 className="text-lg font-semibold text-[var(--text-primary)]">
                     {selectedTemplate.name}
                   </h3>
-                  <p className="text-xs text-zinc-500 mt-1">
+                  <p className="text-xs text-[var(--text-muted)] mt-1">
                     {selectedTemplate.description}
                   </p>
                 </div>
@@ -607,7 +607,7 @@ export default function PromptLab() {
                 {/* Variables */}
                 {selectedTemplate.variables.length > 0 && (
                   <div className="space-y-3">
-                    <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                    <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
                       模板变量
                     </h4>
                     <div className="space-y-3">
@@ -615,7 +615,7 @@ export default function PromptLab() {
                         const key = getTemplateVariableKey(v);
                         return (
                           <div key={key}>
-                            <label className="block text-[11px] font-medium text-zinc-500 mb-1">
+                            <label className="block text-[11px] font-medium text-[var(--text-muted)] mb-1">
                               {v.label || key}
                               {v.required && <span className="text-red-400 ml-0.5">*</span>}
                             </label>
@@ -651,16 +651,16 @@ export default function PromptLab() {
                 )}
 
                 {/* Memory injection toggle */}
-                <div className="border-t border-white/10 pt-4">
+                <div className="border-t border-[var(--border)] pt-4">
                   <div className="flex items-center justify-between mb-3">
-                    <label className="flex items-center gap-2 text-xs text-zinc-400 select-none">
+                    <label className="flex items-center gap-2 text-xs text-[var(--text-muted)] select-none">
                       <Brain className="w-3.5 h-3.5 text-pink-400" />
                       注入共享记忆 / Inject Shared Memory
                     </label>
                     <select
                       value={injectionMode}
                       onChange={(e) => setInjectionMode(e.target.value as MemoryInjectionMode)}
-                      className="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-zinc-300
+                      className="px-2 py-1 rounded-lg bg-[var(--surface-muted)] border border-[var(--border)] text-xs text-[var(--text-secondary)]
                                  focus:outline-none focus:ring-2 focus:ring-pink-500/50"
                     >
                       <option value="off">不注入 / Off</option>
@@ -695,9 +695,9 @@ export default function PromptLab() {
 
                 {/* Generated prompt */}
                 {generatedContent && (
-                  <div className="space-y-3 border-t border-white/10 pt-4">
+                  <div className="space-y-3 border-t border-[var(--border)] pt-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                      <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
                         生成的 Prompt
                       </h4>
                       <div className="flex items-center gap-1.5">
@@ -707,14 +707,14 @@ export default function PromptLab() {
                             setCopied(true);
                             setTimeout(() => setCopied(false), 2000);
                           }}
-                          className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-500 hover:text-zinc-300 transition-colors"
+                          className="p-1.5 rounded-lg hover:bg-[var(--surface-muted)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                           title="复制"
                         >
                           {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                         </button>
                         <button
                           onClick={handleExport}
-                          className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-500 hover:text-zinc-300 transition-colors"
+                          className="p-1.5 rounded-lg hover:bg-[var(--surface-muted)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                           title="导出 Markdown"
                         >
                           <Download className="w-3.5 h-3.5" />
@@ -724,7 +724,7 @@ export default function PromptLab() {
                             setSaveName('');
                             setShowSaveModal(true);
                           }}
-                          className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-500 hover:text-zinc-300 transition-colors"
+                          className="p-1.5 rounded-lg hover:bg-[var(--surface-muted)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                           title="保存"
                         >
                           <Save className="w-3.5 h-3.5" />
@@ -732,11 +732,11 @@ export default function PromptLab() {
                       </div>
                     </div>
                     <PromptPreview content={generatedContent} />
-                    <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-surface)] p-3">
+                    <div className="rounded-panel border border-[var(--border)] bg-[var(--surface)] p-3">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                          <p className="text-sm font-medium text-slate-700 dark:text-zinc-200">下一步建议</p>
-                          <p className="text-xs text-slate-500 dark:text-zinc-500">
+                          <p className="text-sm font-medium text-[var(--text-primary)] dark:text-[var(--text-primary)]">下一步建议</p>
+                          <p className="text-xs text-[var(--text-muted)] dark:text-[var(--text-muted)]">
                             复制给 Agent 执行，或保存后回到项目详情记录运行结果。
                           </p>
                         </div>
@@ -771,32 +771,32 @@ export default function PromptLab() {
                 )}
               </div>
             ) : (
-              <div className="flex items-center justify-center h-full text-zinc-500 text-sm">
+              <div className="flex items-center justify-center h-full text-[var(--text-muted)] text-sm">
                 从左侧选择一个模板开始
               </div>
             )}
-          </GlassCard>
+          </SurfaceCard>
         </div>
       </div>
 
       {/* ── Saved prompts section ─────────────────────────────────────────── */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-zinc-200 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
             <Save className="w-4 h-4 text-purple-400" />
             已保存的 Prompts
-            <Badge className="bg-white/5 text-zinc-400 border-white/10">
+            <Badge className="bg-[var(--surface-muted)] text-[var(--text-muted)] border-[var(--border)]">
               {savedPrompts.length}
             </Badge>
           </h2>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" />
             <input
               value={savedSearch}
               onChange={(e) => setSavedSearch(e.target.value)}
               placeholder="搜索已保存..."
-              className="w-56 pl-9 pr-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-zinc-200 text-xs
-                         placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              className="w-56 pl-9 pr-3 py-1.5 rounded-lg bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--text-primary)] text-xs
+                         placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-blue-500/50"
             />
           </div>
         </div>
@@ -804,15 +804,15 @@ export default function PromptLab() {
         {filteredSaved.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {filteredSaved.map((p) => (
-              <GlassCard
+              <SurfaceCard
                 key={p.id}
                 className="p-4 cursor-pointer hover:scale-[1.01] transition-transform group"
                 onClick={() => loadSaved(p)}
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="min-w-0 flex-1">
-                    <h4 className="text-sm font-medium text-zinc-200 truncate">{p.name ?? p.title ?? 'Untitled prompt'}</h4>
-                    <p className="text-[11px] text-zinc-500 mt-0.5">
+                    <h4 className="text-sm font-medium text-[var(--text-primary)] truncate">{p.name ?? p.title ?? 'Untitled prompt'}</h4>
+                    <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
                       {truncate(p.content, 60)}
                     </p>
                   </div>
@@ -820,39 +820,39 @@ export default function PromptLab() {
                     <button
                       onClick={(e) => { e.stopPropagation(); toggleStar(p); }}
                       className={`p-1 rounded transition-colors ${
-                        p.starred ? 'text-amber-400' : 'text-zinc-600 hover:text-amber-400'
+                        p.starred ? 'text-amber-400' : 'text-[var(--text-muted)] hover:text-amber-400'
                       }`}
                     >
                       <Star className="w-3.5 h-3.5" fill={p.starred ? 'currentColor' : 'none'} />
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); deleteSaved(p.id); }}
-                      className="p-1 rounded text-zinc-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                      className="p-1 rounded text-[var(--text-muted)] hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge className="text-[10px] bg-white/5 text-zinc-500 border-white/10">
+                  <Badge className="text-[10px] bg-[var(--surface-muted)] text-[var(--text-muted)] border-[var(--border)]">
                     {p.templateId ?? p.templateName ?? 'custom'}
                   </Badge>
-                  <span className="text-[10px] text-zinc-600 flex items-center gap-1">
+                  <span className="text-[10px] text-[var(--text-muted)] flex items-center gap-1">
                     <Clock className="w-3 h-3" />
                     {formatRelativeDate(p.createdAt)}
                   </span>
                 </div>
-              </GlassCard>
+              </SurfaceCard>
             ))}
           </div>
         ) : (
-          <GlassCard className="p-8">
+          <SurfaceCard className="p-8">
             <EmptyState
               icon={Save}
               title="暂无已保存的 Prompt"
               description={savedSearch ? '没有匹配的 Prompt' : '生成并保存你的第一个 Prompt'}
             />
-          </GlassCard>
+          </SurfaceCard>
         )}
       </div>
 
@@ -865,7 +865,7 @@ export default function PromptLab() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1.5">名称</label>
+            <label className="block text-xs font-medium text-[var(--text-muted)] mb-1.5">名称</label>
             <Input
               value={saveName}
               onChange={(e) => setSaveName(e.target.value)}
@@ -873,11 +873,11 @@ export default function PromptLab() {
               autoFocus
             />
           </div>
-          <p className="text-[11px] text-zinc-500">
+          <p className="text-[11px] text-[var(--text-muted)]">
             模板: {selectedTemplate?.name} | 变量: {selectedTemplate?.variables.length} 个
           </p>
         </div>
-        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-white/10">
+        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-[var(--border)]">
           <Button variant="ghost" onClick={() => setShowSaveModal(false)}>取消</Button>
           <Button onClick={handleSave} loading={saving} icon={<Save className="w-4 h-4" />}>
             保存

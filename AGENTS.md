@@ -11,7 +11,7 @@ Built with Electron + React + TypeScript + Vite + Tailwind CSS.
 - **Runtime**: Electron 33, Node.js 24
 - **Frontend**: React 18, TypeScript 5.7
 - **Build**: Vite 6, vite-plugin-electron
-- **Styling**: Tailwind CSS 3.4, Apple Liquid Glass design
+- **Styling**: Tailwind CSS 3.4, lightweight flat desktop-tool design
 - **Charts**: ECharts 5
 - **Icons**: lucide-react
 - **Git**: simple-git
@@ -80,15 +80,15 @@ npm run dist         # Package for distribution
 
 ## UI Conventions
 
-- **Design language**: Apple Liquid Glass + Linear + Raycast
-- **Colors**: Use CSS variables (--bg-primary, --text-primary, --accent, etc.)
-- **Cards**: GlassCard component with backdrop-blur
+- **Design language**: lightweight flat desktop tool, inspired by compact CCS / cc-switch style principles
+- **Colors**: Use CSS variables (--bg-primary, --surface, --border, --text-primary, --accent, etc.)
+- **Cards**: Use the SurfaceCard component and solid surface/border layers
 - **Buttons**: Use Button component with variant/size props
 - **States**: Every data page must handle loading, empty, error, and data states
 - **Dark mode**: Use dark class on html element, CSS variables handle the rest
 - **Charts**: Use Charts component (TaskStatusChart, MemoryTypeChart) for data viz
 - **Icons**: Use lucide-react exclusively
-- **Animations**: Use Tailwind animate-fade-in, animate-slide-up, animate-scale-in
+- **Animations**: Keep only subtle hover/focus/loading feedback; avoid decorative transitions
 
 ## Git Commit Conventions
 

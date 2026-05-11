@@ -146,10 +146,12 @@ async function main() {
   record('dashboard loads in Chinese', true)
   record('document title', (await page.title()).includes('LocalAI Nexus'), await page.title())
 
-  const panelBg = await page.locator('.panel').first().evaluate((el) => getComputedStyle(el).backdropFilter)
-  record('Liquid Glass backdrop exists', panelBg.includes('blur'), panelBg)
+  const panelBackdrop = await page.locator('.panel').first().evaluate((el) => getComputedStyle(el).backdropFilter)
+  record('flat panels avoid backdrop blur', panelBackdrop === '' || panelBackdrop === 'none', panelBackdrop)
+  const panelBg = await page.locator('.panel').first().evaluate((el) => getComputedStyle(el).backgroundColor)
+  record('flat panels use solid surface', panelBg !== 'rgba(0, 0, 0, 0)', panelBg)
   const panelShadow = await page.locator('.panel').first().evaluate((el) => getComputedStyle(el).boxShadow)
-  record('Liquid Glass layered shadow exists', panelShadow !== 'none' && panelShadow.length > 10, panelShadow)
+  record('flat panel shadow is restrained', panelShadow === 'none' || panelShadow.includes('rgba'), panelShadow)
   await page.getByText('下一步').first().waitFor({ timeout: 3000 })
   record('dashboard next-step CTA exists', true)
   for (const label of ['Idea', 'Plan', 'Tasks', 'Prompt', 'Safety', 'Logs', 'Memory', 'Handoff']) {

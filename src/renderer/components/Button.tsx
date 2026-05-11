@@ -21,26 +21,19 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-accent-600 text-white hover:bg-accent-500 active:bg-accent-700 ' +
-    'shadow-lg shadow-accent-500/25 dark:shadow-accent-400/20',
+    'border border-[var(--accent)] bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] hover:border-[var(--accent-hover)] active:bg-[var(--accent-hover)]',
   secondary:
-    'bg-[var(--glass-surface)] text-slate-700 dark:text-slate-200 ' +
-    'border border-[var(--glass-border)] shadow-[var(--glass-inner)] ' +
-    'hover:bg-[var(--glass-surface-hover)] active:bg-white/30 dark:active:bg-white/15 ' +
-    'backdrop-blur-md',
+    'bg-[var(--surface)] text-[var(--text-primary)] border border-[var(--border)] hover:bg-[var(--surface-hover)] hover:border-[var(--border-strong)] active:bg-[var(--surface-muted)]',
   ghost:
-    'text-slate-600 dark:text-slate-300 ' +
-    'hover:bg-slate-200/50 dark:hover:bg-white/10 ' +
-    'active:bg-slate-300/30 dark:active:bg-white/15',
+    'text-[var(--text-secondary)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)] active:bg-[var(--surface-hover)]',
   danger:
-    'bg-red-600/90 text-white hover:bg-red-500 active:bg-red-700 ' +
-    'shadow-lg shadow-red-500/25 dark:shadow-red-400/15',
+    'border border-[var(--danger)] bg-[var(--danger)] text-white hover:bg-danger-hover hover:border-danger-hover active:bg-danger-hover',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'px-3 py-1.5 text-xs gap-1.5 rounded-lg',
-  md: 'px-4 py-2 text-sm gap-2 rounded-xl',
-  lg: 'px-6 py-3 text-base gap-2.5 rounded-xl',
+  sm: 'min-h-[30px] px-2.5 py-1.5 text-xs gap-1.5 rounded-tool',
+  md: 'min-h-[36px] px-3.5 py-2 text-sm gap-2 rounded-tool',
+  lg: 'min-h-[42px] px-4 py-2.5 text-sm gap-2.5 rounded-tool',
 };
 
 const spinnerSizes: Record<ButtonSize, string> = {
@@ -73,8 +66,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         className={classNames(
           // Base styles
           'inline-flex items-center justify-center font-medium cursor-pointer',
-          'transition-all duration-200 ease-out',
-          'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/70 focus-visible:ring-offset-1 focus-visible:ring-offset-transparent',
+          'transition-colors duration-150 ease-out',
+          'focus-ring',
           'select-none',
           // Variant
           variantClasses[variant],

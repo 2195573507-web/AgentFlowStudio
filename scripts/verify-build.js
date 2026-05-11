@@ -74,7 +74,7 @@ for (const page of pages) {
 
 console.log('\n[Source - Renderer Components]')
 const components = [
-  'Layout', 'Sidebar', 'Topbar', 'GlassCard', 'Button', 'Input', 'Textarea',
+  'Layout', 'Sidebar', 'Topbar', 'SurfaceCard', 'Button', 'Input', 'Textarea',
   'Badge', 'Modal', 'EmptyState', 'StatCard', 'TaskBoard', 'PromptPreview',
   'RiskMeter', 'Charts'
 ]

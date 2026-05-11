@@ -27,8 +27,8 @@ const columns: ColumnDef[] = [
   {
     status: 'todo',
     label: '待办',
-    color: 'text-slate-600 dark:text-slate-400',
-    bgColor: 'bg-slate-100/60 dark:bg-slate-800/40',
+    color: 'text-[var(--text-secondary)] dark:text-[var(--text-muted)]',
+    bgColor: 'bg-slate-100/60 dark:bg-[var(--surface-muted)]',
   },
   {
     status: 'doing',
@@ -82,10 +82,10 @@ const TaskCard: React.FC<{
     <div
       className={classNames(
         'group relative',
-        'bg-white/70 dark:bg-slate-800/70 backdrop-blur-lg',
-        'border border-white/30 dark:border-white/10',
+        'bg-[var(--surface)] dark:bg-[var(--surface-muted)] ',
+        'border border-[var(--border)] dark:border-[var(--border)]',
         'shadow-sm shadow-black/5 dark:shadow-black/20',
-        'rounded-xl p-3',
+        'rounded-panel p-3',
         'transition-all duration-200 ease-out',
         'hover:shadow-md hover:shadow-black/10 dark:hover:shadow-black/30',
         'hover:-translate-y-0.5',
@@ -93,11 +93,11 @@ const TaskCard: React.FC<{
     >
       {/* Drag handle */}
       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-40 transition-opacity cursor-grab">
-        <GripVertical className="w-3.5 h-3.5 text-slate-400" />
+        <GripVertical className="w-3.5 h-3.5 text-[var(--text-muted)]" />
       </div>
 
       {/* Title */}
-      <p className="text-sm font-medium text-slate-800 dark:text-slate-200 leading-snug mb-2 pr-5">
+      <p className="text-sm font-medium text-[var(--text-primary)] dark:text-[var(--text-primary)] leading-snug mb-2 pr-5">
         {task.title}
       </p>
 
@@ -107,7 +107,7 @@ const TaskCard: React.FC<{
           {priorityLabels[task.priority] ?? task.priority}
         </Badge>
         {task.role && (
-          <span className="inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
+          <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)] dark:text-[var(--text-muted)]">
             <User className="w-3 h-3" />
             {task.role}
           </span>
@@ -116,7 +116,7 @@ const TaskCard: React.FC<{
 
       {/* Status switcher */}
       {onStatusChange && availableStatuses.length > 0 && (
-        <div className="mt-2.5 pt-2.5 border-t border-slate-100 dark:border-slate-700/30">
+        <div className="mt-2.5 pt-2.5 border-t border-slate-100 dark:border-[var(--border)]">
           <select
             value=""
             onChange={(e) => {
@@ -125,9 +125,9 @@ const TaskCard: React.FC<{
             }}
             className={classNames(
               'w-full text-xs rounded-lg px-2 py-1.5',
-              'bg-white/40 dark:bg-slate-900/40',
-              'border border-slate-200/60 dark:border-slate-700/40',
-              'text-slate-500 dark:text-slate-400',
+              'bg-[var(--surface-muted)] dark:bg-[var(--surface-muted)]',
+              'border border-slate-200/60 dark:border-[var(--border)]',
+              'text-[var(--text-muted)] dark:text-[var(--text-muted)]',
               'outline-none focus:ring-1 focus:ring-accent-400',
               'cursor-pointer',
             )}
@@ -193,7 +193,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
             {/* Column header */}
             <div
               className={classNames(
-                'flex items-center justify-between px-3 py-2 rounded-xl mb-3',
+                'flex items-center justify-between px-3 py-2 rounded-panel mb-3',
                 col.bgColor,
               )}
             >
@@ -208,7 +208,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
               <span
                 className={classNames(
                   'text-xs font-semibold tabular-nums px-2 py-0.5 rounded-full',
-                  'bg-white/40 dark:bg-black/20',
+                  'bg-[var(--surface-muted)] dark:bg-black/20',
                   col.color,
                 )}
               >
@@ -229,12 +229,12 @@ const TaskBoard: React.FC<TaskBoardProps> = ({
                 <div
                   className={classNames(
                     'flex-1 flex items-center justify-center',
-                    'rounded-xl border-2 border-dashed',
-                    'border-slate-200/60 dark:border-slate-700/30',
+                    'rounded-panel border-2 border-dashed',
+                    'border-slate-200/60 dark:border-[var(--border)]',
                     'min-h-[100px]',
                   )}
                 >
-                  <span className="text-xs text-slate-300 dark:text-slate-600">
+                  <span className="text-xs text-slate-300 dark:text-[var(--text-secondary)]">
                     暂无任务
                   </span>
                 </div>

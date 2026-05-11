@@ -42,7 +42,7 @@ import {
   parseRunNodeTrace,
   serializeRun,
 } from '../lib/runLogs';
-import { GlassCard, Badge, Button, Input, Textarea, TaskBoard, Modal } from '../components/';
+import { SurfaceCard, Badge, Button, Input, Textarea, TaskBoard, Modal } from '../components/';
 import type {
   Project, ProjectPlan, Task, Run, Memory, MemoryInjectionMode, MemoryType,
   RunNodeTrace,
@@ -58,7 +58,7 @@ const DEMO_PROJECT: Project = {
   idea: 'A cross-platform AI chat app with memory persistence and multi-provider support. Users can switch between OpenAI, Anthropic, and local models seamlessly.',
   platform: 'Desktop',
   techStack: 'Electron, React 18, TypeScript, Tailwind CSS, SQLite, Better-sqlite3',
-  uiStyle: 'Glassmorphism / Apple Liquid Glass',
+  uiStyle: 'Flat desktop tool UI',
   difficulty: 'Medium',
   status: 'active',
   createdAt: new Date(Date.now() - 7 * 864e5).toISOString(),
@@ -67,7 +67,7 @@ const DEMO_PROJECT: Project = {
 
 const DEMO_PLAN: ProjectPlan = {
   title: 'AI Chat Assistant',
-  summary: 'AI Chat Assistant is a desktop AI chat app with multi-provider support, persistent memory, and a glass desktop interface.',
+  summary: 'AI Chat Assistant is a desktop AI chat app with multi-provider support, persistent memory, and a flat desktop interface.',
   overview: `## 项目简介
 
 AI Chat Assistant 是一款跨平台的桌面聊天应用，支持多种 AI 模型提供商，并具备持久化记忆功能。用户可以无缝切换 OpenAI、Anthropic 及本地模型。
@@ -93,7 +93,7 @@ AI Chat Assistant 是一款跨平台的桌面聊天应用，支持多种 AI 模�
 ### 前端
 - Electron 主进程 + 渲染进程
 - React 18 + TypeScript
-- Tailwind CSS — Apple Liquid Glass 风格
+- Tailwind CSS — Apple Flat UI 风格
 - ECharts 图表
 - React Router v6
 
@@ -131,7 +131,7 @@ ai-chat-assistant/
     { id: 't1', projectId: 'demo-1', title: '初始化 Electron 项目结构', description: '搭建 Electron + React + TypeScript 基础架构', status: 'done', priority: 'high', assignee: 'Dev', createdAt: new Date(Date.now() - 7 * 864e5).toISOString(), updatedAt: new Date(Date.now() - 6 * 864e5).toISOString() },
     { id: 't2', projectId: 'demo-1', title: '实现 SQLite 数据库层', description: '使用 better-sqlite3 实现对话和记忆的 CRUD', status: 'done', priority: 'high', assignee: 'Dev', createdAt: new Date(Date.now() - 6 * 864e5).toISOString(), updatedAt: new Date(Date.now() - 4 * 864e5).toISOString() },
     { id: 't3', projectId: 'demo-1', title: '实现 AI Provider 抽象层', description: '统一的 API 调用接口支持 OpenAI 和 Anthropic', status: 'in_progress', priority: 'high', assignee: 'Dev', createdAt: new Date(Date.now() - 5 * 864e5).toISOString(), updatedAt: new Date(Date.now() - 1 * 864e5).toISOString() },
-    { id: 't4', projectId: 'demo-1', title: '设计聊天界面', description: '实现流式消息显示、用户头像、Glass 风格卡片', status: 'in_progress', priority: 'medium', assignee: 'Designer', createdAt: new Date(Date.now() - 4 * 864e5).toISOString(), updatedAt: new Date(Date.now() - 1 * 864e5).toISOString() },
+    { id: 't4', projectId: 'demo-1', title: '设计聊天界面', description: '实现流式消息显示、用户头像、flat surface 风格卡片', status: 'in_progress', priority: 'medium', assignee: 'Designer', createdAt: new Date(Date.now() - 4 * 864e5).toISOString(), updatedAt: new Date(Date.now() - 1 * 864e5).toISOString() },
     { id: 't5', projectId: 'demo-1', title: '实现 Prompt 模板系统', description: '支持变量替换和模板保存', status: 'todo', priority: 'medium', assignee: 'Dev', createdAt: new Date(Date.now() - 3 * 864e5).toISOString(), updatedAt: new Date(Date.now() - 3 * 864e5).toISOString() },
     { id: 't6', projectId: 'demo-1', title: '实现记忆注入系统', description: '在对话上下文中注入相关记忆', status: 'todo', priority: 'low', assignee: 'Dev', createdAt: new Date(Date.now() - 2 * 864e5).toISOString(), updatedAt: new Date(Date.now() - 2 * 864e5).toISOString() },
     { id: 't7', projectId: 'demo-1', title: '暗色/亮色主题切换', description: '支持跟随系统主题', status: 'todo', priority: 'low', assignee: 'Designer', createdAt: new Date(Date.now() - 1 * 864e5).toISOString(), updatedAt: new Date(Date.now() - 1 * 864e5).toISOString() },
@@ -189,7 +189,7 @@ You are building a cross-platform AI chat desktop application using Electron + R
 - TypeScript strict mode
 - Functional components with hooks
 - Tailwind utility-first CSS
-- Glassmorphism design system`,
+- Flat surface design system`,
   devPrompt: `# Claude Code Development Prompt
 
 Continue the AI Chat Assistant desktop app using Electron, React, TypeScript, Tailwind CSS, secure IPC, and local persistence. Preserve the existing architecture and focus on provider switching, memory injection, prompt templates, tests, and production packaging.`,
@@ -222,7 +222,7 @@ Build a cross-platform AI chat desktop app with Electron, React 18, TypeScript, 
 ## Tech Stack
 - Electron (main + renderer)
 - React 18 with TypeScript
-- Tailwind CSS (Apple Liquid Glass design)
+- Tailwind CSS (Apple Flat UI design)
 - SQLite via better-sqlite3
 - ECharts for analytics
 
@@ -242,7 +242,7 @@ src/
 5. \`src/renderer/components/ChatWindow.tsx\` — Main chat UI
 
 ## Design System
-- Glassmorphism cards: \`backdrop-blur-xl bg-white/10\`
+- Flat surface cards: \` bg-[var(--surface-muted)]\`
 - Soft shadows: \`shadow-lg shadow-black/10\`
 - Colors: Indigo primary, Emerald success, Amber warning`,
 };
@@ -258,7 +258,7 @@ const STATUS_MAP: Record<string, { label: string; color: string }> = {
   active: { label: '进行中', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
   planning: { label: '规划中', color: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
   paused: { label: '已暂停', color: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
-  done: { label: '已完成', color: 'bg-zinc-500/20 text-zinc-300 border-zinc-500/30' },
+  done: { label: '已完成', color: 'bg-[var(--surface-muted)] text-[var(--text-secondary)] border-[var(--border)]' },
 };
 
 const RUN_TOOL_OPTIONS = ['Codex', 'Claude Code', 'Cursor', 'ChatGPT', 'Other'];
@@ -652,10 +652,10 @@ export default function ProjectDetail() {
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto px-6 py-8 space-y-6 animate-pulse">
-        <div className="h-8 w-32 rounded-lg bg-white/5" />
-        <div className="h-16 rounded-2xl bg-white/5 border border-white/10" />
-        <div className="h-10 w-80 rounded-xl bg-white/5" />
-        <div className="h-96 rounded-2xl bg-white/5 border border-white/10" />
+        <div className="h-8 w-32 rounded-lg bg-[var(--surface-muted)]" />
+        <div className="h-16 rounded-panel bg-[var(--surface-muted)] border border-[var(--border)]" />
+        <div className="h-10 w-80 rounded-panel bg-[var(--surface-muted)]" />
+        <div className="h-96 rounded-panel bg-[var(--surface-muted)] border border-[var(--border)]" />
       </div>
     );
   }
@@ -664,16 +664,16 @@ export default function ProjectDetail() {
   if (!project) {
     return (
       <div className="max-w-6xl mx-auto px-6 py-8">
-        <GlassCard className="p-16 text-center">
-          <div className="text-6xl mb-4 font-bold text-zinc-700">404</div>
-          <h2 className="text-xl font-semibold text-zinc-300 mb-2">项目未找到</h2>
-          <p className="text-zinc-500 mb-6">
-            项目 <code className="text-zinc-400 bg-white/5 px-2 py-0.5 rounded">{id}</code> 不存在或已被删除。
+        <SurfaceCard className="p-16 text-center">
+          <div className="text-6xl mb-4 font-bold text-[var(--text-muted)]">404</div>
+          <h2 className="text-xl font-semibold text-[var(--text-secondary)] mb-2">项目未找到</h2>
+          <p className="text-[var(--text-primary)]0 mb-6">
+            项目 <code className="text-[var(--text-muted)] bg-[var(--surface-muted)] px-2 py-0.5 rounded">{id}</code> 不存在或已被删除。
           </p>
           <Button onClick={() => navigate('/projects')} icon={<ArrowLeft className="w-4 h-4" />}>
             返回项目列表
           </Button>
-        </GlassCard>
+        </SurfaceCard>
       </div>
     );
   }
@@ -682,21 +682,21 @@ export default function ProjectDetail() {
   if (error && !project) {
     return (
       <div className="max-w-6xl mx-auto px-6 py-8">
-        <GlassCard className="p-12 text-center">
+        <SurfaceCard className="p-12 text-center">
           <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-zinc-100 mb-2">加载失败</h2>
-          <p className="text-zinc-400 mb-4">{error}</p>
+          <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-2">加载失败</h2>
+          <p className="text-[var(--text-muted)] mb-4">{error}</p>
           <div className="flex justify-center gap-3">
             <Button onClick={fetchProject} icon={<RefreshCw className="w-4 h-4" />}>重试</Button>
             <Button variant="ghost" onClick={() => navigate('/projects')}>返回列表</Button>
           </div>
-        </GlassCard>
+        </SurfaceCard>
       </div>
     );
   }
 
   const PlatformIcon = PLATFORM_ICONS[project.platform] || Cpu;
-  const statusInfo = STATUS_MAP[project.status] || { label: project.status, color: 'bg-zinc-500/20' };
+  const statusInfo = STATUS_MAP[project.status] || { label: project.status, color: 'bg-[var(--surface-muted)]' };
 
   // ── Tabs ───────────────────────────────────────────────────────────────
   const tabs = [
@@ -728,26 +728,26 @@ export default function ProjectDetail() {
       {/* Back button */}
       <button
         onClick={() => navigate('/projects')}
-        className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+        className="inline-flex items-center gap-1.5 text-sm text-[var(--text-primary)]0 hover:text-[var(--text-secondary)] transition-colors"
       >
         <ArrowLeft className="w-4 h-4" /> 返回项目列表
       </button>
 
       {/* Header */}
-      <GlassCard className="p-6">
+      <SurfaceCard className="p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-4 min-w-0">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-white/10 flex items-center justify-center flex-shrink-0">
+            <div className="w-12 h-12 rounded-panel bg-[var(--accent-muted)] border border-[var(--border)] flex items-center justify-center flex-shrink-0">
               <PlatformIcon className="w-6 h-6 text-blue-400" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-2xl font-bold text-zinc-100 truncate">{project.name}</h1>
+                <h1 className="text-2xl font-bold text-[var(--text-primary)] truncate">{project.name}</h1>
                 <Badge className={statusInfo.color}>{statusInfo.label}</Badge>
                 <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">{project.platform}</Badge>
               </div>
-              <p className="text-sm text-zinc-400 mt-1">{project.idea}</p>
-              <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-zinc-500">
+              <p className="text-sm text-[var(--text-muted)] mt-1">{project.idea}</p>
+              <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-[var(--text-primary)]0">
                 {project.techStack && (
                   <span className="flex items-center gap-1">
                     <Layers className="w-3 h-3" /> {project.techStack}
@@ -786,13 +786,13 @@ export default function ProjectDetail() {
               </>
             )}
             {memoryGenStatus && (
-              <span className="text-xs text-emerald-400 animate-in fade-in">
+              <span className="text-xs text-emerald-400 animate-fade-in">
                 {memoryGenStatus}
               </span>
             )}
           </div>
         </div>
-      </GlassCard>
+      </SurfaceCard>
 
       <Modal
         open={showShareModal}
@@ -801,15 +801,15 @@ export default function ProjectDetail() {
         size="lg"
       >
         <div className="space-y-4">
-          <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-surface)] p-4">
+          <div className="rounded-panel border border-[var(--border)] bg-[var(--surface)] p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-accent-400" />
                 <div>
-                  <div className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
+                  <div className="text-sm font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
                     {projectAcl?.visibility === 'shared' ? 'Shared workflow' : 'Private workflow'}
                   </div>
-                  <div className="text-xs text-slate-500 dark:text-zinc-500">
+                  <div className="text-xs text-[var(--text-muted)] dark:text-[var(--text-primary)]0">
                     IPC enforces workflow access; this panel only manages the ACL.
                   </div>
                 </div>
@@ -826,7 +826,7 @@ export default function ProjectDetail() {
                 aria-label="Share user"
                 value={shareUserId}
                 onChange={(event) => setShareUserId(event.target.value)}
-                className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-surface)] px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+                className="w-full rounded-panel border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-primary)] dark:text-[var(--text-primary)]"
               >
                 <option value="">Select user</option>
                 {shareUsers
@@ -841,7 +841,7 @@ export default function ProjectDetail() {
                 aria-label="Share role"
                 value={shareRole}
                 onChange={(event) => setShareRole(event.target.value as ResourceRole)}
-                className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-surface)] px-3 py-2 text-sm text-slate-800 dark:text-slate-100"
+                className="w-full rounded-panel border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-primary)] dark:text-[var(--text-primary)]"
               >
                 {WORKFLOW_SHARE_ROLES.map((role) => (
                   <option key={role} value={role}>{role}</option>
@@ -861,11 +861,11 @@ export default function ProjectDetail() {
               return (
                 <div
                   key={entry.userId}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--glass-border)] bg-white/35 p-3 dark:bg-zinc-950/30"
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-panel border border-[var(--border)] bg-[var(--surface-muted)] p-3 dark:bg-[var(--surface-muted)]"
                 >
                   <div>
-                    <div className="text-sm font-medium text-slate-900 dark:text-zinc-100">{label}</div>
-                    <div className="text-xs text-slate-500 dark:text-zinc-500">{member?.email || entry.userId}</div>
+                    <div className="text-sm font-medium text-[var(--text-primary)] dark:text-[var(--text-primary)]">{label}</div>
+                    <div className="text-xs text-[var(--text-muted)] dark:text-[var(--text-primary)]0">{member?.email || entry.userId}</div>
                   </div>
                   <div className="flex items-center gap-2">
                     {canManageSharing && !isOwner ? (
@@ -873,7 +873,7 @@ export default function ProjectDetail() {
                         aria-label={`Role for ${label}`}
                         value={entry.role}
                         onChange={(event) => updateShareRole(entry.userId, event.target.value as ResourceRole)}
-                        className="rounded-lg border border-[var(--glass-border)] bg-[var(--glass-surface)] px-2 py-1 text-xs text-slate-800 dark:text-slate-100"
+                        className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-xs text-[var(--text-primary)] dark:text-[var(--text-primary)]"
                       >
                         {WORKFLOW_SHARE_ROLES.filter((role) => role !== 'owner').map((role) => (
                           <option key={role} value={role}>{role}</option>
@@ -894,26 +894,26 @@ export default function ProjectDetail() {
           </div>
 
           {shareStatus && (
-            <p className="text-xs text-slate-500 dark:text-zinc-400">{shareStatus}</p>
+            <p className="text-xs text-[var(--text-muted)] dark:text-[var(--text-muted)]">{shareStatus}</p>
           )}
         </div>
       </Modal>
 
       {shouldHighlightPlan && !plan && (
-        <GlassCard
+        <SurfaceCard
           className="p-5 border-accent-400/50 bg-accent-500/10"
           data-testid="plan-next-step"
         >
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 rounded-xl border border-accent-400/30 bg-accent-400/15 p-2 text-accent-400">
+              <div className="mt-0.5 rounded-panel border border-accent-400/30 bg-accent-400/15 p-2 text-accent-400">
                 <Sparkles className="h-4 w-4" />
               </div>
               <div>
-                <h2 className="text-base font-semibold text-slate-900 dark:text-zinc-100">
+                <h2 className="text-base font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
                   下一步：生成项目规划
                 </h2>
-                <p className="mt-1 max-w-2xl text-sm text-slate-600 dark:text-zinc-400">
+                <p className="mt-1 max-w-2xl text-sm text-[var(--text-secondary)] dark:text-[var(--text-muted)]">
                   项目已创建。现在可以把想法转成 PRD、架构、任务看板和可复制给 Agent 的开发 Prompt。
                 </p>
               </div>
@@ -926,13 +926,13 @@ export default function ProjectDetail() {
               生成规划
             </Button>
           </div>
-        </GlassCard>
+        </SurfaceCard>
       )}
 
       {/* Memory injection mode selector */}
       {plan && (
-        <GlassCard className="p-4 flex items-center gap-4">
-          <span className="text-sm text-zinc-400 flex items-center gap-1.5">
+        <SurfaceCard className="p-4 flex items-center gap-4">
+          <span className="text-sm text-[var(--text-muted)] flex items-center gap-1.5">
             <Brain className="w-4 h-4 text-pink-400" />
             记忆注入模式:
           </span>
@@ -945,7 +945,7 @@ export default function ProjectDetail() {
                   'px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
                   injectionMode === mode
                     ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                    : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5'
+                    : 'text-[var(--text-primary)]0 hover:text-[var(--text-secondary)] hover:bg-[var(--surface-muted)]'
                 )}
               >
                 {{ off: '关闭', minimal: '最少', balanced: '均衡', full: '完整' }[mode]}
@@ -958,20 +958,20 @@ export default function ProjectDetail() {
           >
             重新生成 Prompts
           </button>
-        </GlassCard>
+        </SurfaceCard>
       )}
 
       {/* Agent run record */}
-      <GlassCard className="p-6" data-testid="agent-run-panel">
+      <SurfaceCard className="p-6" data-testid="agent-run-panel">
         <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
           <div>
             <div className="flex items-center gap-2">
               <ClipboardList className="w-5 h-5 text-accent-400" />
-              <h2 className="text-base font-semibold text-slate-900 dark:text-zinc-100">
+              <h2 className="text-base font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
                 Agent 执行记录
               </h2>
             </div>
-            <p className="text-sm text-slate-600 dark:text-zinc-400 mt-1 max-w-2xl">
+            <p className="text-sm text-[var(--text-secondary)] dark:text-[var(--text-muted)] mt-1 max-w-2xl">
               记录 Codex、Claude Code、Cursor 或 ChatGPT 的执行结果，便于下一轮接手。这里只保存本地日志，不会执行任何命令。
             </p>
           </div>
@@ -990,14 +990,14 @@ export default function ProjectDetail() {
             />
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="run-tool" className="text-xs font-medium text-slate-600 dark:text-slate-400 tracking-wide uppercase">
+                <label htmlFor="run-tool" className="text-xs font-medium text-[var(--text-secondary)] dark:text-[var(--text-muted)] tracking-wide uppercase">
                   工具
                 </label>
                 <select
                   id="run-tool"
                   value={runTool}
                   onChange={(event) => setRunTool(event.target.value)}
-                  className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-surface)] px-3.5 py-2.5 text-sm text-slate-800 shadow-[var(--glass-inner)] outline-none backdrop-blur-md transition-all duration-200 focus:border-accent-400/70 focus:ring-2 focus:ring-accent-400/60 dark:text-slate-100"
+                  className="w-full rounded-panel border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] shadow-[var(--shadow-sm)] outline-none  transition-all duration-200 focus:border-accent-400/70 focus:ring-2 focus:ring-accent-400/60 dark:text-[var(--text-primary)]"
                 >
                   {RUN_TOOL_OPTIONS.map((tool) => (
                     <option key={tool} value={tool}>{tool}</option>
@@ -1005,14 +1005,14 @@ export default function ProjectDetail() {
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="run-status" className="text-xs font-medium text-slate-600 dark:text-slate-400 tracking-wide uppercase">
+                <label htmlFor="run-status" className="text-xs font-medium text-[var(--text-secondary)] dark:text-[var(--text-muted)] tracking-wide uppercase">
                   状态
                 </label>
                 <select
                   id="run-status"
                   value={runStatus}
                   onChange={(event) => setRunStatus(event.target.value)}
-                  className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-surface)] px-3.5 py-2.5 text-sm text-slate-800 shadow-[var(--glass-inner)] outline-none backdrop-blur-md transition-all duration-200 focus:border-accent-400/70 focus:ring-2 focus:ring-accent-400/60 dark:text-slate-100"
+                  className="w-full rounded-panel border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] shadow-[var(--shadow-sm)] outline-none  transition-all duration-200 focus:border-accent-400/70 focus:ring-2 focus:ring-accent-400/60 dark:text-[var(--text-primary)]"
                 >
                   {RUN_STATUS_OPTIONS.map((status) => (
                     <option key={status.value} value={status.value}>{status.label}</option>
@@ -1046,9 +1046,9 @@ export default function ProjectDetail() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-surface)] p-4 shadow-[var(--glass-inner)] backdrop-blur-md">
+          <div className="rounded-panel border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-sm)] ">
             <div className="flex items-center justify-between gap-3 mb-3">
-              <h3 className="text-sm font-semibold text-slate-800 dark:text-zinc-200">
+              <h3 className="text-sm font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
                 最近执行
               </h3>
               <Badge variant="info">{runs.length} 条</Badge>
@@ -1063,32 +1063,32 @@ export default function ProjectDetail() {
                   return (
                     <article
                       key={run.id}
-                      className="rounded-xl border border-white/10 bg-white/45 p-3 shadow-sm backdrop-blur-sm dark:bg-zinc-950/35"
+                      className="rounded-panel border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm  dark:bg-[var(--surface-muted)]"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <h4 className="truncate text-sm font-semibold text-slate-900 dark:text-zinc-100">
+                          <h4 className="truncate text-sm font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
                             {run.title}
                           </h4>
-                          <p className="mt-1 text-xs text-slate-500 dark:text-zinc-500">
+                          <p className="mt-1 text-xs text-[var(--text-muted)] dark:text-[var(--text-primary)]0">
                             {run.tool} · {formatRelativeDate(run.createdAt)}
                           </p>
                         </div>
                         <Badge variant={status.variant}>{status.label}</Badge>
                       </div>
-                      <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] text-slate-500 dark:text-zinc-500">
-                        <span className="inline-flex items-center gap-1 rounded-lg bg-white/35 px-2 py-1 dark:bg-zinc-900/40">
+                      <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] text-[var(--text-muted)] dark:text-[var(--text-primary)]0">
+                        <span className="inline-flex items-center gap-1 rounded-lg bg-[var(--surface-muted)] px-2 py-1 dark:bg-[var(--surface)]/40">
                           <Timer className="h-3 w-3" /> {formatRunDuration(run.durationMs)}
                         </span>
-                        <span className="rounded-lg bg-white/35 px-2 py-1 dark:bg-zinc-900/40">
+                        <span className="rounded-lg bg-[var(--surface-muted)] px-2 py-1 dark:bg-[var(--surface)]/40">
                           重试 {run.retryCount ?? 0}
                         </span>
-                        <span className="rounded-lg bg-white/35 px-2 py-1 dark:bg-zinc-900/40">
+                        <span className="rounded-lg bg-[var(--surface-muted)] px-2 py-1 dark:bg-[var(--surface)]/40">
                           {nodeTrace.length} 节点
                         </span>
                       </div>
                       {run.summary && (
-                        <p className="mt-2 text-sm text-slate-600 dark:text-zinc-300">
+                        <p className="mt-2 text-sm text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
                           {run.summary}
                         </p>
                       )}
@@ -1096,16 +1096,16 @@ export default function ProjectDetail() {
                         {nodeTrace.map((node) => (
                           <div
                             key={node.id}
-                            className="rounded-lg border border-white/10 bg-white/35 p-2 text-xs dark:bg-zinc-900/35"
+                            className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-2 text-xs dark:bg-[var(--surface)]/35"
                           >
                             <div className="flex items-center justify-between gap-2">
-                              <span className="font-medium text-slate-700 dark:text-zinc-300">{node.name}</span>
-                              <span className="text-slate-500 dark:text-zinc-500">
+                              <span className="font-medium text-[var(--text-primary)] dark:text-[var(--text-secondary)]">{node.name}</span>
+                              <span className="text-[var(--text-muted)] dark:text-[var(--text-primary)]0">
                                 {node.status} · {formatRunDuration(node.durationMs)} · 重试 {node.retryCount ?? 0}
                               </span>
                             </div>
                             {(node.inputSummary || node.outputSummary || node.failureReason) && (
-                              <div className="mt-1 space-y-0.5 text-slate-500 dark:text-zinc-500">
+                              <div className="mt-1 space-y-0.5 text-[var(--text-muted)] dark:text-[var(--text-primary)]0">
                                 {node.inputSummary && <p>输入：{node.inputSummary}</p>}
                                 {node.outputSummary && <p>输出：{node.outputSummary}</p>}
                                 {node.failureReason && <p className="text-red-500 dark:text-red-300">失败原因：{node.failureReason}</p>}
@@ -1115,12 +1115,12 @@ export default function ProjectDetail() {
                         ))}
                       </div>
                       {run.log && (
-                        <pre className="mt-2 max-h-28 overflow-y-auto whitespace-pre-wrap rounded-lg border border-white/10 bg-zinc-950/70 p-2 text-xs leading-relaxed text-zinc-200">
+                        <pre className="mt-2 max-h-28 overflow-y-auto whitespace-pre-wrap rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-2 text-xs leading-relaxed text-[var(--text-primary)]">
                           {run.log}
                         </pre>
                       )}
-                      <div className="mt-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-surface)] p-2">
-                        <div className="mb-1 text-[11px] font-semibold text-slate-600 dark:text-zinc-400">
+                      <div className="mt-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2">
+                        <div className="mb-1 text-[11px] font-semibold text-[var(--text-secondary)] dark:text-[var(--text-muted)]">
                           Run quality checklist
                         </div>
                         <div className="flex flex-wrap gap-1.5">
@@ -1139,7 +1139,7 @@ export default function ProjectDetail() {
                           ))}
                         </div>
                         {getFailedRunRetryAdvice({ ...run, nodeTrace }).map((advice) => (
-                          <p key={advice} className="mt-1 text-[11px] text-slate-500 dark:text-zinc-500">
+                          <p key={advice} className="mt-1 text-[11px] text-[var(--text-muted)] dark:text-[var(--text-primary)]0">
                             重试建议：{advice}
                           </p>
                         ))}
@@ -1167,13 +1167,13 @@ export default function ProjectDetail() {
                 })}
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-[var(--glass-border)] bg-white/30 p-5 text-sm text-slate-600 dark:bg-zinc-950/25 dark:text-zinc-400">
+              <div className="rounded-panel border border-dashed border-[var(--border)] bg-[var(--surface-muted)] p-5 text-sm text-[var(--text-secondary)] dark:bg-[var(--surface-muted)] dark:text-[var(--text-muted)]">
                 还没有执行记录。建议在每次 Agent 修改、测试或受阻后保存一条，下一轮就能直接接手。
               </div>
             )}
           </div>
         </div>
-      </GlassCard>
+      </SurfaceCard>
 
       {/* Tab Navigation */}
       {plan && (
@@ -1185,8 +1185,8 @@ export default function ProjectDetail() {
               className={classNames(
                 'flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all flex-shrink-0',
                 activeTab === tab.key
-                  ? 'bg-white/10 text-zinc-200'
-                  : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5'
+                  ? 'bg-[var(--surface-muted)] text-[var(--text-primary)]'
+                  : 'text-[var(--text-primary)]0 hover:text-[var(--text-secondary)] hover:bg-[var(--surface-muted)]'
               )}
             >
               <tab.icon className="w-3.5 h-3.5" />
@@ -1198,10 +1198,10 @@ export default function ProjectDetail() {
 
       {/* Tab Content */}
       {plan ? (
-        <GlassCard className="p-6">
+        <SurfaceCard className="p-6">
           {activeTab === 'tasks' ? (
             <div>
-              <h3 className="text-sm font-semibold text-zinc-300 mb-4 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-[var(--text-secondary)] mb-4 flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-emerald-400" /> 任务看板
               </h3>
               <TaskBoard tasks={tasks} projectId={project.id} />
@@ -1209,7 +1209,7 @@ export default function ProjectDetail() {
           ) : activeTab.startsWith('prompt-') ? (
             <div>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-zinc-300 flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-[var(--text-secondary)] flex items-center gap-2">
                   <Code2 className="w-4 h-4 text-purple-400" />
                   {tabs.find((t) => t.key === activeTab)?.label}
                   {injectionMode !== 'off' && (
@@ -1227,37 +1227,37 @@ export default function ProjectDetail() {
                   {copiedKey === activeTab ? '已复制' : '复制'}
                 </Button>
               </div>
-              <pre className="text-xs text-zinc-300 bg-zinc-900/50 rounded-xl p-4 overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed border border-white/5 max-h-[60vh] overflow-y-auto">
+              <pre className="text-xs text-[var(--text-secondary)] bg-[var(--surface-muted)] rounded-panel p-4 overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed border border-[var(--border)] max-h-[60vh] overflow-y-auto">
                 {tabContent[activeTab] || '点击上方的"重新生成 Prompts"以生成带有记忆注入的 Prompt。'}
               </pre>
             </div>
           ) : (
             <div>
-              <h3 className="text-sm font-semibold text-zinc-300 mb-4 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-[var(--text-secondary)] mb-4 flex items-center gap-2">
                 {(() => {
                   const Icon = tabs.find((t) => t.key === activeTab)?.icon
                   return Icon ? <Icon className="w-4 h-4 text-blue-400" /> : null
                 })()}
                 {tabs.find((t) => t.key === activeTab)?.label}
               </h3>
-              <div className="prose prose-invert prose-sm max-w-none text-zinc-300 whitespace-pre-wrap font-mono text-xs leading-relaxed bg-zinc-900/30 rounded-xl p-4 max-h-[60vh] overflow-y-auto">
+              <div className="prose prose-invert prose-sm max-w-none text-[var(--text-secondary)] whitespace-pre-wrap font-mono text-xs leading-relaxed bg-[var(--surface-muted)] rounded-panel p-4 max-h-[60vh] overflow-y-auto">
                 {tabContent[activeTab] || '暂无内容。点击"生成规划"以创建项目规划。'}
               </div>
             </div>
           )}
-        </GlassCard>
+        </SurfaceCard>
       ) : (
-        <GlassCard className="p-12 text-center">
+        <SurfaceCard className="p-12 text-center">
           <Lightbulb className="w-12 h-12 text-amber-400 mx-auto mb-4" />
-          <h2 className="text-lg font-semibold text-zinc-300 mb-2">尚未生成项目规划</h2>
-          <p className="text-sm text-zinc-500 mb-4 max-w-md mx-auto">
+          <h2 className="text-lg font-semibold text-[var(--text-secondary)] mb-2">尚未生成项目规划</h2>
+          <p className="text-sm text-[var(--text-primary)]0 mb-4 max-w-md mx-auto">
             点击上方的"生成规划"按钮，AI 将根据项目信息自动生成完整的技术规划，
             包括架构设计、目录结构、任务看板和开发 Prompt。
           </p>
           <Button onClick={handleGeneratePlan} loading={generating} icon={<Sparkles className="w-4 h-4" />}>
             生成规划
           </Button>
-        </GlassCard>
+        </SurfaceCard>
       )}
     </div>
   );

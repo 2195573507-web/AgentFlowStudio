@@ -64,13 +64,13 @@ const Topbar: React.FC<TopbarProps> = ({
     <header
       className={classNames(
         'flex items-center justify-between h-14 px-5',
-        'liquid-glass-chrome border-b',
+        'surface-chrome border-b',
         className,
       )}
     >
       <div className="flex min-w-0 items-center gap-3">
-        <Network className="hidden h-4 w-4 shrink-0 text-accent-500 sm:block" />
-        <h1 className="truncate text-base font-semibold tracking-tight text-slate-800 dark:text-slate-200">
+        <Network className="hidden h-4 w-4 shrink-0 text-[var(--accent)] sm:block" />
+        <h1 className="truncate text-base font-semibold tracking-tight text-[var(--text-primary)]">
           {displayTitle}
         </h1>
       </div>
@@ -79,9 +79,9 @@ const Topbar: React.FC<TopbarProps> = ({
         {actions}
 
         {user && (
-          <div className="hidden items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-surface)] px-2.5 py-1.5 text-xs text-slate-600 dark:text-slate-300 sm:flex">
+          <div className="hidden items-center gap-2 rounded-tool border border-[var(--border)] bg-[var(--surface-muted)] px-2.5 py-1.5 text-xs text-[var(--text-secondary)] sm:flex">
             <span className="max-w-[140px] truncate font-semibold">{user.profile.displayName || user.email}</span>
-            <span className="rounded-md bg-accent-500/15 px-1.5 py-0.5 text-accent-700 dark:text-accent-300">{user.role}</span>
+            <span className="rounded-tool bg-[var(--accent-muted)] px-1.5 py-0.5 text-[var(--accent)]">{user.role}</span>
           </div>
         )}
 
@@ -90,11 +90,11 @@ const Topbar: React.FC<TopbarProps> = ({
             type="button"
             onClick={() => onLanguageChange(nextLanguage)}
             className={classNames(
-              'inline-flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-xs font-semibold transition-all duration-200',
-              'text-slate-500 dark:text-slate-400',
-              'hover:bg-slate-200/60 dark:hover:bg-white/10',
-              'hover:text-slate-700 dark:hover:text-slate-200',
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-400',
+              'inline-flex items-center gap-1.5 rounded-tool px-2.5 py-2 text-xs font-semibold transition-colors duration-150',
+              'text-[var(--text-secondary)]',
+              'hover:bg-[var(--surface-muted)]',
+              'hover:text-[var(--text-primary)]',
+              'focus-ring',
             )}
             title={language === 'zh' ? 'Switch to English' : 'Switch to Chinese'}
           >
@@ -108,11 +108,11 @@ const Topbar: React.FC<TopbarProps> = ({
             type="button"
             onClick={handleThemeToggle}
             className={classNames(
-              'rounded-xl p-2 transition-all duration-200',
-              'text-slate-400 dark:text-slate-500',
-              'hover:bg-slate-200/60 dark:hover:bg-white/10',
-              'hover:text-slate-600 dark:hover:text-slate-300',
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-400',
+              'rounded-tool p-2 transition-colors duration-150',
+              'text-[var(--text-muted)]',
+              'hover:bg-[var(--surface-muted)]',
+              'hover:text-[var(--text-primary)]',
+              'focus-ring',
             )}
             title={`Theme: ${themeLabels[theme]}. Click to switch.`}
           >

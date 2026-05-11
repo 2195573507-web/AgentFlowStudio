@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import Button from './Button';
 import Badge from './Badge';
-import GlassCard from './GlassCard';
+import SurfaceCard from './SurfaceCard';
 import { classNames, copyToClipboard } from '../lib/utils';
 import type { MemoryInjectionMode } from '../lib/types';
 
@@ -73,12 +73,12 @@ const PromptPreview: React.FC<PromptPreviewProps> = ({
   const shouldTruncate = content.length > maxPreviewLength;
 
   return (
-    <GlassCard className={classNames('flex flex-col', className)} padding="none">
+    <SurfaceCard className={classNames('flex flex-col', className)} padding="none">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200/60 dark:border-slate-700/40">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200/60 dark:border-[var(--border)]">
         <div className="flex items-center gap-3 min-w-0">
           {title && (
-            <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 truncate">
+            <h4 className="text-sm font-semibold text-[var(--text-primary)] dark:text-[var(--text-secondary)] truncate">
               {title}
             </h4>
           )}
@@ -129,7 +129,7 @@ const PromptPreview: React.FC<PromptPreviewProps> = ({
         <pre
           className={classNames(
             'px-5 py-4 text-sm font-mono leading-relaxed whitespace-pre-wrap break-words',
-            'text-slate-700 dark:text-slate-300',
+            'text-[var(--text-primary)] dark:text-[var(--text-secondary)]',
             'overflow-auto max-h-[400px]',
             !expanded && shouldTruncate && 'max-h-[250px] overflow-hidden',
           )}
@@ -137,20 +137,20 @@ const PromptPreview: React.FC<PromptPreviewProps> = ({
           {displayContent}
         </pre>
 
-        {/* Fade gradient when truncated */}
+        {/* Subtle mask when truncated. */}
         {!expanded && shouldTruncate && (
-          <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white/90 dark:from-slate-900/90 to-transparent pointer-events-none" />
+          <div className="absolute bottom-0 left-0 right-0 h-10 border-t border-[var(--border)] bg-[var(--surface)] pointer-events-none opacity-95" />
         )}
       </div>
 
       {/* Expand/collapse */}
       {shouldTruncate && (
-        <div className="px-5 py-2 border-t border-slate-200/60 dark:border-slate-700/40">
+        <div className="px-5 py-2 border-t border-slate-200/60 dark:border-[var(--border)]">
           <button
             onClick={() => setExpanded(!expanded)}
             className={classNames(
               'flex items-center gap-1.5 text-xs font-medium',
-              'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200',
+              'text-[var(--text-muted)] hover:text-[var(--text-primary)] dark:text-[var(--text-muted)] dark:hover:text-slate-200',
               'transition-colors duration-150',
             )}
           >
@@ -170,8 +170,8 @@ const PromptPreview: React.FC<PromptPreviewProps> = ({
       )}
 
       {/* Footer metadata */}
-      <div className="flex items-center gap-3 px-5 py-2.5 border-t border-slate-200/60 dark:border-slate-700/40">
-        <span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums">
+      <div className="flex items-center gap-3 px-5 py-2.5 border-t border-slate-200/60 dark:border-[var(--border)]">
+        <span className="text-xs text-[var(--text-muted)] dark:text-[var(--text-muted)] tabular-nums">
           {content.length.toLocaleString()} 个字符
         </span>
         {memoryInjected && (
@@ -181,13 +181,13 @@ const PromptPreview: React.FC<PromptPreviewProps> = ({
           </span>
         )}
         {injectionMode && injectionMode !== 'off' && (
-          <span className="inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
+          <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)] dark:text-[var(--text-muted)]">
             <Share2 className="w-3 h-3" />
             {injectionLabels[injectionMode].label}
           </span>
         )}
       </div>
-    </GlassCard>
+    </SurfaceCard>
   );
 };
 

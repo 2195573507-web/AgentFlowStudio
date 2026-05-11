@@ -7,6 +7,55 @@ Current product name: **LocalAI Nexus / 本地 AI 中枢**
 Subtitle: **Local AI Gateway, Runtime & AgentOps Hub**  
 Branch: `refactor-localai-nexus`
 
+## 2026-05-11 Lightweight UI Refactor
+
+### Goal
+
+This round changed the UI direction from Liquid Glass-style visuals to a lightweight desktop configuration tool: simple, clear, compact, low-chroma, and comfortable for long-running developer work.
+
+### CC Switch / cc-switch Study Conclusions
+
+- Keep provider, gateway, MCP, prompts, skills, sessions/logs, and status close to the controls they affect.
+- Prefer compact configuration panels, direct lists, inline status, and explicit active context.
+- Use restrained color and low-interference badges rather than decorative visual effects.
+- Treat the product as an operations tool: scanability and predictable workflows matter more than dramatic styling.
+- Do not copy CC Switch assets, logo, icons, trademarks, or code; only the layout and density principles informed this refactor.
+
+### Completed UI Changes
+
+- Replaced the global renderer color system with flat surface tokens for light and dark mode.
+- Removed default KaiTi typography and switched to a professional system font stack for Chinese/English readability.
+- Renamed the shared card primitive from `GlassCard` to `SurfaceCard` and moved call sites to `surface-card`.
+- Flattened sidebar, topbar, cards, buttons, inputs, textarea, badges, empty states, modals, task board, and table/list styling.
+- Reworked key pages toward tool-like surfaces: Dashboard, Projects, Workflows, PromptLab, Shared Memory, Git, Admin, Settings, and Safety.
+- Reworked `static-app` fallback CSS to match the flat token system.
+- Updated E2E and smoke tests to assert no backdrop blur and the presence of flat surface primitives.
+- Regenerated app icons as a simpler geometric node mark without glass wording or glass-style SVG layers.
+- Re-associated the desktop shortcut with the latest built Electron entry and verified the `.lnk` target through COM inspection.
+
+### Not Completed In This UI Round
+
+- Some historical demo text still contains mojibake unrelated to this refactor; typecheck/build/tests pass, but a future content cleanup pass should normalize those strings.
+- Full provider forwarding, streaming, token quota UI, and advanced Agent/Workflow execution remain product roadmap work, not UI polish.
+
+### Validation Snapshot
+
+| Command | Result | Notes |
+|---|---:|---|
+| `git status -sb` | PASS | Branch `refactor-localai-nexus`; working changes present before final commit. |
+| `npm.cmd run icon` | PASS | Minimal icon regenerated. |
+| `npm.cmd run typecheck` | PASS | TypeScript passed after restoring corrupted UI strings. |
+| `npm.cmd run lint` | PASS | 0 errors, 20 warnings under threshold. |
+| `npm.cmd run test` | PASS | 25 files / 180 tests passed. |
+| `npm.cmd run build` | PASS | Renderer and Electron builds passed; Vite chunk warnings are non-fatal. |
+| `npm.cmd run smoke` | PASS | 184/184 smoke checks passed. |
+
+### Next UI Suggestions
+
+1. Do a copy/encoding cleanup pass for historical demo and Chinese strings.
+2. Add focused visual snapshots for Dashboard, Projects, Workflows, PromptLab, Memory, Git, Admin, and Settings.
+3. Continue replacing ad hoc page-level utility class clusters with shared list/table/form components.
+
 LocalAI Nexus evolved from AgentFlowStudio in place. `.git`, history, JSON storage, Shared Memory Hub, Electron security boundaries, and compatibility launchers were preserved.
 
 ## Current Architecture State

@@ -1,7 +1,7 @@
-import React from 'react';
+﻿import React from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { classNames } from '../lib/utils';
-import GlassCard from './GlassCard';
+import SurfaceCard from './SurfaceCard';
 
 export type TrendDirection = 'up' | 'down' | 'neutral';
 
@@ -36,7 +36,7 @@ export interface StatCardProps {
 const trendConfig = {
   up: { icon: TrendingUp, positive: 'text-emerald-500', negative: 'text-red-500' },
   down: { icon: TrendingDown, positive: 'text-red-500', negative: 'text-emerald-500' },
-  neutral: { icon: Minus, positive: 'text-slate-400', negative: 'text-slate-400' },
+  neutral: { icon: Minus, positive: 'text-[var(--text-muted)]', negative: 'text-[var(--text-muted)]' },
 };
 
 const StatCard: React.FC<StatCardProps> = ({
@@ -69,8 +69,8 @@ const StatCard: React.FC<StatCardProps> = ({
       pink: 'text-pink-500 bg-pink-500/10',
       cyan: 'text-cyan-500 bg-cyan-500/10',
       red: 'text-red-500 bg-red-500/10',
-      accent: 'text-accent-500 bg-white/30 dark:bg-white/10',
-    }[color] ?? 'text-accent-500 bg-white/30 dark:bg-white/10';
+      accent: 'text-[var(--accent)] bg-[var(--accent-muted)]',
+    }[color] ?? 'text-[var(--accent)] bg-[var(--accent-muted)]';
 
   const iconNode = React.useMemo(() => {
     if (!icon) return null;
@@ -86,7 +86,7 @@ const StatCard: React.FC<StatCardProps> = ({
   }, [icon]);
 
   return (
-    <GlassCard
+    <SurfaceCard
       padding="lg"
       hoverable={Boolean(onClick)}
       onClick={onClick}
@@ -94,10 +94,10 @@ const StatCard: React.FC<StatCardProps> = ({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+          <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-1">
             {label}
           </p>
-          <p className="text-2xl font-bold text-slate-800 dark:text-slate-100 tracking-tight tabular-nums truncate">
+          <p className="text-2xl font-bold text-[var(--text-primary)] tracking-tight tabular-nums truncate">
             {value}
           </p>
 
@@ -123,7 +123,7 @@ const StatCard: React.FC<StatCardProps> = ({
           )}
 
           {description && (
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+            <p className="text-xs text-[var(--text-muted)] mt-1">
               {description}
             </p>
           )}
@@ -132,7 +132,7 @@ const StatCard: React.FC<StatCardProps> = ({
         {iconNode && (
           <div
             className={classNames(
-              'flex items-center justify-center w-10 h-10 rounded-xl shrink-0',
+              'flex items-center justify-center w-9 h-9 rounded-tool shrink-0',
               colorClass,
             )}
           >
@@ -140,7 +140,7 @@ const StatCard: React.FC<StatCardProps> = ({
           </div>
         )}
       </div>
-    </GlassCard>
+    </SurfaceCard>
   );
 };
 

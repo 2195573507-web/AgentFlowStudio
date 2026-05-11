@@ -75,7 +75,7 @@ const sharedTheme = {
     borderColor: 'rgba(148,163,184,0.3)',
     borderWidth: 1,
     textStyle: { color: '#334155', fontSize: 12 },
-    extraCssText: 'backdrop-filter: blur(12px); border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.08);',
+    extraCssText: 'border-radius: 8px; box-shadow: 0 2px 8px rgba(16,24,40,0.08);',
   },
   legend: {
     textStyle: { color: '#64748b', fontSize: 11 },

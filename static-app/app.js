@@ -257,7 +257,7 @@ function defaultState() {
         idea: '修复双击启动闪退，提供静态可交付模式，并完成中文界面。',
         platform: 'Windows Desktop / Static Web',
         techStack: 'Node.js, 静态 HTML, CSS, JavaScript, localStorage',
-        uiStyle: 'Apple Liquid Glass + Linear 工作台',
+        uiStyle: 'Apple Flat UI + Linear 工作台',
         difficulty: 'Medium',
         status: 'active',
         updatedAt: nowIso(),

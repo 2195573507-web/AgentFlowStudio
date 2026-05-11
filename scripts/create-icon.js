@@ -20,40 +20,17 @@ if (!existsSync(staticAssetsDir)) {
 
 const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="title desc">
   <title id="title">LocalAI Nexus icon</title>
-  <desc id="desc">A glassy LocalAI Nexus mark with connected local AI workflow nodes.</desc>
-  <defs>
-    <linearGradient id="bg" x1="74" y1="62" x2="438" y2="450" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#12d8b4"/>
-      <stop offset="0.5" stop-color="#2563eb"/>
-      <stop offset="1" stop-color="#7c3aed"/>
-    </linearGradient>
-    <linearGradient id="glass" x1="134" y1="102" x2="378" y2="410" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#ffffff" stop-opacity="0.36"/>
-      <stop offset="1" stop-color="#ffffff" stop-opacity="0.08"/>
-    </linearGradient>
-    <linearGradient id="flow" x1="128" y1="174" x2="384" y2="338" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#dffff7"/>
-      <stop offset="0.5" stop-color="#ffffff"/>
-      <stop offset="1" stop-color="#efe8ff"/>
-    </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#101828" flood-opacity="0.28"/>
-    </filter>
-  </defs>
-  <rect width="512" height="512" rx="112" fill="#0f172a"/>
-  <rect x="28" y="28" width="456" height="456" rx="94" fill="url(#bg)"/>
-  <path d="M84 178c0-54.1 43.9-98 98-98h148c54.1 0 98 43.9 98 98v156c0 54.1-43.9 98-98 98H182c-54.1 0-98-43.9-98-98V178Z" fill="url(#glass)" stroke="#fff" stroke-opacity="0.28" stroke-width="4"/>
-  <path d="M129 179c0-29.8 24.2-54 54-54h146c29.8 0 54 24.2 54 54v154c0 29.8-24.2 54-54 54H183c-29.8 0-54-24.2-54-54V179Z" fill="none" stroke="#fff" stroke-opacity="0.24" stroke-width="3"/>
-  <g filter="url(#shadow)">
-    <path d="M183 209h146" stroke="url(#flow)" stroke-width="24" stroke-linecap="round"/>
-    <path d="M199 221l57 91 57-91" fill="none" stroke="url(#flow)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="178" cy="209" r="42" fill="#f8fffd"/>
-    <circle cx="334" cy="209" r="42" fill="#f8fffd"/>
-    <circle cx="256" cy="320" r="42" fill="#f8fffd"/>
-    <circle cx="178" cy="209" r="16" fill="#155e75"/>
-    <circle cx="334" cy="209" r="16" fill="#4338ca"/>
-    <circle cx="256" cy="320" r="16" fill="#2563eb"/>
-  </g>
+  <desc id="desc">A minimal LocalAI Nexus mark with connected local workflow nodes.</desc>
+  <rect width="512" height="512" rx="104" fill="#f6f7f9"/>
+  <rect x="40" y="40" width="432" height="432" rx="82" fill="#256f8f"/>
+  <rect x="104" y="108" width="304" height="296" rx="44" fill="#ffffff" opacity="0.96"/>
+  <path d="M178 210h156M204 226l52 82 52-82" fill="none" stroke="#256f8f" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="178" cy="210" r="38" fill="#e4f1f6" stroke="#256f8f" stroke-width="14"/>
+  <circle cx="334" cy="210" r="38" fill="#e4f1f6" stroke="#256f8f" stroke-width="14"/>
+  <circle cx="256" cy="318" r="38" fill="#e4f1f6" stroke="#256f8f" stroke-width="14"/>
+  <circle cx="178" cy="210" r="11" fill="#17202c"/>
+  <circle cx="334" cy="210" r="11" fill="#17202c"/>
+  <circle cx="256" cy="318" r="11" fill="#17202c"/>
 </svg>`
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value))
@@ -113,9 +90,9 @@ const drawCircle = (base, x, y, cx, cy, radius, color, opacity = 1) => {
 const renderIcon = (size) => {
   const scale = size / CANVAS_SIZE
   const pixels = Buffer.alloc(size * size * 4)
-  const bg1 = [18, 216, 180, 255]
-  const bg2 = [37, 99, 235, 255]
-  const bg3 = [124, 58, 237, 255]
+  const bg1 = [37, 111, 143, 255]
+  const bg2 = [37, 111, 143, 255]
+  const bg3 = [29, 93, 120, 255]
 
   const outer = {
     x: 28 * scale,
@@ -124,7 +101,7 @@ const renderIcon = (size) => {
     height: 456 * scale,
     radius: 94 * scale,
   }
-  const glass = {
+  const innerPanel = {
     x: 84 * scale,
     y: 80 * scale,
     width: 344 * scale,
@@ -149,32 +126,32 @@ const renderIcon = (size) => {
       const outerCoverage = roundedRectCoverage(x, y, outer.x, outer.y, outer.width, outer.height, outer.radius)
       if (outerCoverage > 0) {
         const t = clamp((x + y - 56 * scale) / (912 * scale), 0, 1)
-        const gradient = t < 0.5 ? mix(bg1, bg2, t * 2) : mix(bg2, bg3, (t - 0.5) * 2)
+        const gradient = mix(bg1, bg3, t)
         color = blendOver(color, gradient, outerCoverage)
       }
 
-      const glassCoverage = roundedRectCoverage(x, y, glass.x, glass.y, glass.width, glass.height, glass.radius)
-      if (glassCoverage > 0) {
-        const glassOpacity = lerp(0.34, 0.08, clamp((y - glass.y) / glass.height, 0, 1))
-        color = blendOver(color, [255, 255, 255, 255], glassCoverage * glassOpacity)
+      const panelCoverage = roundedRectCoverage(x, y, innerPanel.x, innerPanel.y, innerPanel.width, innerPanel.height, innerPanel.radius)
+      if (panelCoverage > 0) {
+        const panelOpacity = lerp(0.34, 0.08, clamp((y - innerPanel.y) / innerPanel.height, 0, 1))
+        color = blendOver(color, [255, 255, 255, 255], panelCoverage * 0.96)
       }
 
-      const glassBorder = clamp(
-        roundedRectCoverage(x, y, glass.x, glass.y, glass.width, glass.height, glass.radius) -
+      const panelBorder = clamp(
+        roundedRectCoverage(x, y, innerPanel.x, innerPanel.y, innerPanel.width, innerPanel.height, innerPanel.radius) -
           roundedRectCoverage(
             x,
             y,
-            glass.x + 4 * scale,
-            glass.y + 4 * scale,
-            glass.width - 8 * scale,
-            glass.height - 8 * scale,
-            Math.max(0, glass.radius - 4 * scale),
+            innerPanel.x + 4 * scale,
+            innerPanel.y + 4 * scale,
+            innerPanel.width - 8 * scale,
+            innerPanel.height - 8 * scale,
+            Math.max(0, innerPanel.radius - 4 * scale),
           ),
         0,
         1,
       )
-      if (glassBorder > 0) {
-        color = blendOver(color, [255, 255, 255, 255], glassBorder * 0.28)
+      if (panelBorder > 0) {
+        color = blendOver(color, [228, 241, 246, 255], panelBorder * 1)
       }
 
       const innerBorder = clamp(
@@ -203,17 +180,17 @@ const renderIcon = (size) => {
         color = blendOver(color, [16, 24, 40, 255], Math.min(shadowOpacity, 1) * 0.2)
       }
 
-      color = drawSegment(color, x, y, 183 * scale, 209 * scale, 329 * scale, 209 * scale, 24 * scale, [247, 255, 253, 255])
-      color = drawSegment(color, x, y, 199 * scale, 221 * scale, 256 * scale, 312 * scale, 24 * scale, [247, 255, 253, 255])
-      color = drawSegment(color, x, y, 313 * scale, 221 * scale, 256 * scale, 312 * scale, 24 * scale, [247, 255, 253, 255])
+      color = drawSegment(color, x, y, 183 * scale, 209 * scale, 329 * scale, 209 * scale, 24 * scale, [37, 111, 143, 255])
+      color = drawSegment(color, x, y, 199 * scale, 221 * scale, 256 * scale, 312 * scale, 24 * scale, [37, 111, 143, 255])
+      color = drawSegment(color, x, y, 313 * scale, 221 * scale, 256 * scale, 312 * scale, 24 * scale, [37, 111, 143, 255])
 
-      color = drawCircle(color, x, y, 178 * scale, 209 * scale, 42 * scale, [248, 255, 253, 255])
-      color = drawCircle(color, x, y, 334 * scale, 209 * scale, 42 * scale, [248, 255, 253, 255])
-      color = drawCircle(color, x, y, 256 * scale, 320 * scale, 42 * scale, [248, 255, 253, 255])
+      color = drawCircle(color, x, y, 178 * scale, 209 * scale, 42 * scale, [228, 241, 246, 255])
+      color = drawCircle(color, x, y, 334 * scale, 209 * scale, 42 * scale, [228, 241, 246, 255])
+      color = drawCircle(color, x, y, 256 * scale, 320 * scale, 42 * scale, [228, 241, 246, 255])
 
-      color = drawCircle(color, x, y, 178 * scale, 209 * scale, 16 * scale, [21, 94, 117, 255])
-      color = drawCircle(color, x, y, 334 * scale, 209 * scale, 16 * scale, [67, 56, 202, 255])
-      color = drawCircle(color, x, y, 256 * scale, 320 * scale, 16 * scale, [37, 99, 235, 255])
+      color = drawCircle(color, x, y, 178 * scale, 209 * scale, 16 * scale, [23, 32, 44, 255])
+      color = drawCircle(color, x, y, 334 * scale, 209 * scale, 16 * scale, [23, 32, 44, 255])
+      color = drawCircle(color, x, y, 256 * scale, 320 * scale, 16 * scale, [23, 32, 44, 255])
 
       pixels[index] = color[0]
       pixels[index + 1] = color[1]

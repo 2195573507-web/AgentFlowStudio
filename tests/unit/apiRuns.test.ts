@@ -162,7 +162,7 @@ describe('api.release', () => {
   it('reads release status through the namespaced preload API', async () => {
     const status: ReleaseStatus = {
       version: '1.1.1',
-      branch: 'codex-liquid-glass-ui-agent-optimization',
+      branch: 'codex-flat-ui-agent-optimization',
       gitStatus: 'Clean working tree.',
       recentCommits: [],
       updateSummary: ['Added workflow templates'],

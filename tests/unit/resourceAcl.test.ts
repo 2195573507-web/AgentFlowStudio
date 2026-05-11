@@ -18,7 +18,7 @@ const baseProject: Project = {
   idea: 'ACL test',
   platform: 'Web',
   techStack: 'TypeScript',
-  uiStyle: 'Glass',
+  uiStyle: 'Flat UI',
   difficulty: 'Medium',
   status: 'active',
   createdAt: '2026-05-10T00:00:00.000Z',

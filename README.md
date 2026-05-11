@@ -6,6 +6,12 @@
 
 LocalAI Nexus is the in-place evolution of AgentFlowStudio. The project remains in `D:\AgentFlowStudio` to preserve Git history, local JSON storage, desktop launchers, and the Shared Memory Hub.
 
+## Current UI Direction
+
+The desktop UI now uses a lightweight flat configuration-tool style. The default design system avoids Liquid Glass, glassmorphism, large transparent panels, backdrop blur, glow, and stacked gradients. Light mode uses near-white gray surfaces; dark mode uses low-saturation dark gray surfaces. The main accent is a restrained teal-blue, and the shared card primitive is `SurfaceCard`.
+
+See `docs/UI_DESIGN_SYSTEM.md` for the color tokens, typography, spacing, component rules, and the CC Switch / cc-switch design-study notes.
+
 ## 中文
 
 ### 项目定位
@@ -53,6 +59,14 @@ D:\AgentFlowStudio\start-agentflow.bat
 
 ```text
 C:\Users\至亲\Desktop\LocalAI Nexus.lnk
+```
+
+当前快捷方式指向最新可用的 Electron 启动入口：
+
+```text
+Target: D:\AgentFlowStudio\node_modules\electron\dist\electron.exe
+Arguments: "D:\AgentFlowStudio\dist-electron\main\index.js"
+Icon: D:\AgentFlowStudio\assets\localai-nexus.ico,0
 ```
 
 ### Gateway 使用方式
@@ -215,6 +229,20 @@ cd /d D:\AgentFlowStudio
 npm.cmd install
 npm.cmd run build
 D:\AgentFlowStudio\start-agentflow.bat
+```
+
+Desktop shortcut:
+
+```text
+C:\Users\至亲\Desktop\LocalAI Nexus.lnk
+```
+
+Current shortcut target:
+
+```text
+Target: D:\AgentFlowStudio\node_modules\electron\dist\electron.exe
+Arguments: "D:\AgentFlowStudio\dist-electron\main\index.js"
+Icon: D:\AgentFlowStudio\assets\localai-nexus.ico,0
 ```
 
 ### Installation

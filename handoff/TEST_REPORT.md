@@ -14,18 +14,23 @@ The Gateway is currently a diagnostic/runtime shell, not a complete upstream-for
 
 | Check | Result | Notes |
 |---|---:|---|
+| `git status -sb` | PASS | Started this refactor on `refactor-localai-nexus`; changes were uncommitted during validation. |
+| Dependency integrity | PASS | Existing `node_modules` and lockfile were present; previous `npm.cmd install` validation remains current for this workspace. |
 | `npm.cmd install` | PASS | Dependencies installed/up to date. |
 | `npm.cmd run icon` | PASS | Generated `assets/localai-nexus.svg`, `.png`, `.ico`, static icon, and compatibility aliases. |
-| `npm.cmd run typecheck` | PASS | TypeScript checks passed. |
-| `npm.cmd run lint` | PASS | 0 errors; warnings under threshold. |
+| `npm.cmd run typecheck` | PASS | TypeScript checks passed after restoring corrupted UI strings and migrating `SurfaceCard`. |
+| `npm.cmd run lint` | PASS | 0 errors; 20 warnings under the configured `--max-warnings 50` threshold. |
 | `npm.cmd run test` | PASS | Vitest passed: 25 files / 180 tests. |
-| `npm.cmd run build` | PASS | Renderer and Electron builds passed with non-fatal Vite warnings. |
+| `npm.cmd run build` | PASS | Renderer and Electron builds passed with non-fatal Vite chunk/dynamic import warnings. |
+| `npm.cmd run smoke` | PASS | 184/184 smoke checks passed with flat surface UI assertions. |
 | `npm.cmd run test:e2e` | PASS | Playwright passed: 16/16. |
 | `npm.cmd run test:launch-static` | PASS | Static launcher smoke passed. |
 | `npm.cmd run test:static-browser` | PASS | Static browser smoke passed. |
 | `npm.cmd run test:electron-startup` | PASS | Built Electron startup reached ready marker. |
 | `npm.cmd run test:electron-auth-bridge` | PASS | First sandbox run hit `spawn EPERM`; authorized rerun passed and exposed `window.agentflow.auth.login`. |
 | `npm.cmd run verify` | PASS | 100/100 build checks and 184/184 smoke checks. |
+| `npm.cmd run shortcut` | PASS | Re-associated `LocalAI Nexus.lnk` with the current built Electron entry. |
+| Shortcut COM inspection | PASS | Target, arguments, working directory, icon, and old shortcut removal verified on 2026-05-11. |
 | Direct Gateway smoke | PASS | `/health`, `/v1/models`, `/v1/chat/completions`, `/v1/responses`, `/responses` diagnostic all responded as expected. |
 
 ## Gateway Smoke Evidence
@@ -68,6 +73,16 @@ Verified against the Electron-started Gateway at `http://127.0.0.1:8317`:
 - Old `AgentFlow Studio.lnk`: removed.
 - Direct Electron target avoids a `.bat` console popup for the primary desktop shortcut.
 - COM inspection confirmed the shortcut target, arguments, working directory, icon, and old-shortcut removal after the final shortcut script run.
+
+## 2026-05-11 Lightweight UI Refactor Notes
+
+- The renderer and static fallback now use flat `surface` / `border` / `accent` tokens instead of glass tokens.
+- `GlassCard` was replaced with `SurfaceCard`; smoke tests now assert the shared `surface-card` primitive.
+- E2E and static browser smoke now assert no backdrop blur on core shell/panels.
+- The default typography stack now uses Segoe UI / Microsoft YaHei / PingFang / Noto Sans / Arial, not KaiTi.
+- The icon generation script now emits a minimal geometric workflow-node mark.
+- Light and dark modes were recolored separately: near-white gray surfaces for light mode and low-saturation dark gray surfaces for dark mode.
+- Final residual scan removed default/demo/template references that would steer the active UI back toward glassmorphism; remaining Liquid Glass mentions are historical or explanatory documentation.
 
 ## Known Non-Fatal Warnings
 

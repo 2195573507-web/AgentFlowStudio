@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Activity,
@@ -22,7 +22,7 @@ import {
   Workflow,
 } from 'lucide-react';
 import { api } from '../lib/api';
-import { EmptyState, GlassCard, StatCard } from '../components/';
+import { EmptyState, SurfaceCard, StatCard } from '../components/';
 import type {
   Memory,
   NexusGatewayStatus,
@@ -44,7 +44,7 @@ const DEMO_PROJECTS: Project[] = [
     idea: 'A local workspace for coordinating AI coding agents, prompts, logs, memories, and release notes.',
     platform: 'Desktop',
     techStack: 'Electron, React, TypeScript, Tailwind',
-    uiStyle: 'Liquid Glass operations console',
+    uiStyle: 'Compact desktop tool',
     difficulty: 'Medium',
     status: 'active',
     createdAt: new Date(now - 10 * 864e5).toISOString(),
@@ -104,7 +104,7 @@ const statusClass: Record<string, string> = {
   active: 'border-emerald-400/30 bg-emerald-500/15 text-emerald-600 dark:text-emerald-300',
   planning: 'border-blue-400/30 bg-blue-500/15 text-blue-600 dark:text-blue-300',
   paused: 'border-amber-400/30 bg-amber-500/15 text-amber-600 dark:text-amber-300',
-  done: 'border-slate-400/30 bg-slate-500/15 text-slate-600 dark:text-slate-300',
+  done: 'border-slate-400/30 bg-slate-500/15 text-[var(--text-secondary)] dark:text-slate-300',
 };
 
 export default function Dashboard() {
@@ -309,15 +309,15 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="mx-auto max-w-7xl space-y-6 px-6 py-8 animate-pulse">
-        <div className="h-44 rounded-2xl bg-white/10" />
+        <div className="h-44 rounded-panel bg-[var(--surface-muted)]" />
         <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
           {Array.from({ length: 5 }).map((_, index) => (
-            <div key={index} className="h-28 rounded-2xl bg-white/10" />
+            <div key={index} className="h-28 rounded-panel bg-[var(--surface-muted)]" />
           ))}
         </div>
         <div className="grid gap-5 lg:grid-cols-2">
-          <div className="h-72 rounded-2xl bg-white/10" />
-          <div className="h-72 rounded-2xl bg-white/10" />
+          <div className="h-72 rounded-panel bg-[var(--surface-muted)]" />
+          <div className="h-72 rounded-panel bg-[var(--surface-muted)]" />
         </div>
       </div>
     );
@@ -332,17 +332,17 @@ export default function Dashboard() {
         </div>
       )}
 
-      <section className="liquid-glass-card overflow-hidden p-0">
+      <section className="surface-card overflow-hidden p-0">
         <div className="grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:p-7">
           <div className="min-w-0">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--glass-surface)] px-3 py-1 text-xs font-semibold text-accent-700 dark:text-accent-300">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-xs font-semibold text-accent-700 dark:text-accent-300">
               <Activity className="h-3.5 w-3.5" />
               Local-first AI orchestration hub
             </div>
-            <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-950 dark:text-zinc-50">
+            <h1 className="mt-4 text-3xl font-bold tracking-tight text-[var(--text-primary)] dark:text-[var(--text-primary)]">
               LocalAI Nexus
             </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 dark:text-zinc-400">
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
               Bring projects, model providers, task prompts, safety checks, logs, git context, and shared memory into one local control surface.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
@@ -352,7 +352,7 @@ export default function Dashboard() {
                   if (nextStep.label === 'Gateway') void startGateway();
                   else navigate(nextStep.route);
                 }}
-                className="liquid-focus inline-flex min-h-[44px] items-center gap-2 rounded-lg bg-accent-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-accent-500/20 transition-colors hover:bg-accent-500"
+                className="focus-ring inline-flex min-h-[44px] items-center gap-2 rounded-lg bg-accent-600 px-4 py-2.5 text-sm font-semibold text-white  transition-colors hover:bg-accent-500"
                 disabled={gatewayBusy}
               >
                 {gatewayBusy ? 'Starting gateway...' : `Continue: ${nextStep.title}`}
@@ -361,7 +361,7 @@ export default function Dashboard() {
               <button
                 type="button"
                 onClick={() => void fetchData()}
-                className="liquid-focus inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-surface)] px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-white/70 dark:text-zinc-200 dark:hover:bg-white/10"
+                className="focus-ring inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-hover)] dark:text-[var(--text-primary)] dark:hover:bg-[var(--surface-hover)]"
               >
                 <RefreshCw className="h-4 w-4" />
                 Refresh
@@ -369,8 +369,8 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-[var(--glass-border)] bg-white/40 p-4 shadow-[var(--glass-inner)] dark:bg-white/5">
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase text-slate-500 dark:text-zinc-400">
+          <div className="rounded-panel border border-[var(--border)] bg-[var(--surface-muted)] p-4  dark:bg-[var(--surface-muted)]">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase text-[var(--text-muted)] dark:text-[var(--text-secondary)]">
               <ClipboardCheck className="h-4 w-4" />
               First-run checklist
             </div>
@@ -383,11 +383,11 @@ export default function Dashboard() {
                     if (step.label === 'Gateway') void startGateway();
                     else navigate(step.route);
                   }}
-                  className="liquid-focus flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-white/55 dark:hover:bg-white/10"
+                  className="focus-ring flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-[var(--surface-hover)] dark:hover:bg-[var(--surface-hover)]"
                 >
-                  {step.done ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <Circle className="h-4 w-4 text-slate-400" />}
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-800 dark:text-zinc-200">{step.title}</span>
-                  <ArrowRight className="h-3.5 w-3.5 text-slate-400" />
+                  {step.done ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <Circle className="h-4 w-4 text-[var(--text-muted)]" />}
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--text-primary)] dark:text-[var(--text-primary)]">{step.title}</span>
+                  <ArrowRight className="h-3.5 w-3.5 text-[var(--text-muted)]" />
                 </button>
               ))}
             </div>
@@ -396,14 +396,14 @@ export default function Dashboard() {
       </section>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <GlassCard className="p-4">
+        <SurfaceCard className="p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase text-slate-500 dark:text-zinc-500">Gateway</p>
-              <h2 className="mt-1 text-lg font-bold text-slate-900 dark:text-zinc-100">
+              <p className="text-xs font-semibold uppercase text-[var(--text-muted)] dark:text-[var(--text-muted)]">Gateway</p>
+              <h2 className="mt-1 text-lg font-bold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
                 {gatewayOnline ? 'Online' : 'Offline'}
               </h2>
-              <p className="mt-1 text-xs text-slate-600 dark:text-zinc-400">
+              <p className="mt-1 text-xs text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
                 {gatewayStatus?.baseUrl ?? 'http://127.0.0.1:8317'}
               </p>
             </div>
@@ -415,42 +415,42 @@ export default function Dashboard() {
             <button
               type="button"
               onClick={() => void startGateway()}
-              className="liquid-focus mt-3 inline-flex min-h-[36px] items-center gap-2 rounded-lg border border-[var(--glass-border)] px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-white/65 dark:text-zinc-200 dark:hover:bg-white/10"
+              className="focus-ring mt-3 inline-flex min-h-[36px] items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--surface-hover)] dark:text-[var(--text-primary)] dark:hover:bg-[var(--surface-hover)]"
               disabled={gatewayBusy}
             >
               <PlayCircle className="h-3.5 w-3.5" />
               {gatewayBusy ? 'Starting' : 'Start Gateway'}
             </button>
           )}
-        </GlassCard>
+        </SurfaceCard>
 
-        <GlassCard className="p-4">
-          <p className="text-xs font-semibold uppercase text-slate-500 dark:text-zinc-500">Default Provider</p>
-          <h2 className="mt-1 truncate text-lg font-bold text-slate-900 dark:text-zinc-100">
+        <SurfaceCard className="p-4">
+          <p className="text-xs font-semibold uppercase text-[var(--text-muted)] dark:text-[var(--text-muted)]">Default Provider</p>
+          <h2 className="mt-1 truncate text-lg font-bold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
             {activeProviderRecord?.providerName || 'Not selected'}
           </h2>
-          <p className="mt-1 truncate text-xs text-slate-600 dark:text-zinc-400">
+          <p className="mt-1 truncate text-xs text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
             {activeProvider.model || activeProviderRecord?.modelName || 'Choose a model in Settings'}
           </p>
-        </GlassCard>
+        </SurfaceCard>
 
-        <GlassCard className="p-4">
-          <p className="text-xs font-semibold uppercase text-slate-500 dark:text-zinc-500">Token Today</p>
-          <h2 className="mt-1 text-lg font-bold tabular-nums text-slate-900 dark:text-zinc-100">
+        <SurfaceCard className="p-4">
+          <p className="text-xs font-semibold uppercase text-[var(--text-muted)] dark:text-[var(--text-muted)]">Token Today</p>
+          <h2 className="mt-1 text-lg font-bold tabular-nums text-[var(--text-primary)] dark:text-[var(--text-primary)]">
             {usageSummary?.totalTokens ?? 0}
           </h2>
-          <p className="mt-1 text-xs text-slate-600 dark:text-zinc-400">
+          <p className="mt-1 text-xs text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
             {usageSummary?.todayRequests ?? 0} requests / failure {Math.round((usageSummary?.failureRate ?? 0) * 100)}%
           </p>
-        </GlassCard>
+        </SurfaceCard>
 
-        <GlassCard className="p-4">
-          <p className="text-xs font-semibold uppercase text-slate-500 dark:text-zinc-500">Health</p>
-          <h2 className="mt-1 text-lg font-bold text-slate-900 dark:text-zinc-100">{providerHealth}</h2>
-          <p className="mt-1 truncate text-xs text-slate-600 dark:text-zinc-400">
+        <SurfaceCard className="p-4">
+          <p className="text-xs font-semibold uppercase text-[var(--text-muted)] dark:text-[var(--text-muted)]">Health</p>
+          <h2 className="mt-1 text-lg font-bold text-[var(--text-primary)] dark:text-[var(--text-primary)]">{providerHealth}</h2>
+          <p className="mt-1 truncate text-xs text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
             Recent failure: {recentFailure}
           </p>
-        </GlassCard>
+        </SurfaceCard>
       </div>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
@@ -467,23 +467,23 @@ export default function Dashboard() {
             key={action.label}
             type="button"
             onClick={() => navigate(action.route)}
-            className="liquid-focus flex min-h-[76px] items-center gap-3 rounded-lg border border-[var(--glass-border)] bg-[var(--glass-surface)] px-4 py-3 text-left shadow-[var(--glass-inner)] transition-colors hover:bg-white/65 dark:hover:bg-white/10"
+            className="focus-ring flex min-h-[76px] items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-left  transition-colors hover:bg-[var(--surface-hover)] dark:hover:bg-[var(--surface-hover)]"
           >
             <action.icon className={`h-5 w-5 shrink-0 ${action.tone}`} />
-            <span className="min-w-0 text-sm font-semibold text-slate-800 dark:text-zinc-200">{action.label}</span>
+            <span className="min-w-0 text-sm font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">{action.label}</span>
           </button>
         ))}
       </div>
 
-      <GlassCard className="p-5">
+      <SurfaceCard className="p-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-base font-semibold text-slate-900 dark:text-zinc-100">Nexus path</h2>
-            <p className="mt-1 text-sm text-slate-600 dark:text-zinc-400">
+            <h2 className="text-base font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">Nexus path</h2>
+            <p className="mt-1 text-sm text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
               A practical route from first idea to recoverable agent handoff.
             </p>
           </div>
-          <span className="text-xs font-medium text-slate-500 dark:text-zinc-500">Local data, explicit handoffs, safer execution</span>
+          <span className="text-xs font-medium text-[var(--text-muted)] dark:text-[var(--text-muted)]">Local data, explicit handoffs, safer execution</span>
         </div>
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
           {firstRunSteps.map((step) => (
@@ -491,24 +491,24 @@ export default function Dashboard() {
               key={step.label}
               type="button"
               onClick={() => navigate(step.route)}
-              className="liquid-focus min-h-[176px] rounded-lg border border-[var(--glass-border)] bg-white/35 p-4 text-left transition-colors hover:bg-white/65 dark:bg-white/5 dark:hover:bg-white/10"
+              className="focus-ring min-h-[176px] rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-4 text-left transition-colors hover:bg-[var(--surface-hover)] dark:bg-[var(--surface-muted)] dark:hover:bg-[var(--surface-hover)]"
             >
               <div className="flex items-center justify-between">
                 <step.icon className="h-5 w-5 text-accent-500" />
-                {step.done ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <Circle className="h-4 w-4 text-slate-400" />}
+                {step.done ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <Circle className="h-4 w-4 text-[var(--text-muted)]" />}
               </div>
-              <div className="mt-4 text-[11px] font-semibold uppercase text-slate-500 dark:text-zinc-500">{step.label}</div>
-              <h3 className="mt-1 text-sm font-semibold text-slate-900 dark:text-zinc-100">{step.title}</h3>
-              <p className="mt-2 text-xs leading-5 text-slate-600 dark:text-zinc-400">{step.body}</p>
+              <div className="mt-4 text-[11px] font-semibold uppercase text-[var(--text-muted)] dark:text-[var(--text-muted)]">{step.label}</div>
+              <h3 className="mt-1 text-sm font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">{step.title}</h3>
+              <p className="mt-2 text-xs leading-5 text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">{step.body}</p>
             </button>
           ))}
         </div>
-      </GlassCard>
+      </SurfaceCard>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <GlassCard className="p-6">
+        <SurfaceCard className="p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-zinc-100">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
               <FolderKanban className="h-4 w-4 text-blue-500" />
               Recent projects
             </h2>
@@ -523,27 +523,27 @@ export default function Dashboard() {
                   key={project.id}
                   type="button"
                   onClick={() => navigate(`/projects/${project.id}`)}
-                  className="liquid-focus w-full rounded-lg border border-transparent bg-black/5 p-3 text-left transition-colors hover:border-[var(--glass-border)] hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10"
+                  className="focus-ring w-full rounded-lg border border-transparent bg-[var(--surface-muted)] p-3 text-left transition-colors hover:border-[var(--border)] hover:bg-[var(--surface-hover)] dark:bg-[var(--surface-muted)] dark:hover:bg-[var(--surface-hover)]"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <span className="min-w-0 truncate text-sm font-semibold text-slate-900 dark:text-zinc-100">{project.name}</span>
+                    <span className="min-w-0 truncate text-sm font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">{project.name}</span>
                     <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${statusClass[project.status] || statusClass.done}`}>
                       {statusLabel[project.status] || project.status}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs text-slate-600 dark:text-zinc-400">{truncate(project.idea, 96)}</p>
-                  <p className="mt-2 text-[11px] text-slate-500 dark:text-zinc-500">{formatRelativeDate(project.updatedAt)}</p>
+                  <p className="mt-1 text-xs text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">{truncate(project.idea, 96)}</p>
+                  <p className="mt-2 text-[11px] text-[var(--text-muted)] dark:text-[var(--text-muted)]">{formatRelativeDate(project.updatedAt)}</p>
                 </button>
               ))}
             </div>
           ) : (
             <EmptyState icon={FolderKanban} title="No projects yet" description="Create a project to start building a recoverable AI workflow." actionLabel="Create project" onAction={() => navigate('/projects')} />
           )}
-        </GlassCard>
+        </SurfaceCard>
 
-        <GlassCard className="p-6">
+        <SurfaceCard className="p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-zinc-100">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
               <Wand2 className="h-4 w-4 text-violet-500" />
               Recent prompts
             </h2>
@@ -558,12 +558,12 @@ export default function Dashboard() {
                   key={prompt.id}
                   type="button"
                   onClick={() => navigate('/prompts')}
-                  className="liquid-focus flex w-full items-center gap-3 rounded-lg border border-transparent bg-black/5 p-3 text-left transition-colors hover:border-[var(--glass-border)] hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10"
+                  className="focus-ring flex w-full items-center gap-3 rounded-lg border border-transparent bg-[var(--surface-muted)] p-3 text-left transition-colors hover:border-[var(--border)] hover:bg-[var(--surface-hover)] dark:bg-[var(--surface-muted)] dark:hover:bg-[var(--surface-hover)]"
                 >
                   <Database className="h-4 w-4 shrink-0 text-violet-500" />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-semibold text-slate-900 dark:text-zinc-100">{prompt.name || prompt.title || 'Untitled prompt'}</div>
-                    <div className="mt-0.5 truncate text-xs text-slate-600 dark:text-zinc-400">{truncate(prompt.content, 84)}</div>
+                    <div className="truncate text-sm font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">{prompt.name || prompt.title || 'Untitled prompt'}</div>
+                    <div className="mt-0.5 truncate text-xs text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">{truncate(prompt.content, 84)}</div>
                   </div>
                   {(prompt.starred || prompt.favorite) && <Sparkles className="h-4 w-4 shrink-0 text-amber-500" />}
                 </button>
@@ -572,10 +572,10 @@ export default function Dashboard() {
           ) : (
             <EmptyState icon={Wand2} title="No saved prompts yet" description="Use Prompt Lab to turn tasks into reusable agent handoffs." actionLabel="Open Prompt Lab" onAction={() => navigate('/prompts')} />
           )}
-        </GlassCard>
+        </SurfaceCard>
       </div>
 
-      <p className="pb-2 text-center text-xs text-slate-500 dark:text-zinc-600">
+      <p className="pb-2 text-center text-xs text-[var(--text-muted)] dark:text-[var(--text-muted)]">
         LocalAI Nexus {apiAvailable ? '' : '- demo mode'}
       </p>
     </div>

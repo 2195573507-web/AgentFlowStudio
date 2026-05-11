@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { KeyRound, Plus, Shield, UserCheck, UserX } from 'lucide-react';
 import type { PublicUser, UserRole } from '../../shared/authTypes';
 import Button from '../components/Button';
-import GlassCard from '../components/GlassCard';
+import SurfaceCard from '../components/SurfaceCard';
 import Input from '../components/Input';
 import Badge from '../components/Badge';
 import { api } from '../lib/api';
@@ -71,17 +71,17 @@ export default function AdminUsers() {
   return (
     <div className="space-y-5 animate-fade-in">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Admin Users</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400">Manage local users, roles, status, and password resets.</p>
+        <h2 className="text-2xl font-bold text-[var(--text-primary)] dark:text-slate-100">Admin Users</h2>
+        <p className="text-sm text-[var(--text-muted)] dark:text-[var(--text-muted)]">Manage local users, roles, status, and password resets.</p>
       </div>
 
-      <GlassCard>
+      <SurfaceCard>
         <form className="grid gap-3 md:grid-cols-[1fr_1fr_140px_160px_auto]" onSubmit={create}>
           <Input label="Email" value={email} onChange={(event) => setEmail(event.target.value)} />
           <Input label="Display name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="new-user-role" className="text-xs font-medium text-slate-600 dark:text-slate-400 tracking-wide uppercase">Role</label>
-            <select id="new-user-role" value={role} onChange={(event) => setRole(event.target.value as UserRole)} className="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-surface)] px-3 py-2.5 text-sm">
+            <label htmlFor="new-user-role" className="text-xs font-medium text-[var(--text-secondary)] dark:text-[var(--text-muted)] tracking-wide uppercase">Role</label>
+            <select id="new-user-role" value={role} onChange={(event) => setRole(event.target.value as UserRole)} className="rounded-panel border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm">
               <option value="user">User</option>
               <option value="admin">Admin</option>
             </select>
@@ -97,20 +97,20 @@ export default function AdminUsers() {
             Temporary password for {temporaryPassword.email}: <code className="font-mono">{temporaryPassword.value}</code>
           </div>
         )}
-      </GlassCard>
+      </SurfaceCard>
 
       <div className="grid gap-3">
         {users.map((user) => (
-          <GlassCard key={user.id} padding="md">
+          <SurfaceCard key={user.id} padding="md">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-slate-900 dark:text-slate-100">{user.profile.displayName || user.email}</h3>
+                  <h3 className="font-semibold text-[var(--text-primary)] dark:text-slate-100">{user.profile.displayName || user.email}</h3>
                   <Badge variant={user.role === 'admin' ? 'info' : 'default'}>{user.role}</Badge>
                   <Badge variant={user.status === 'active' ? 'success' : 'warning'}>{user.status}</Badge>
                   {user.mustChangePassword && <Badge variant="warning">must change password</Badge>}
                 </div>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{user.email}</p>
+                <p className="text-sm text-[var(--text-muted)] dark:text-[var(--text-muted)]">{user.email}</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button variant="secondary" size="sm" icon={<Shield className="h-4 w-4" />} onClick={() => void updateRole(user.id, user.role === 'admin' ? 'user' : 'admin')}>
@@ -124,7 +124,7 @@ export default function AdminUsers() {
                 </Button>
               </div>
             </div>
-          </GlassCard>
+          </SurfaceCard>
         ))}
       </div>
     </div>

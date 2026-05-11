@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { checkCommandSafety } from '../lib/safetyRules';
-import { GlassCard, EmptyState, Button, Textarea, Badge, RiskMeter } from '../components/';
+import { SurfaceCard, EmptyState, Button, Textarea, Badge, RiskMeter } from '../components/';
 import type { SafetyCheckResult, RiskLevel } from '../lib/types';
 import { generateId, formatRelativeDate, copyToClipboard, classNames } from '../lib/utils';
 
@@ -180,15 +180,15 @@ export default function SafetyBox() {
     <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-zinc-100 tracking-tight">安全沙箱</h1>
-        <p className="text-zinc-400 text-sm mt-1">检查终端命令的安全性，防止危险操作</p>
+        <h1 className="text-3xl font-bold text-[var(--text-primary)] tracking-tight">安全沙箱</h1>
+        <p className="text-[var(--text-muted)] text-sm mt-1">检查终端命令的安全性，防止危险操作</p>
       </div>
 
       {/* Command input */}
-      <GlassCard className="p-5 space-y-4">
+      <SurfaceCard className="p-5 space-y-4">
         <div className="flex items-center gap-2">
           <Shield className="w-4 h-4 text-emerald-400" />
-          <h2 className="text-sm font-semibold text-zinc-300">输入命令</h2>
+          <h2 className="text-sm font-semibold text-[var(--text-secondary)]">输入命令</h2>
         </div>
         <Textarea
           value={command}
@@ -209,22 +209,22 @@ export default function SafetyBox() {
           {command && (
             <button
               onClick={() => { setCommand(''); setResult(null); }}
-              className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+              className="text-xs text-[var(--text-primary)]0 hover:text-[var(--text-secondary)] transition-colors"
             >
               清空
             </button>
           )}
         </div>
-      </GlassCard>
+      </SurfaceCard>
 
       {/* Quick test buttons */}
       <div className="space-y-3">
-        <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+        <h3 className="text-xs font-semibold text-[var(--text-primary)]0 uppercase tracking-wider flex items-center gap-1.5">
           <Zap className="w-3 h-3 text-amber-400" />
           快速测试
         </h3>
         <div className="flex flex-wrap gap-2">
-          <span className="text-[11px] text-zinc-600 self-center mr-1">危险命令:</span>
+          <span className="text-[11px] text-[var(--text-muted)] self-center mr-1">危险命令:</span>
           {DANGEROUS_COMMANDS.map((tc) => (
             <button
               key={tc.label}
@@ -237,7 +237,7 @@ export default function SafetyBox() {
           ))}
         </div>
         <div className="flex flex-wrap gap-2">
-          <span className="text-[11px] text-zinc-600 self-center mr-1">安全命令:</span>
+          <span className="text-[11px] text-[var(--text-muted)] self-center mr-1">安全命令:</span>
           {SAFE_COMMANDS.map((tc) => (
             <button
               key={tc.label}
@@ -253,24 +253,24 @@ export default function SafetyBox() {
 
       {/* Analyzing */}
       {analyzing && (
-        <GlassCard className="p-12 text-center">
+        <SurfaceCard className="p-12 text-center">
           <RefreshCw className="w-5 h-5 animate-spin text-emerald-400 mx-auto mb-3" />
-          <p className="text-sm text-zinc-400">正在分析命令安全性...</p>
-        </GlassCard>
+          <p className="text-sm text-[var(--text-muted)]">正在分析命令安全性...</p>
+        </SurfaceCard>
       )}
 
       {/* Error */}
       {error && (
-        <GlassCard className="p-4 border-red-500/20 bg-red-500/5">
+        <SurfaceCard className="p-4 border-red-500/20 bg-red-500/5">
           <div className="flex items-center gap-2 text-red-400 text-sm">
             <AlertTriangle className="w-4 h-4" /> {error}
           </div>
-        </GlassCard>
+        </SurfaceCard>
       )}
 
       {/* Result card */}
       {result && !analyzing && (
-        <GlassCard className={classNames('p-6 space-y-5', getRiskConfig(result.riskLevel).bg)}>
+        <SurfaceCard className={classNames('p-6 space-y-5', getRiskConfig(result.riskLevel).bg)}>
           {/* Risk meter & summary */}
           <div className="flex items-start gap-4">
             <RiskMeter level={result.riskLevel} />
@@ -291,24 +291,24 @@ export default function SafetyBox() {
                   风险等级: {getRiskConfig(result.riskLevel).label}
                 </Badge>
               </div>
-              <p className="text-sm text-zinc-300">{result.explanation}</p>
+              <p className="text-sm text-[var(--text-secondary)]">{result.explanation}</p>
             </div>
           </div>
 
           {/* Matched rules */}
           {result.matchedRules.length > 0 && (
             <div>
-              <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+              <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">
                 匹配的规则
               </h4>
               <div className="space-y-1.5">
                 {result.matchedRules.map((rule, i) => (
-                  <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-white/5">
+                  <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-[var(--surface-muted)]">
                     <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm text-zinc-300 font-medium">{getRuleName(rule)}</p>
+                      <p className="text-sm text-[var(--text-secondary)] font-medium">{getRuleName(rule)}</p>
                       {getRuleDescription(rule) && (
-                        <p className="text-xs text-zinc-500">{getRuleDescription(rule)}</p>
+                        <p className="text-xs text-[var(--text-primary)]0">{getRuleDescription(rule)}</p>
                       )}
                     </div>
                   </div>
@@ -319,17 +319,17 @@ export default function SafetyBox() {
 
           {/* Safer alternative */}
           <div>
-            <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+            <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider flex items-center gap-1.5 mb-2">
               <Lightbulb className="w-3.5 h-3.5 text-emerald-400" />
               安全替代方案
             </h4>
             <div className="relative">
-              <pre className="px-4 py-3 rounded-xl bg-zinc-900/50 text-xs text-zinc-300 font-mono whitespace-pre-wrap border border-white/5">
+              <pre className="px-4 py-3 rounded-panel bg-[var(--surface-muted)] text-xs text-[var(--text-secondary)] font-mono whitespace-pre-wrap border border-[var(--border)]">
                 {result.saferAlternative}
               </pre>
               <button
                 onClick={() => handleCopy(result.saferAlternative, 'safer')}
-                className="absolute top-2 right-2 p-1.5 rounded-lg hover:bg-white/10 text-zinc-500 hover:text-zinc-300 transition-colors"
+                className="absolute top-2 right-2 p-1.5 rounded-lg hover:bg-[var(--surface-muted)] text-[var(--text-primary)]0 hover:text-[var(--text-secondary)] transition-colors"
               >
                 {copiedKey === 'safer' ? (
                   <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -357,47 +357,47 @@ export default function SafetyBox() {
           </div>
 
           {/* Original command */}
-          <details className="border-t border-white/10 pt-4">
-            <summary className="text-xs text-zinc-500 cursor-pointer hover:text-zinc-400">
+          <details className="border-t border-[var(--border)] pt-4">
+            <summary className="text-xs text-[var(--text-primary)]0 cursor-pointer hover:text-[var(--text-muted)]">
               查看原始命令
             </summary>
-            <pre className="mt-2 px-3 py-2 rounded-lg bg-zinc-900/30 text-xs text-zinc-500 font-mono">
+            <pre className="mt-2 px-3 py-2 rounded-lg bg-[var(--surface-muted)] text-xs text-[var(--text-primary)]0 font-mono">
               {result.command}
             </pre>
           </details>
 
           {/* Timestamp */}
-          <p className="text-[11px] text-zinc-600 text-right">
+          <p className="text-[11px] text-[var(--text-muted)] text-right">
             检查时间: {formatRelativeDate(result.checkedAt)}
           </p>
-        </GlassCard>
+        </SurfaceCard>
       )}
 
       {/* Empty state */}
       {!result && !analyzing && !error && (
-        <GlassCard className="p-12">
+        <SurfaceCard className="p-12">
           <EmptyState
             icon={Shield}
             title="准备安全检查"
             description="在上方输入终端命令，或点击快速测试按钮尝试预定义的危险/安全命令"
           />
-        </GlassCard>
+        </SurfaceCard>
       )}
 
       {/* History */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-zinc-200 flex items-center gap-2">
-            <Clock className="w-4 h-4 text-zinc-500" />
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
+            <Clock className="w-4 h-4 text-[var(--text-primary)]0" />
             检查历史
-            <Badge className="bg-white/5 text-zinc-400 border-white/10">
+            <Badge className="bg-[var(--surface-muted)] text-[var(--text-muted)] border-[var(--border)]">
               {history.length}
             </Badge>
           </h2>
           {history.length > 0 && (
             <button
               onClick={clearHistory}
-              className="text-xs text-zinc-600 hover:text-red-400 transition-colors flex items-center gap-1"
+              className="text-xs text-[var(--text-muted)] hover:text-red-400 transition-colors flex items-center gap-1"
             >
               <Trash2 className="w-3 h-3" /> 清空历史
             </button>
@@ -411,33 +411,33 @@ export default function SafetyBox() {
               const cfg = getRiskConfig(h.riskLevel);
               const Icon = cfg.icon;
               return (
-                <GlassCard key={historyId} className="p-4">
+                <SurfaceCard key={historyId} className="p-4">
                   <button
                     onClick={() => toggleHistory(historyId)}
                     className="w-full flex items-center justify-between text-left"
                   >
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                       <Icon className={`w-4 h-4 flex-shrink-0 ${cfg.color}`} />
-                      <code className="text-sm text-zinc-300 font-mono truncate">{h.command ?? ''}</code>
+                      <code className="text-sm text-[var(--text-secondary)] font-mono truncate">{h.command ?? ''}</code>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                       <Badge className={cfg.bg}>
                         {cfg.label}
                       </Badge>
-                      <span className="text-[11px] text-zinc-600">
+                      <span className="text-[11px] text-[var(--text-muted)]">
                         {formatRelativeDate(h.checkedAt)}
                       </span>
                       {expandedHistory.has(historyId) ? (
-                        <ChevronDown className="w-4 h-4 text-zinc-500" />
+                        <ChevronDown className="w-4 h-4 text-[var(--text-primary)]0" />
                       ) : (
-                        <ChevronRight className="w-4 h-4 text-zinc-500" />
+                        <ChevronRight className="w-4 h-4 text-[var(--text-primary)]0" />
                       )}
                     </div>
                   </button>
 
                   {expandedHistory.has(historyId) && (
-                    <div className="mt-3 pt-3 border-t border-white/5 space-y-2">
-                      <p className="text-sm text-zinc-400">{h.explanation}</p>
+                    <div className="mt-3 pt-3 border-t border-[var(--border)] space-y-2">
+                      <p className="text-sm text-[var(--text-muted)]">{h.explanation}</p>
                       {h.matchedRules.length > 0 && (
                         <div className="flex flex-wrap gap-1">
                           {h.matchedRules.map((r, i) => (
@@ -459,18 +459,18 @@ export default function SafetyBox() {
                       </button>
                     </div>
                   )}
-                </GlassCard>
+                </SurfaceCard>
               );
             })}
           </div>
         ) : (
-          <GlassCard className="p-8">
+          <SurfaceCard className="p-8">
             <EmptyState
               icon={Clock}
               title="暂无检查历史"
               description="检查命令后，历史记录将显示在这里"
             />
-          </GlassCard>
+          </SurfaceCard>
         )}
       </div>
     </div>

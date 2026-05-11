@@ -60,7 +60,7 @@ const Layout: React.FC<LayoutProps> = ({
     <div
       className={classNames(
         'flex h-screen w-screen overflow-hidden',
-        'bg-transparent',
+        'bg-[var(--bg-primary)] text-[var(--text-primary)]',
       )}
     >
       {/* Sidebar */}
@@ -86,7 +86,7 @@ const Layout: React.FC<LayoutProps> = ({
         <main
           className={classNames(
             'flex-1 overflow-y-auto overflow-x-hidden',
-            'p-5',
+            'p-4 lg:p-5',
           )}
         >
           {children}

@@ -21,7 +21,7 @@ import {
   Upload,
 } from 'lucide-react';
 import { api } from '../lib/api';
-import { Badge, Button, EmptyState, GlassCard, Input, Modal } from '../components/';
+import { Badge, Button, EmptyState, SurfaceCard, Input, Modal } from '../components/';
 import type {
   AppSettings,
   MemoryInjectionMode,
@@ -226,9 +226,9 @@ export default function Settings() {
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto px-6 py-8 space-y-6 animate-pulse">
-        <div className="h-10 w-40 rounded-lg bg-white/10" />
-        <div className="h-52 rounded-lg bg-white/10" />
-        <div className="h-52 rounded-lg bg-white/10" />
+        <div className="h-10 w-40 rounded-lg bg-[var(--surface-muted)]" />
+        <div className="h-52 rounded-lg bg-[var(--surface-muted)]" />
+        <div className="h-52 rounded-lg bg-[var(--surface-muted)]" />
       </div>
     );
   }
@@ -236,8 +236,8 @@ export default function Settings() {
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-zinc-100">设置</h1>
-        <p className="mt-1 text-sm text-slate-600 dark:text-zinc-400">
+        <h1 className="text-3xl font-bold text-[var(--text-primary)] dark:text-[var(--text-primary)]">设置</h1>
+        <p className="mt-1 text-sm text-[var(--text-secondary)] dark:text-[var(--text-muted)]">
           管理主题、Provider、当前模型、MCP allowlist、Skills registry 和安全导入导出。
         </p>
       </div>
@@ -248,42 +248,42 @@ export default function Settings() {
         </div>
       )}
 
-      <GlassCard className="p-6 space-y-5">
-        <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-zinc-100">
+      <SurfaceCard className="p-6 space-y-5">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
           <Settings2 className="h-5 w-5 text-blue-500" /> 通用设置
         </h2>
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="space-y-1.5 text-xs font-medium text-slate-500 dark:text-zinc-400">
+          <label className="space-y-1.5 text-xs font-medium text-[var(--text-muted)] dark:text-[var(--text-muted)]">
             主题
-            <select value={theme} onChange={(event) => setTheme(event.target.value as ThemeMode)} className="w-full rounded-lg border border-[var(--glass-border)] bg-[var(--glass-surface)] px-3 py-2 text-sm text-slate-900 dark:text-zinc-100">
+            <select value={theme} onChange={(event) => setTheme(event.target.value as ThemeMode)} className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-primary)] dark:text-[var(--text-primary)]">
               <option value="system">跟随系统</option>
               <option value="light">浅色</option>
               <option value="dark">深色</option>
             </select>
           </label>
-          <label className="space-y-1.5 text-xs font-medium text-slate-500 dark:text-zinc-400">
+          <label className="space-y-1.5 text-xs font-medium text-[var(--text-muted)] dark:text-[var(--text-muted)]">
             默认项目路径
             <Input value={settings.defaultProjectPath} onChange={(event) => setSettings((prev) => ({ ...prev, defaultProjectPath: event.target.value }))} />
           </label>
-          <label className="space-y-1.5 text-xs font-medium text-slate-500 dark:text-zinc-400">
+          <label className="space-y-1.5 text-xs font-medium text-[var(--text-muted)] dark:text-[var(--text-muted)]">
             数据目录
             <Input value={settings.dataPath} readOnly className="font-mono opacity-70" />
           </label>
-          <label className="space-y-1.5 text-xs font-medium text-slate-500 dark:text-zinc-400">
+          <label className="space-y-1.5 text-xs font-medium text-[var(--text-muted)] dark:text-[var(--text-muted)]">
             版本
             <Input value={settings.appVersion ?? settings.version ?? ''} readOnly className="font-mono tabular-nums opacity-70" />
           </label>
         </div>
         <Button onClick={saveSettings} loading={saving} icon={<Check className="h-4 w-4" />}>保存设置</Button>
-      </GlassCard>
+      </SurfaceCard>
 
-      <GlassCard className="p-6 space-y-5">
+      <SurfaceCard className="p-6 space-y-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-zinc-100">
+            <h2 className="flex items-center gap-2 text-base font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
               <SlidersHorizontal className="h-5 w-5 text-purple-500" /> 当前模型配置
             </h2>
-            <p className="mt-1 text-sm text-slate-600 dark:text-zinc-400">
+            <p className="mt-1 text-sm text-[var(--text-secondary)] dark:text-[var(--text-muted)]">
               当前：{activeProvider ? `${activeProvider.providerName} / ${active.model || activeProvider.modelName}` : '尚未选择 Provider'}
             </p>
           </div>
@@ -294,22 +294,22 @@ export default function Settings() {
 
         <div className="grid gap-3 md:grid-cols-2">
           {providers.map((provider) => (
-            <div key={provider.id} className="rounded-lg border border-white/10 bg-white/5 p-4">
+            <div key={provider.id} className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-semibold text-slate-900 dark:text-zinc-100">{provider.providerName}</h3>
+                    <h3 className="font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">{provider.providerName}</h3>
                     {active.providerRef === provider.id && <Badge className="border-emerald-500/30 bg-emerald-500/15 text-emerald-500">当前</Badge>}
                     {provider.lastTestStatus === 'failure' && <Badge className="border-red-500/30 bg-red-500/15 text-red-400">测试失败</Badge>}
                     {provider.apiKey === '' && provider.needsApiKey !== false && <Badge className="border-amber-500/30 bg-amber-500/15 text-amber-500">缺少密钥</Badge>}
                   </div>
-                  <p className="mt-2 flex items-center gap-1 truncate text-xs text-slate-500 dark:text-zinc-500">
+                  <p className="mt-2 flex items-center gap-1 truncate text-xs text-[var(--text-muted)] dark:text-[var(--text-muted)]">
                     <Globe className="h-3 w-3" /> <span className="font-mono">{provider.baseUrl}</span>
                   </p>
-                  <p className="mt-1 flex items-center gap-1 text-xs text-slate-500 dark:text-zinc-500">
+                  <p className="mt-1 flex items-center gap-1 text-xs text-[var(--text-muted)] dark:text-[var(--text-muted)]">
                     <Cpu className="h-3 w-3" /> <span>{provider.modelName}</span>
                   </p>
-                  {provider.lastTestMessage && <p className="mt-2 text-xs text-slate-500 dark:text-zinc-500">{provider.lastTestMessage}</p>}
+                  {provider.lastTestMessage && <p className="mt-2 text-xs text-[var(--text-muted)] dark:text-[var(--text-muted)]">{provider.lastTestMessage}</p>}
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
@@ -326,10 +326,10 @@ export default function Settings() {
         {providers.length === 0 && (
           <EmptyState icon={Server} title="暂无 Provider" description="可以先体验 Demo Agent，或选择一个 preset 配置真实模型。" actionLabel="添加 Provider" onAction={() => setShowProviderModal(true)} />
         )}
-      </GlassCard>
+      </SurfaceCard>
 
-      <GlassCard className="p-6 space-y-5">
-        <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-zinc-100">
+      <SurfaceCard className="p-6 space-y-5">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
           <Server className="h-5 w-5 text-purple-500" /> Provider Preset Center
         </h2>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -338,10 +338,10 @@ export default function Settings() {
               key={preset.providerId}
               type="button"
               onClick={() => { setEditingProvider(null); resetProviderForm(preset.providerId); setShowProviderModal(true); }}
-              className="rounded-lg border border-white/10 bg-white/5 p-4 text-left transition-colors hover:bg-white/10"
+              className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-4 text-left transition-colors hover:bg-[var(--surface-muted)]"
             >
-              <div className="font-semibold text-slate-900 dark:text-zinc-100">{preset.displayName}</div>
-              <div className="mt-2 text-xs text-slate-500 dark:text-zinc-500">{preset.docsHint}</div>
+              <div className="font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">{preset.displayName}</div>
+              <div className="mt-2 text-xs text-[var(--text-muted)] dark:text-[var(--text-muted)]">{preset.docsHint}</div>
               <div className="mt-3 flex flex-wrap gap-1">
                 {preset.needsApiKey ? <Badge>API Key</Badge> : <Badge>本地无密钥</Badge>}
                 {preset.supportsStreaming && <Badge>Streaming</Badge>}
@@ -350,38 +350,38 @@ export default function Settings() {
             </button>
           ))}
         </div>
-      </GlassCard>
+      </SurfaceCard>
 
-      <GlassCard className="p-6 space-y-5">
-        <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-zinc-100">
+      <SurfaceCard className="p-6 space-y-5">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
           <Shield className="h-5 w-5 text-emerald-500" /> MCP & Skills 管理
         </h2>
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-lg border border-white/10 bg-white/5 p-4">
-            <h3 className="font-semibold text-slate-900 dark:text-zinc-100">MCP allowlist</h3>
-            <p className="mt-1 text-xs text-slate-500 dark:text-zinc-500">当前只管理 allow/deny 规则和沙箱元数据，不直接执行外部工具。</p>
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-4">
+            <h3 className="font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">MCP allowlist</h3>
+            <p className="mt-1 text-xs text-[var(--text-muted)] dark:text-[var(--text-muted)]">当前只管理 allow/deny 规则和沙箱元数据，不直接执行外部工具。</p>
             <div className="mt-3 space-y-2">
               {mcpAllowlist.slice(0, 5).map((entry) => (
-                <div key={String(entry.id)} className="flex items-center justify-between rounded-lg bg-black/5 px-3 py-2 text-xs dark:bg-white/5">
+                <div key={String(entry.id)} className="flex items-center justify-between rounded-lg bg-[var(--surface-muted)] px-3 py-2 text-xs dark:bg-[var(--surface-muted)]">
                   <span className="font-mono">{String(entry.serverName)}:{String(entry.toolName)}</span>
                   <Badge>{entry.enabled ? 'enabled' : 'disabled'}</Badge>
                 </div>
               ))}
-              {mcpAllowlist.length === 0 && <p className="text-sm text-slate-500 dark:text-zinc-500">暂无规则。MCP 调用默认由网关拒绝。</p>}
+              {mcpAllowlist.length === 0 && <p className="text-sm text-[var(--text-muted)] dark:text-[var(--text-muted)]">暂无规则。MCP 调用默认由网关拒绝。</p>}
             </div>
           </div>
-          <div className="rounded-lg border border-white/10 bg-white/5 p-4">
-            <h3 className="flex items-center gap-2 font-semibold text-slate-900 dark:text-zinc-100">
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-4">
+            <h3 className="flex items-center gap-2 font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
               <Puzzle className="h-4 w-4" /> Skills registry
             </h3>
-            <p className="mt-1 text-xs text-slate-500 dark:text-zinc-500">本轮是本地管理骨架，不自动执行外部 skill。</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)] dark:text-[var(--text-muted)]">本轮是本地管理骨架，不自动执行外部 skill。</p>
             <div className="mt-3 space-y-2">
               {skillsRegistry.map((skill) => (
-                <div key={skill.id} className="flex items-center justify-between gap-2 rounded-lg bg-black/5 px-3 py-2 text-xs dark:bg-white/5">
+                <div key={skill.id} className="flex items-center justify-between gap-2 rounded-lg bg-[var(--surface-muted)] px-3 py-2 text-xs dark:bg-[var(--surface-muted)]">
                   <span>{skill.name}</span>
                   <button
                     type="button"
-                    className={classNames('rounded-md px-2 py-1', skill.enabled ? 'bg-emerald-500/15 text-emerald-500' : 'bg-zinc-500/15 text-zinc-500')}
+                    className={classNames('rounded-md px-2 py-1', skill.enabled ? 'bg-emerald-500/15 text-emerald-500' : 'bg-[var(--surface-muted)] text-[var(--text-muted)]')}
                     onClick={() => void api.skills.toggleRegistry(skill.id, !skill.enabled).then(load)}
                   >
                     {skill.enabled ? '启用' : '禁用'}
@@ -391,13 +391,13 @@ export default function Settings() {
             </div>
           </div>
         </div>
-      </GlassCard>
+      </SurfaceCard>
 
-      <GlassCard className="p-6 space-y-5">
-        <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-zinc-100">
+      <SurfaceCard className="p-6 space-y-5">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">
           <HardDrive className="h-5 w-5 text-amber-500" /> 配置导入 / 导出
         </h2>
-        <p className="text-sm text-slate-600 dark:text-zinc-400">
+        <p className="text-sm text-[var(--text-secondary)] dark:text-[var(--text-muted)]">
           导出包含 provider metadata、项目默认 provider 引用、Agent metadata、模板、MCP allowlist 和 skills registry；API Key 只会省略或脱敏。
         </p>
         <div className="flex flex-wrap gap-3">
@@ -409,14 +409,14 @@ export default function Settings() {
           value={importText}
           onChange={(event) => setImportText(event.target.value)}
           placeholder="粘贴 LocalAI Nexus 配置 JSON，导入前会校验 schema、大小、字段白名单和风险。"
-          className="min-h-[120px] w-full rounded-lg border border-white/10 bg-white/5 p-3 font-mono text-sm text-slate-900 dark:text-zinc-100"
+          className="min-h-[120px] w-full rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3 font-mono text-sm text-[var(--text-primary)] dark:text-[var(--text-primary)]"
         />
         {(exportManifest || importPreview !== null) && (
-          <pre className="max-h-56 overflow-auto rounded-lg bg-black/80 p-3 text-xs text-zinc-100">
+          <pre className="max-h-56 overflow-auto rounded-lg bg-black/80 p-3 text-xs text-[var(--text-primary)]">
             {exportManifest || JSON.stringify(importPreview, null, 2)}
           </pre>
         )}
-      </GlassCard>
+      </SurfaceCard>
 
       <Modal
         open={showProviderModal}
@@ -426,37 +426,37 @@ export default function Settings() {
       >
         <div className="space-y-4">
           {!editingProvider && (
-            <label className="block text-xs font-medium text-zinc-400">
+            <label className="block text-xs font-medium text-[var(--text-muted)]">
               Provider preset
               <select
                 value={selectedPresetId}
                 onChange={(event) => resetProviderForm(event.target.value)}
-                className="mt-1.5 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-100"
+                className="mt-1.5 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-sm text-[var(--text-primary)]"
               >
-                {presets.map((preset) => <option key={preset.providerId} value={preset.providerId} className="bg-zinc-900">{preset.displayName}</option>)}
+                {presets.map((preset) => <option key={preset.providerId} value={preset.providerId} className="bg-[var(--surface)]">{preset.displayName}</option>)}
               </select>
             </label>
           )}
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="block text-xs font-medium text-zinc-400">名称<Input value={providerForm.providerName} onChange={(event) => setProviderForm((prev) => ({ ...prev, providerName: event.target.value }))} /></label>
-            <label className="block text-xs font-medium text-zinc-400">模型<Input value={providerForm.modelName} onChange={(event) => setProviderForm((prev) => ({ ...prev, modelName: event.target.value }))} /></label>
+            <label className="block text-xs font-medium text-[var(--text-muted)]">名称<Input value={providerForm.providerName} onChange={(event) => setProviderForm((prev) => ({ ...prev, providerName: event.target.value }))} /></label>
+            <label className="block text-xs font-medium text-[var(--text-muted)]">模型<Input value={providerForm.modelName} onChange={(event) => setProviderForm((prev) => ({ ...prev, modelName: event.target.value }))} /></label>
           </div>
-          <label className="block text-xs font-medium text-zinc-400">Base URL<Input value={providerForm.baseUrl} onChange={(event) => setProviderForm((prev) => ({ ...prev, baseUrl: event.target.value }))} className="font-mono" /></label>
-          <label className="block text-xs font-medium text-zinc-400">
+          <label className="block text-xs font-medium text-[var(--text-muted)]">Base URL<Input value={providerForm.baseUrl} onChange={(event) => setProviderForm((prev) => ({ ...prev, baseUrl: event.target.value }))} className="font-mono" /></label>
+          <label className="block text-xs font-medium text-[var(--text-muted)]">
             API Key
             <div className="relative mt-1.5">
               <Input type={showApiKey ? 'text' : 'password'} value={providerForm.apiKey} onChange={(event) => setProviderForm((prev) => ({ ...prev, apiKey: event.target.value }))} placeholder="保存后只显示末四位，日志和导出不会包含明文。" className="font-mono pr-10" />
-              <button type="button" onClick={() => setShowApiKey((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500">
+              <button type="button" onClick={() => setShowApiKey((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">
                 {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
           </label>
           <div className="flex items-center gap-6">
-            <label className="flex items-center gap-2 text-sm text-zinc-300"><input type="checkbox" checked={providerForm.enabled} onChange={(event) => setProviderForm((prev) => ({ ...prev, enabled: event.target.checked }))} /> 启用</label>
-            <label className="flex items-center gap-2 text-sm text-zinc-300"><input type="checkbox" checked={providerForm.memoryEnabled} onChange={(event) => setProviderForm((prev) => ({ ...prev, memoryEnabled: event.target.checked }))} /> 记忆注入</label>
+            <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)]"><input type="checkbox" checked={providerForm.enabled} onChange={(event) => setProviderForm((prev) => ({ ...prev, enabled: event.target.checked }))} /> 启用</label>
+            <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)]"><input type="checkbox" checked={providerForm.memoryEnabled} onChange={(event) => setProviderForm((prev) => ({ ...prev, memoryEnabled: event.target.checked }))} /> 记忆注入</label>
           </div>
         </div>
-        <div className="mt-6 flex justify-end gap-3 border-t border-white/10 pt-4">
+        <div className="mt-6 flex justify-end gap-3 border-t border-[var(--border)] pt-4">
           <Button variant="ghost" onClick={() => setShowProviderModal(false)}>取消</Button>
           <Button onClick={saveProvider} icon={<Key className="h-4 w-4" />}>保存 Provider</Button>
         </div>

@@ -193,7 +193,7 @@ export const PROMPT_TEMPLATES: PromptTemplate[] = [
       {
         name: 'uiStyle',
         label: 'UI 风格',
-        placeholder: '例如：Minimal / Modern / Glassmorphism',
+        placeholder: '例如：Minimal / Modern / Compact Tool',
         required: false,
       },
       {
@@ -375,7 +375,7 @@ export const PROMPT_TEMPLATES: PromptTemplate[] = [
       {
         name: 'targetStyle',
         label: '目标风格',
-        placeholder: '例如：Modern / Minimal / Glassmorphism',
+        placeholder: '例如：Modern / Minimal / Compact Tool',
         required: true,
       },
       {

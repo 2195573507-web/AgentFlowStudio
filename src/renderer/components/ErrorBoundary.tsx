@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { t, getLanguage } from '../lib/i18n';
 
@@ -29,17 +29,17 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
     const language = getLanguage();
     return (
       <div className="mx-auto flex max-w-2xl flex-col items-center justify-center px-6 py-16 text-center">
-        <div className="mb-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-red-300">
+        <div className="mb-4 rounded-panel border border-red-500/20 bg-red-500/10 p-4 text-red-300">
           <AlertTriangle className="h-7 w-7" />
         </div>
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+        <h2 className="text-xl font-semibold text-[var(--text-primary)] dark:text-slate-100">
           {t('error.title', language)}
         </h2>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+        <p className="mt-2 text-sm text-[var(--text-secondary)] dark:text-[var(--text-muted)]">
           {t('error.body', language)}
         </p>
         {this.state.error?.message && (
-          <pre className="mt-4 max-w-full overflow-auto rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
+          <pre className="mt-4 max-w-full overflow-auto rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs text-[var(--text-secondary)] dark:border-[var(--border)] dark:bg-[var(--surface-muted)] dark:text-[var(--text-muted)]">
             {this.state.error.message}
           </pre>
         )}
@@ -54,7 +54,7 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
           <button
             type="button"
             onClick={() => { window.location.href = '/'; }}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
+            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-slate-100 dark:border-[var(--border)] dark:text-slate-200 dark:hover:bg-[var(--surface-hover)]"
           >
             {t('error.backDashboard', language)}
           </button>

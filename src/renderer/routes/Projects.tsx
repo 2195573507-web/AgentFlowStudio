@@ -1,170 +1,144 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Plus,
-  Search,
-  FolderKanban,
-  SlidersHorizontal,
-  Pencil,
-  Trash2,
-  Monitor,
-  Globe,
-  Terminal,
-  Smartphone,
-  Cpu,
-  Layers,
-  Clock,
   AlertTriangle,
+  Clock,
+  Cpu,
+  FolderKanban,
+  Globe,
+  Layers,
+  Monitor,
+  Pencil,
+  Plus,
   RefreshCw,
+  Search,
+  Smartphone,
+  Terminal,
+  Trash2,
   X,
-  ChevronDown,
 } from 'lucide-react';
 import { api } from '../lib/api';
-import { GlassCard, EmptyState, Modal, Button, Input, Textarea, Badge } from '../components/';
-import type { Project, ProjectStatus, Platform, Difficulty } from '../lib/types';
-import { generateId, formatRelativeDate, truncate, classNames } from '../lib/utils';
+import { Badge, Button, EmptyState, SurfaceCard, Input, Modal, Textarea } from '../components/';
+import type { Difficulty, Platform, Project, ProjectStatus } from '../lib/types';
+import { classNames, formatRelativeDate, generateId, truncate } from '../lib/utils';
 
-// ── Demo data ──────────────────────────────────────────────────────────────
 const DEMO_PROJECTS: Project[] = [
   {
-    id: 'demo-1', name: 'AI 聊天助手',
-    idea: '带有记忆持久化和多接口支持的跨平台 AI 聊天应用。',
-    platform: 'Desktop', techStack: 'Electron, React, TypeScript, Tailwind',
-    uiStyle: '玻璃拟态工作台', difficulty: 'Medium', status: 'active',
-    createdAt: new Date(Date.now() - 7 * 864e5).toISOString(), updatedAt: new Date().toISOString(),
+    id: 'demo-1',
+    name: 'Local coding cockpit',
+    idea: 'Coordinate agents, prompts, logs, git context, and memory from a compact desktop surface.',
+    platform: 'Desktop',
+    techStack: 'Electron, React, TypeScript',
+    uiStyle: 'Compact configuration tool',
+    difficulty: 'Medium',
+    status: 'active',
+    createdAt: new Date(Date.now() - 7 * 864e5).toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
-    id: 'demo-2', name: '开发工具 CLI',
-    idea: '面向开发者的命令行效率工具，集成 Git、日志分析和项目恢复上下文。',
-    platform: 'CLI', techStack: 'Node.js, TypeScript, Ink',
-    uiStyle: '极简终端', difficulty: 'Hard', status: 'planning',
-    createdAt: new Date(Date.now() - 3 * 864e5).toISOString(), updatedAt: new Date().toISOString(),
+    id: 'demo-2',
+    name: 'Provider switchboard',
+    idea: 'Track model providers, gateway status, masked secrets, and health diagnostics.',
+    platform: 'Desktop',
+    techStack: 'Node.js, Electron IPC',
+    uiStyle: 'Dense admin panel',
+    difficulty: 'Hard',
+    status: 'planning',
+    createdAt: new Date(Date.now() - 3 * 864e5).toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
-    id: 'demo-3', name: '记忆同步服务',
-    idea: '在项目与 AI 接口之间同步共享记忆的本地后台服务。',
-    platform: 'Web', techStack: 'Go, SQLite, gRPC',
-    uiStyle: 'Linear', difficulty: 'Hard', status: 'active',
-    createdAt: new Date(Date.now() - 14 * 864e5).toISOString(), updatedAt: new Date(Date.now() - 2 * 864e5).toISOString(),
-  },
-  {
-    id: 'demo-4', name: 'Prompt 模板管理器',
-    idea: '用于管理、版本化和变量注入的 Prompt 模板界面。',
-    platform: 'Web', techStack: 'Next.js, Prisma, PostgreSQL',
-    uiStyle: 'Raycast', difficulty: 'Easy', status: 'done',
-    createdAt: new Date(Date.now() - 30 * 864e5).toISOString(), updatedAt: new Date(Date.now() - 10 * 864e5).toISOString(),
-  },
-  {
-    id: 'demo-5', name: '安全沙盒',
-    idea: '用于测试 AI 生成命令、分析风险并给出替代方案的隔离环境。',
-    platform: 'Desktop', techStack: 'Tauri, Rust, React',
-    uiStyle: '玻璃拟态工作台', difficulty: 'Medium', status: 'paused',
-    createdAt: new Date(Date.now() - 21 * 864e5).toISOString(), updatedAt: new Date(Date.now() - 5 * 864e5).toISOString(),
-  },
-  {
-    id: 'demo-6', name: 'API Gateway',
-    idea: '统一 API 网关，包含限流、鉴权和请求转换能力。',
-    platform: 'Web', techStack: 'Rust, Axum, Redis',
-    uiStyle: '极简控制台', difficulty: 'Hard', status: 'planning',
-    createdAt: new Date(Date.now() - 2 * 864e5).toISOString(), updatedAt: new Date().toISOString(),
+    id: 'demo-3',
+    name: 'Memory recovery kit',
+    idea: 'Capture decisions and fixes so another model can resume work without losing context.',
+    platform: 'Web',
+    techStack: 'React, JSON storage',
+    uiStyle: 'Clean knowledge hub',
+    difficulty: 'Medium',
+    status: 'done',
+    createdAt: new Date(Date.now() - 14 * 864e5).toISOString(),
+    updatedAt: new Date(Date.now() - 2 * 864e5).toISOString(),
   },
 ];
 
-// ── Constants ──────────────────────────────────────────────────────────────
 const PLATFORMS: Platform[] = ['Web', 'Desktop', 'CLI', 'Mobile', 'Embedded', 'Other'];
 const DIFFICULTIES: Difficulty[] = ['Easy', 'Medium', 'Hard'];
 const STATUSES: { value: ProjectStatus | 'all'; label: string }[] = [
-  { value: 'all', label: '全部' },
-  { value: 'planning', label: '规划中' },
-  { value: 'active', label: '进行中' },
-  { value: 'paused', label: '已暂停' },
-  { value: 'done', label: '已完成' },
+  { value: 'all', label: 'All' },
+  { value: 'planning', label: 'Planning' },
+  { value: 'active', label: 'Active' },
+  { value: 'paused', label: 'Paused' },
+  { value: 'done', label: 'Done' },
 ];
 
 const PLATFORM_LABELS: Record<Platform, string> = {
-  Web: 'Web 网页',
-  Desktop: '桌面应用',
-  CLI: '命令行',
-  Mobile: '移动端',
-  Embedded: '嵌入式',
-  Other: '其他',
+  Web: 'Web',
+  Desktop: 'Desktop',
+  CLI: 'CLI',
+  Mobile: 'Mobile',
+  Embedded: 'Embedded',
+  Other: 'Other',
 };
 
-const DIFFICULTY_LABELS: Record<Difficulty, string> = {
-  Easy: '简单',
-  Medium: '中等',
-  Hard: '困难',
+const PlatformIcon: Record<Platform, React.ComponentType<{ className?: string }>> = {
+  Web: Globe,
+  Desktop: Monitor,
+  CLI: Terminal,
+  Mobile: Smartphone,
+  Embedded: Cpu,
+  Other: Layers,
 };
 
-// ── Icons ──────────────────────────────────────────────────────────────────
-const PlatformIcon: Record<Platform, React.ComponentType<any>> = {
-  Web: Globe, Desktop: Monitor, CLI: Terminal, Mobile: Smartphone, Embedded: Cpu, Other: Layers,
+const statusVariant: Record<ProjectStatus, 'default' | 'success' | 'warning' | 'info'> = {
+  planning: 'info',
+  active: 'success',
+  paused: 'warning',
+  done: 'default',
 };
 
-const platformColor: Record<Platform, string> = {
-  Web: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-  Desktop: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-  CLI: 'bg-zinc-500/20 text-zinc-300 border-zinc-500/30',
-  Mobile: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-  Embedded: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-  Other: 'bg-pink-500/20 text-pink-300 border-pink-500/30',
-};
-
-const statusColor: Record<string, string> = {
-  active: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-  planning: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-  paused: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-  done: 'bg-zinc-500/20 text-zinc-300 border-zinc-500/30',
-};
-
-const difficultyColor: Record<Difficulty, string> = {
-  Easy: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-  Medium: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-  Hard: 'bg-red-500/20 text-red-300 border-red-500/30',
+const difficultyVariant: Record<Difficulty, 'default' | 'success' | 'warning' | 'danger'> = {
+  Easy: 'success',
+  Medium: 'warning',
+  Hard: 'danger',
 };
 
 const isProject = (value: unknown): value is Project =>
   Boolean(
     value &&
-    typeof value === 'object' &&
-    typeof (value as Project).id === 'string' &&
-    typeof (value as Project).name === 'string' &&
-    typeof (value as Project).idea === 'string',
+      typeof value === 'object' &&
+      typeof (value as Project).id === 'string' &&
+      typeof (value as Project).name === 'string' &&
+      typeof (value as Project).idea === 'string',
   );
 
 const getCreateError = (value: unknown) => {
   if (!value || typeof value !== 'object' || !('error' in value)) return null;
   const error = (value as { error?: unknown }).error;
-  return typeof error === 'string' && error.trim() ? error : '创建失败';
+  return typeof error === 'string' && error.trim() ? error : 'Project create failed';
 };
 
-// ── Component ──────────────────────────────────────────────────────────────
 export default function Projects() {
   const navigate = useNavigate();
-
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [apiAvailable, setApiAvailable] = useState(true);
-
-  // Filters & search
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all');
-
-  // Modals
   const [showNewModal, setShowNewModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
-
-  // Form
   const [form, setForm] = useState({
-    name: '', idea: '', platform: 'Web' as Platform,
-    techStack: '', uiStyle: '', difficulty: 'Medium' as Difficulty,
+    name: '',
+    idea: '',
+    platform: 'Web' as Platform,
+    techStack: '',
+    uiStyle: '',
+    difficulty: 'Medium' as Difficulty,
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
-  // ── Fetch ──────────────────────────────────────────────────────────────
   const fetchProjects = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -172,40 +146,49 @@ export default function Projects() {
       if (!api || typeof api.projects?.list !== 'function') {
         setApiAvailable(false);
         setProjects(DEMO_PROJECTS);
-        setLoading(false);
         return;
       }
       const data = await api.projects.list();
+      setApiAvailable(true);
       setProjects(Array.isArray(data) ? data : []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Projects fetch error:', err);
       setApiAvailable(false);
       setProjects(DEMO_PROJECTS);
+      setError(err instanceof Error ? err.message : 'Project data bridge is unavailable.');
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { fetchProjects(); }, [fetchProjects]);
+  useEffect(() => {
+    void fetchProjects();
+  }, [fetchProjects]);
 
-  // ── Filtered projects ──────────────────────────────────────────────────
-  const filtered = React.useMemo(() => {
-    return projects.filter((p) => {
-      const q = search.toLowerCase();
+  const filtered = useMemo(() => {
+    return projects.filter((project) => {
+      const q = search.trim().toLowerCase();
       const matchesSearch =
-        !q || p.name.toLowerCase().includes(q) || p.idea.toLowerCase().includes(q);
-      const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
+        !q ||
+        project.name.toLowerCase().includes(q) ||
+        project.idea.toLowerCase().includes(q) ||
+        project.techStack?.toLowerCase().includes(q);
+      const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [projects, search, statusFilter]);
 
-  // ── Form handler ───────────────────────────────────────────────────────
   const validateForm = () => {
     const errors: Record<string, string> = {};
-    if (!form.name.trim()) errors.name = '项目名称不能为空';
-    if (!form.idea.trim()) errors.idea = '项目描述不能为空';
+    if (!form.name.trim()) errors.name = 'Project name is required.';
+    if (!form.idea.trim()) errors.idea = 'Project goal is required.';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
+  };
+
+  const resetForm = () => {
+    setForm({ name: '', idea: '', platform: 'Web', techStack: '', uiStyle: '', difficulty: 'Medium' });
+    setFormErrors({});
   };
 
   const handleCreate = async () => {
@@ -224,7 +207,6 @@ export default function Projects() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-
       const createdProject =
         api && typeof api.projects?.create === 'function'
           ? await api.projects.create(newProject)
@@ -232,15 +214,14 @@ export default function Projects() {
       const createError = getCreateError(createdProject);
       if (createError) throw new Error(createError);
       const savedProject = isProject(createdProject) ? createdProject : newProject;
-
       setProjects((prev) => [savedProject, ...prev]);
       resetForm();
       setShowNewModal(false);
       navigate(`/projects/${savedProject.id}?next=plan`, {
         state: { highlightPlan: true, project: savedProject },
       });
-    } catch (err: any) {
-      setFormErrors({ _form: err?.message || '创建失败' });
+    } catch (err: unknown) {
+      setFormErrors({ _form: err instanceof Error ? err.message : 'Project create failed.' });
     } finally {
       setSaving(false);
     }
@@ -260,16 +241,14 @@ export default function Projects() {
         difficulty: form.difficulty,
         updatedAt: new Date().toISOString(),
       };
-
       if (api && typeof api.projects?.update === 'function') {
         await api.projects.update(updated);
       }
-
-      setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+      setProjects((prev) => prev.map((project) => (project.id === updated.id ? updated : project)));
       resetForm();
       setEditingProject(null);
-    } catch (err: any) {
-      setFormErrors({ _form: err?.message || '更新失败' });
+    } catch (err: unknown) {
+      setFormErrors({ _form: err instanceof Error ? err.message : 'Project update failed.' });
     } finally {
       setSaving(false);
     }
@@ -281,16 +260,11 @@ export default function Projects() {
       if (api && typeof api.projects?.delete === 'function') {
         await api.projects.delete(deleteTarget.id);
       }
-      setProjects((prev) => prev.filter((p) => p.id !== deleteTarget.id));
+      setProjects((prev) => prev.filter((project) => project.id !== deleteTarget.id));
       setDeleteTarget(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Delete error:', err);
     }
-  };
-
-  const resetForm = () => {
-    setForm({ name: '', idea: '', platform: 'Web', techStack: '', uiStyle: '', difficulty: 'Medium' });
-    setFormErrors({});
   };
 
   const openEdit = (project: Project) => {
@@ -312,289 +286,306 @@ export default function Projects() {
     setShowNewModal(true);
   };
 
-  // ── Form fields component ──────────────────────────────────────────────
   const renderFormFields = () => (
     <div className="space-y-4">
       {formErrors._form && (
-        <div className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
+        <div className="rounded-panel border border-[var(--danger)] bg-[var(--danger-muted)] px-3 py-2 text-sm text-[var(--danger)]">
           {formErrors._form}
         </div>
       )}
 
       <Input
-        label="项目名称 *"
+        label="Project name *"
         value={form.name}
-        onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-        placeholder="输入项目名称"
+        onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+        placeholder="e.g. Provider switchboard"
         error={formErrors.name}
       />
 
       <Textarea
-        label="项目描述 *"
+        label="Goal *"
         value={form.idea}
-        onChange={(e) => setForm((f) => ({ ...f, idea: e.target.value }))}
-        placeholder="描述项目想法和核心功能"
+        onChange={(event) => setForm((current) => ({ ...current, idea: event.target.value }))}
+        placeholder="Describe the project goal, constraints, and expected outcome."
         rows={4}
         error={formErrors.idea}
       />
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="project-platform" className="block text-xs font-medium text-zinc-400 mb-1.5">平台</label>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <label className="block">
+          <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+            Platform
+          </span>
           <select
-            id="project-platform"
             value={form.platform}
-            onChange={(e) => setForm((f) => ({ ...f, platform: e.target.value as Platform }))}
-            className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-zinc-200 text-sm
-                       focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+            onChange={(event) => setForm((current) => ({ ...current, platform: event.target.value as Platform }))}
+            className="control-input"
           >
-            {PLATFORMS.map((p) => (
-              <option key={p} value={p} className="bg-zinc-900">{PLATFORM_LABELS[p]}</option>
+            {PLATFORMS.map((platform) => (
+              <option key={platform} value={platform}>
+                {PLATFORM_LABELS[platform]}
+              </option>
             ))}
           </select>
-        </div>
-        <div>
-          <label htmlFor="project-difficulty" className="block text-xs font-medium text-zinc-400 mb-1.5">难度</label>
+        </label>
+        <label className="block">
+          <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+            Difficulty
+          </span>
           <select
-            id="project-difficulty"
             value={form.difficulty}
-            onChange={(e) => setForm((f) => ({ ...f, difficulty: e.target.value as Difficulty }))}
-            className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-zinc-200 text-sm
-                       focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+            onChange={(event) => setForm((current) => ({ ...current, difficulty: event.target.value as Difficulty }))}
+            className="control-input"
           >
-            {DIFFICULTIES.map((d) => (
-              <option key={d} value={d} className="bg-zinc-900">{DIFFICULTY_LABELS[d]}</option>
+            {DIFFICULTIES.map((difficulty) => (
+              <option key={difficulty} value={difficulty}>
+                {difficulty}
+              </option>
             ))}
           </select>
-        </div>
+        </label>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Input
-          label="技术栈"
+          label="Tech stack"
           value={form.techStack}
-          onChange={(e) => setForm((f) => ({ ...f, techStack: e.target.value }))}
-          placeholder="如: React, Node.js"
+          onChange={(event) => setForm((current) => ({ ...current, techStack: event.target.value }))}
+          placeholder="React, Node.js, Python"
         />
         <Input
-          label="UI 风格"
+          label="UI direction"
           value={form.uiStyle}
-          onChange={(e) => setForm((f) => ({ ...f, uiStyle: e.target.value }))}
-          placeholder="如: Glassmorphism"
+          onChange={(event) => setForm((current) => ({ ...current, uiStyle: event.target.value }))}
+          placeholder="Compact desktop tool"
         />
       </div>
     </div>
   );
 
-  // ── Loading state ──────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-6 animate-pulse">
-        <div className="h-10 w-48 rounded-xl bg-white/5" />
-        <div className="flex gap-3">
-          <div className="h-10 w-64 rounded-xl bg-white/5" />
-          <div className="h-10 w-32 rounded-xl bg-white/5" />
-          <div className="h-10 w-32 rounded-xl bg-white/5" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-48 rounded-2xl bg-white/5 border border-white/10" />
+      <div className="mx-auto max-w-7xl space-y-5 p-5 animate-pulse">
+        <div className="h-10 w-56 rounded-panel bg-[var(--surface-muted)]" />
+        <div className="h-12 rounded-panel bg-[var(--surface-muted)]" />
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div key={index} className="h-44 rounded-panel bg-[var(--surface-muted)]" />
           ))}
         </div>
       </div>
     );
   }
 
-  // ── Error state ────────────────────────────────────────────────────────
   if (error && projects.length === 0) {
     return (
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <GlassCard className="p-12 text-center">
-          <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-zinc-100 mb-2">加载失败</h2>
-          <p className="text-zinc-400 mb-4">{error}</p>
-          <button onClick={fetchProjects} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-zinc-200 transition-colors">
-            <RefreshCw className="w-4 h-4" /> 重试
-          </button>
-        </GlassCard>
+      <div className="mx-auto max-w-7xl p-5">
+        <SurfaceCard className="p-8 text-center">
+          <AlertTriangle className="mx-auto mb-3 h-10 w-10 text-[var(--danger)]" />
+          <h2 className="mb-2 text-lg font-semibold text-[var(--text-primary)]">Projects failed to load</h2>
+          <p className="mb-4 text-sm text-[var(--text-secondary)]">{error}</p>
+          <Button onClick={() => void fetchProjects()} icon={<RefreshCw className="h-4 w-4" />}>
+            Retry
+          </Button>
+        </SurfaceCard>
       </div>
     );
   }
 
-  // ── Main render ────────────────────────────────────────────────────────
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="mx-auto max-w-7xl space-y-5 p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-zinc-100 tracking-tight">项目</h1>
-          <p className="text-zinc-400 text-sm mt-1">
-            {filtered.length} / {projects.length} 个项目
+          <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Projects</h1>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+            {filtered.length} of {projects.length} projects. Start here, then configure agents and workflows.
           </p>
         </div>
-        <Button onClick={openNew} icon={<Plus className="w-4 h-4" />}>
-          新建项目
+        <Button onClick={openNew} icon={<Plus className="h-4 w-4" />}>
+          New project
         </Button>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="搜索项目名称或描述..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-zinc-200 text-sm
-                       placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50
-                       focus:border-blue-500/50 transition-all"
-          />
-          {search && (
-            <button
-              onClick={() => setSearch('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
+      {!apiAvailable && (
+        <div className="rounded-panel border border-[var(--warning)] bg-[var(--warning-muted)] px-3 py-2 text-sm text-[var(--warning)]">
+          Demo data is shown because the desktop data bridge is unavailable in this session.
         </div>
+      )}
 
-        <div className="flex gap-2 flex-wrap">
-          {STATUSES.map((s) => (
-            <button
-              key={s.value}
-              onClick={() => setStatusFilter(s.value)}
-              className={classNames(
-                'px-3 py-2 rounded-xl text-xs font-medium transition-all border',
-                statusFilter === s.value
-                  ? 'bg-white/10 border-white/20 text-zinc-200'
-                  : 'bg-transparent border-transparent text-zinc-500 hover:text-zinc-300 hover:bg-white/5'
-              )}
-            >
-              {s.label}
-            </button>
-          ))}
+      <SurfaceCard padding="md">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative min-w-[220px] flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search projects, goals, or stack..."
+              className="control-input pl-9 pr-9"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="focus-ring absolute right-2 top-1/2 -translate-y-1/2 rounded-tool p-1 text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]"
+                aria-label="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {STATUSES.map((status) => (
+              <button
+                key={status.value}
+                type="button"
+                onClick={() => setStatusFilter(status.value)}
+                className={classNames(
+                  'focus-ring rounded-tool border px-3 py-2 text-xs font-semibold transition-colors',
+                  statusFilter === status.value
+                    ? 'border-[var(--accent)] bg-[var(--accent-muted)] text-[var(--accent)]'
+                    : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]',
+                )}
+              >
+                {status.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      </SurfaceCard>
 
-      {/* Project grid */}
       {filtered.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((project) => {
             const PIcon = PlatformIcon[project.platform] || Layers;
             return (
-              <GlassCard
+              <SurfaceCard
                 key={project.id}
-                className="p-5 cursor-pointer hover:scale-[1.02] transition-transform duration-200 group"
+                className="group p-4"
+                hoverable
                 onClick={() => navigate(`/projects/${project.id}`)}
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <PIcon className="w-4 h-4 text-zinc-400 flex-shrink-0" />
-                    <h3 className="font-semibold text-zinc-200 text-sm truncate">{project.name}</h3>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <PIcon className="h-4 w-4 shrink-0 text-[var(--accent)]" />
+                      <h3 className="truncate text-sm font-semibold text-[var(--text-primary)]">{project.name}</h3>
+                    </div>
+                    <p className="mt-2 min-h-[40px] text-xs leading-5 text-[var(--text-secondary)]">
+                      {truncate(project.idea, 132)}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                  <div className="flex shrink-0 items-center gap-1">
                     <button
-                      onClick={(e) => { e.stopPropagation(); openEdit(project); }}
-                      className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-500 hover:text-zinc-300 transition-colors opacity-0 group-hover:opacity-100"
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        openEdit(project);
+                      }}
+                      className="focus-ring rounded-tool p-1.5 text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]"
+                      aria-label={`Edit ${project.name}`}
                     >
-                      <Pencil className="w-3.5 h-3.5" />
+                      <Pencil className="h-3.5 w-3.5" />
                     </button>
                     <button
-                      onClick={(e) => { e.stopPropagation(); setDeleteTarget(project); }}
-                      className="p-1.5 rounded-lg hover:bg-red-500/20 text-zinc-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setDeleteTarget(project);
+                      }}
+                      className="focus-ring rounded-tool p-1.5 text-[var(--text-muted)] hover:bg-[var(--danger-muted)] hover:text-[var(--danger)]"
+                      aria-label={`Delete ${project.name}`}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 </div>
 
-                <p className="text-xs text-zinc-400 mb-3 line-clamp-2 leading-relaxed">
-                  {project.idea}
-                </p>
-
-                <div className="flex flex-wrap items-center gap-2 mb-3">
-                  <Badge className={statusColor[project.status]}>
-                    {STATUSES.find((s) => s.value === project.status)?.label || project.status}
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Badge variant={statusVariant[project.status] ?? 'default'} dot>
+                    {STATUSES.find((status) => status.value === project.status)?.label || project.status}
                   </Badge>
-                  <Badge className={platformColor[project.platform]}>
-                    <PIcon className="w-3 h-3 mr-1" />
+                  <Badge variant="default" icon={<PIcon className="h-3 w-3" />}>
                     {PLATFORM_LABELS[project.platform] ?? project.platform}
                   </Badge>
-                  <Badge className={difficultyColor[project.difficulty]}>
-                    {DIFFICULTY_LABELS[project.difficulty] ?? project.difficulty}
+                  <Badge variant={difficultyVariant[project.difficulty] ?? 'default'}>
+                    {project.difficulty}
                   </Badge>
                 </div>
 
-                {project.techStack && (
-                  <p className="text-[11px] text-zinc-500 mb-2 truncate">
-                    {project.techStack}
-                  </p>
-                )}
-
-                <div className="flex items-center gap-1 text-[11px] text-zinc-600">
-                  <Clock className="w-3 h-3" />
-                  {formatRelativeDate(project.createdAt)}
+                <div className="mt-3 border-t border-[var(--border)] pt-3">
+                  <p className="truncate text-xs text-[var(--text-muted)]">{project.techStack || 'Stack not set'}</p>
+                  <div className="mt-2 flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
+                    <Clock className="h-3 w-3" />
+                    {formatRelativeDate(project.updatedAt || project.createdAt)}
+                  </div>
                 </div>
-              </GlassCard>
+              </SurfaceCard>
             );
           })}
         </div>
       ) : (
-        <EmptyState
-          icon={FolderKanban}
-          title={search || statusFilter !== 'all' ? '没有匹配的项目' : '暂无项目'}
-          description={
-            search || statusFilter !== 'all'
-              ? '尝试更改筛选条件或搜索词'
-              : '创建你的第一个项目来开始使用 LocalAI Nexus'
-          }
-          actionLabel="新建项目"
-          onAction={openNew}
-        />
+        <SurfaceCard className="p-8">
+          <EmptyState
+            icon={FolderKanban}
+            title={search || statusFilter !== 'all' ? 'No matching projects' : 'No projects yet'}
+            description={
+              search || statusFilter !== 'all'
+                ? 'Adjust the search or status filter to find another project.'
+                : 'Create a project to define the goal before configuring agents and workflows.'
+            }
+            actionLabel="New project"
+            onAction={openNew}
+          />
+        </SurfaceCard>
       )}
 
-      {/* ── New/Edit Modal ────────────────────────────────────────────────── */}
       <Modal
-        open={showNewModal || !!editingProject}
-        onClose={() => { setShowNewModal(false); setEditingProject(null); resetForm(); }}
-        title={editingProject ? '编辑项目' : '新建项目'}
+        open={showNewModal || Boolean(editingProject)}
+        onClose={() => {
+          setShowNewModal(false);
+          setEditingProject(null);
+          resetForm();
+        }}
+        title={editingProject ? 'Edit project' : 'New project'}
         size="md"
       >
         {renderFormFields()}
-        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-white/10">
+        <div className="mt-6 flex justify-end gap-3 border-t border-[var(--border)] pt-4">
           <Button
             variant="ghost"
-            onClick={() => { setShowNewModal(false); setEditingProject(null); resetForm(); }}
+            onClick={() => {
+              setShowNewModal(false);
+              setEditingProject(null);
+              resetForm();
+            }}
           >
-            取消
+            Cancel
           </Button>
           <Button
             onClick={editingProject ? handleUpdate : handleCreate}
             loading={saving}
-            icon={editingProject ? <Pencil className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            icon={editingProject ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           >
-            {editingProject ? '保存修改' : '创建项目'}
+            {editingProject ? 'Save changes' : 'Create project'}
           </Button>
         </div>
       </Modal>
 
-      {/* ── Delete confirmation modal ─────────────────────────────────────── */}
-      <Modal
-        open={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        title="确认删除"
-        size="sm"
-      >
-        <div className="text-center py-4">
-          <Trash2 className="w-12 h-12 text-red-400 mx-auto mb-3" />
-          <p className="text-zinc-200 font-medium mb-1">删除项目 &ldquo;{deleteTarget?.name}&rdquo;？</p>
-          <p className="text-sm text-zinc-500">此操作不可撤销，所有相关任务和记忆将被移除。</p>
+      <Modal open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} title="Delete project" size="sm">
+        <div className="py-3 text-center">
+          <Trash2 className="mx-auto mb-3 h-10 w-10 text-[var(--danger)]" />
+          <p className="mb-1 font-medium text-[var(--text-primary)]">Delete "{deleteTarget?.name}"?</p>
+          <p className="text-sm text-[var(--text-secondary)]">
+            This removes the project from local storage. Related tasks and memories may also become orphaned.
+          </p>
         </div>
-        <div className="flex justify-center gap-3 mt-4 pt-4 border-t border-white/10">
-          <Button variant="ghost" onClick={() => setDeleteTarget(null)}>取消</Button>
-          <Button variant="danger" onClick={handleDelete} icon={<Trash2 className="w-4 h-4" />}>
-            确认删除
+        <div className="mt-4 flex justify-center gap-3 border-t border-[var(--border)] pt-4">
+          <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={handleDelete} icon={<Trash2 className="h-4 w-4" />}>
+            Delete
           </Button>
         </div>
       </Modal>

@@ -21,7 +21,7 @@ import {
   TestTube2,
 } from 'lucide-react';
 import { api } from '../lib/api';
-import { GlassCard, EmptyState, Button, Input, Badge } from '../components/';
+import { SurfaceCard, EmptyState, Button, Input, Badge } from '../components/';
 import type { GitCommitEntry, ReleaseStatus, ReleaseTestStatus } from '../lib/types';
 import { generateId, formatDate, formatRelativeDate, copyToClipboard, classNames, truncate } from '../lib/utils';
 
@@ -75,7 +75,7 @@ const TEST_STATUS_CLASS: Record<ReleaseTestStatus, string> = {
   PASS: 'bg-emerald-500/15 text-emerald-600 border-emerald-500/25 dark:text-emerald-300',
   FAIL: 'bg-red-500/15 text-red-600 border-red-500/25 dark:text-red-300',
   BLOCKED: 'bg-amber-500/15 text-amber-600 border-amber-500/25 dark:text-amber-300',
-  UNKNOWN: 'bg-slate-500/15 text-slate-600 border-slate-500/25 dark:text-slate-300',
+  UNKNOWN: 'bg-slate-500/15 text-[var(--text-secondary)] border-slate-500/25 dark:text-[var(--text-secondary)]',
 };
 
 export default function GitTimeline() {
@@ -216,7 +216,7 @@ export default function GitTimeline() {
     if (filename.endsWith('.css') || filename.endsWith('.scss')) return 'bg-pink-500/20 text-pink-300 border-pink-500/30';
     if (filename.endsWith('.json') || filename.endsWith('.yml') || filename.endsWith('.yaml'))
       return 'bg-amber-500/20 text-amber-300 border-amber-500/30';
-    if (filename.endsWith('.md')) return 'bg-zinc-500/20 text-zinc-300 border-zinc-500/30';
+    if (filename.endsWith('.md')) return 'bg-[var(--surface-muted)] text-[var(--text-secondary)] border-[var(--border)]';
     if (filename.endsWith('.js') || filename.endsWith('.jsx')) return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
     return 'bg-purple-500/20 text-purple-300 border-purple-500/30';
   };
@@ -229,15 +229,15 @@ export default function GitTimeline() {
     <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-zinc-100 tracking-tight">Git 时间线</h1>
-        <p className="text-zinc-400 text-sm mt-1">可视化 Git 提交历史，生成开发摘要记忆</p>
+        <h1 className="text-3xl font-bold text-[var(--text-primary)] tracking-tight">Git 时间线</h1>
+        <p className="text-[var(--text-muted)] text-sm mt-1">可视化 Git 提交历史，生成开发摘要记忆</p>
       </div>
 
       {/* Path input */}
-      <GlassCard className="p-5 space-y-4">
+      <SurfaceCard className="p-5 space-y-4">
         <div className="flex items-center gap-2 mb-1">
           <FolderGit2 className="w-4 h-4 text-orange-400" />
-          <h2 className="text-sm font-semibold text-zinc-300">仓库路径</h2>
+          <h2 className="text-sm font-semibold text-[var(--text-secondary)]">仓库路径</h2>
         </div>
         <div className="flex gap-2">
           <div className="flex-1 relative">
@@ -260,26 +260,26 @@ export default function GitTimeline() {
             读取 Git 日志
           </Button>
         </div>
-      </GlassCard>
+      </SurfaceCard>
 
       {/* Loading */}
       {loading && (
-        <GlassCard className="p-12 text-center">
+        <SurfaceCard className="p-12 text-center">
           <RefreshCw className="w-6 h-6 animate-spin text-orange-400 mx-auto mb-3" />
-          <p className="text-sm text-zinc-400">正在读取 Git 日志...</p>
-          <p className="text-xs text-zinc-600 mt-1">{repoPath}</p>
-        </GlassCard>
+          <p className="text-sm text-[var(--text-muted)]">正在读取 Git 日志...</p>
+          <p className="text-xs text-[var(--text-muted)] mt-1">{repoPath}</p>
+        </SurfaceCard>
       )}
 
       {/* Error */}
       {error && !loading && (
-        <GlassCard className="p-8 text-center border-red-500/20">
+        <SurfaceCard className="p-8 text-center border-red-500/20">
           <AlertTriangle className="w-10 h-10 text-red-400 mx-auto mb-3" />
-          <h3 className="text-base font-semibold text-zinc-200 mb-2">读取失败</h3>
-          <p className="text-sm text-zinc-400 mb-4 max-w-md mx-auto">{error}</p>
-          <div className="text-xs text-zinc-500 space-y-1">
+          <h3 className="text-base font-semibold text-[var(--text-primary)] mb-2">读取失败</h3>
+          <p className="text-sm text-[var(--text-muted)] mb-4 max-w-md mx-auto">{error}</p>
+          <div className="text-xs text-[var(--text-primary)]0 space-y-1">
             <p>建议检查：</p>
-            <ul className="list-disc list-inside text-zinc-600">
+            <ul className="list-disc list-inside text-[var(--text-muted)]">
               <li>路径是否为有效的 Git 仓库</li>
               <li>是否已安装 Git 命令行工具</li>
               <li>文件夹权限是否正确</li>
@@ -290,59 +290,59 @@ export default function GitTimeline() {
               重试
             </Button>
           </div>
-        </GlassCard>
+        </SurfaceCard>
       )}
 
       {/* Empty repo */}
       {!loading && !error && hasData && commits.length === 0 && (
-        <GlassCard className="p-12">
+        <SurfaceCard className="p-12">
           <EmptyState
             icon={GitCommit}
             title="仓库无提交记录"
             description="该仓库尚未有任何 Git 提交"
           />
-        </GlassCard>
+        </SurfaceCard>
       )}
 
       {/* Summary */}
       {summary && hasData && (
-        <GlassCard className="p-5">
+        <SurfaceCard className="p-5">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-orange-400">{summary.totalCommits}</div>
-              <div className="text-[11px] text-zinc-500 mt-1">总提交数</div>
+              <div className="text-[11px] text-[var(--text-primary)]0 mt-1">总提交数</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-400">{summary.branch}</div>
-              <div className="text-[11px] text-zinc-500 mt-1">当前分支</div>
+              <div className="text-[11px] text-[var(--text-primary)]0 mt-1">当前分支</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-emerald-400">{commits.length}</div>
-              <div className="text-[11px] text-zinc-500 mt-1">已加载</div>
+              <div className="text-[11px] text-[var(--text-primary)]0 mt-1">已加载</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-400">
                 {new Set(commits.flatMap((c) => c.files)).size}
               </div>
-              <div className="text-[11px] text-zinc-500 mt-1">涉及文件</div>
+              <div className="text-[11px] text-[var(--text-primary)]0 mt-1">涉及文件</div>
             </div>
           </div>
           {summary.recentActivity && (
-            <p className="text-xs text-zinc-500 mt-4 text-center">{summary.recentActivity}</p>
+            <p className="text-xs text-[var(--text-primary)]0 mt-4 text-center">{summary.recentActivity}</p>
           )}
-        </GlassCard>
+        </SurfaceCard>
       )}
 
       {releaseStatus && hasData && (
-        <GlassCard className="p-5 space-y-4" data-testid="release-status-panel">
+        <SurfaceCard className="p-5 space-y-4" data-testid="release-status-panel">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
                 <PackageCheck className="h-4 w-4 text-emerald-400" />
-                <h2 className="text-sm font-semibold text-slate-800 dark:text-zinc-200">GitHub 版本记录</h2>
+                <h2 className="text-sm font-semibold text-[var(--text-primary)] dark:text-[var(--text-primary)]">GitHub 版本记录</h2>
                 <Badge variant="info">v{releaseStatus.version}</Badge>
               </div>
-              <p className="mt-1 text-xs text-slate-500 dark:text-zinc-500">
+              <p className="mt-1 text-xs text-[var(--text-muted)] dark:text-[var(--text-primary)]0">
                 当前分支 {releaseStatus.branch} · HEAD {releaseStatus.recentCommits[0]?.hash.slice(0, 7) || 'unknown'} · {releaseStatus.gitStatus}
               </p>
               <p className="mt-1 text-[11px] text-amber-600 dark:text-amber-300">
@@ -360,12 +360,12 @@ export default function GitTimeline() {
           </div>
 
           <div className="grid gap-3 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="rounded-lg border border-[var(--glass-border)] bg-[var(--glass-surface)] p-3">
-              <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-zinc-400">
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
+              <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-[var(--text-secondary)] dark:text-[var(--text-muted)]">
                 <Sparkles className="h-3.5 w-3.5 text-accent-500" />
                 本轮更新摘要
               </div>
-              <ul className="space-y-1.5 text-sm text-slate-700 dark:text-zinc-300">
+              <ul className="space-y-1.5 text-sm text-[var(--text-primary)] dark:text-[var(--text-secondary)]">
                 {releaseStatus.updateSummary.slice(0, 4).map((item, itemIndex) => (
                   <li key={`${item}-${itemIndex}`} className="flex gap-2">
                     <ChevronRight className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-accent-500" />
@@ -375,8 +375,8 @@ export default function GitTimeline() {
               </ul>
             </div>
 
-            <div className="rounded-lg border border-[var(--glass-border)] bg-[var(--glass-surface)] p-3">
-              <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-zinc-400">
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
+              <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-[var(--text-secondary)] dark:text-[var(--text-muted)]">
                 <TestTube2 className="h-3.5 w-3.5 text-blue-400" />
                 最新测试状态
               </div>
@@ -385,14 +385,14 @@ export default function GitTimeline() {
                   { command: '等待测试记录', status: 'UNKNOWN' as const, details: 'handoff/TEST_REPORT.md 暂无可解析记录' },
                 ]).slice(0, 4).map((test, testIndex) => (
                   <div key={`${test.command}-${test.status}-${testIndex}`} className="flex items-center justify-between gap-2 text-xs">
-                    <span className="min-w-0 truncate text-slate-600 dark:text-zinc-300">{test.command}</span>
+                    <span className="min-w-0 truncate text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">{test.command}</span>
                     <Badge className={TEST_STATUS_CLASS[test.status]}>{test.status}</Badge>
                   </div>
                 ))}
               </div>
             </div>
           </div>
-        </GlassCard>
+        </SurfaceCard>
       )}
 
       {/* Generate memory button */}
@@ -413,7 +413,7 @@ export default function GitTimeline() {
       {hasData && (
         <div className="relative">
           {/* Vertical line */}
-          <div className="absolute left-[19px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-orange-500/30 via-blue-500/20 to-transparent" />
+          <div className="absolute left-[19px] top-0 bottom-0 w-0.5 bg-[var(--border)]" />
 
           <div className="space-y-4 ml-10">
             {commits.map((commit, index) => (
@@ -424,23 +424,23 @@ export default function GitTimeline() {
                     'absolute -left-[34px] top-4 w-3.5 h-3.5 rounded-full border-2',
                     index === 0
                       ? 'bg-orange-500 border-orange-400 shadow-lg shadow-orange-500/20'
-                      : 'bg-zinc-800 border-zinc-600'
+                      : 'bg-[var(--surface-muted)] border-[var(--border-strong)]'
                   )}
                 />
 
-                <GlassCard className="p-4 hover:border-white/20 transition-colors">
+                <SurfaceCard className="p-4 hover:border-[var(--border)] transition-colors">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       {/* Commit hash */}
                       <div className="flex items-center gap-2 mb-2">
-                        <GitCommit className="w-3.5 h-3.5 text-zinc-500" />
+                        <GitCommit className="w-3.5 h-3.5 text-[var(--text-primary)]0" />
                         <code className="text-xs text-orange-400 font-mono cursor-pointer hover:underline"
                               onClick={() => handleCopyHash(commit.hash)}>
                           {commit.hash.slice(0, 7)}
                         </code>
                         <button
                           onClick={() => handleCopyHash(commit.hash)}
-                          className="p-0.5 rounded text-zinc-600 hover:text-zinc-400 transition-colors"
+                          className="p-0.5 rounded text-[var(--text-muted)] hover:text-[var(--text-muted)] transition-colors"
                         >
                           {copiedHash === commit.hash ? (
                             <Check className="w-3 h-3 text-emerald-400" />
@@ -456,10 +456,10 @@ export default function GitTimeline() {
                       </div>
 
                       {/* Message */}
-                      <p className="text-sm text-zinc-200 font-medium mb-2">{commit.message}</p>
+                      <p className="text-sm text-[var(--text-primary)] font-medium mb-2">{commit.message}</p>
 
                       {/* Author + date */}
-                      <div className="flex items-center gap-3 text-[11px] text-zinc-500 mb-3">
+                      <div className="flex items-center gap-3 text-[11px] text-[var(--text-primary)]0 mb-3">
                         <span className="flex items-center gap-1">
                           <User className="w-3 h-3" /> {commit.author}
                         </span>
@@ -484,7 +484,7 @@ export default function GitTimeline() {
                       )}
                     </div>
                   </div>
-                </GlassCard>
+                </SurfaceCard>
               </div>
             ))}
           </div>
@@ -493,7 +493,7 @@ export default function GitTimeline() {
 
       {/* Initial empty state */}
       {!loading && !error && !hasData && (
-        <GlassCard className="p-12">
+        <SurfaceCard className="p-12">
           <EmptyState
             icon={FolderGit2}
             title="选择 Git 仓库"
@@ -501,7 +501,7 @@ export default function GitTimeline() {
             actionLabel="选择文件夹"
             onAction={handleBrowse}
           />
-        </GlassCard>
+        </SurfaceCard>
       )}
     </div>
   );

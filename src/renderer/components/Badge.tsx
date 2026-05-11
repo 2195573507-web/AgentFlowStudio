@@ -18,20 +18,15 @@ export interface BadgeProps {
 
 const variantClasses: Record<BadgeVariant, string> = {
   default:
-    'bg-slate-200/70 dark:bg-slate-700/70 text-slate-700 dark:text-slate-300 ' +
-    'border-slate-300/50 dark:border-slate-600/50',
+    'bg-[var(--surface-muted)] text-[var(--text-secondary)] border-[var(--border)]',
   success:
-    'bg-emerald-100/80 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 ' +
-    'border-emerald-300/50 dark:border-emerald-700/50',
+    'bg-[var(--success-muted)] text-[var(--success)] border-[color-mix(in_srgb,var(--success)_32%,var(--border))]',
   warning:
-    'bg-amber-100/80 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 ' +
-    'border-amber-300/50 dark:border-amber-700/50',
+    'bg-[var(--warning-muted)] text-[var(--warning)] border-[color-mix(in_srgb,var(--warning)_32%,var(--border))]',
   danger:
-    'bg-red-100/80 dark:bg-red-900/40 text-red-700 dark:text-red-400 ' +
-    'border-red-300/50 dark:border-red-700/50',
+    'bg-[var(--danger-muted)] text-[var(--danger)] border-[color-mix(in_srgb,var(--danger)_32%,var(--border))]',
   info:
-    'bg-sky-100/80 dark:bg-sky-900/40 text-sky-700 dark:text-sky-400 ' +
-    'border-sky-300/50 dark:border-sky-700/50',
+    'bg-[var(--info-muted)] text-[var(--info)] border-[color-mix(in_srgb,var(--info)_32%,var(--border))]',
 };
 
 const dotColors: Record<BadgeVariant, string> = {
@@ -53,8 +48,8 @@ const Badge: React.FC<BadgeProps> = ({
     <span
       className={classNames(
         'inline-flex items-center gap-1 px-2.5 py-0.5',
-        'text-xs font-medium rounded-full',
-        'border backdrop-blur-sm',
+        'text-xs font-semibold rounded-full',
+        'border',
         'transition-colors duration-150',
         variantClasses[variant],
         className,

@@ -42,7 +42,7 @@ async function seedDemoDataIfNeeded(): Promise<void> {
     idea: 'A cross-platform desktop chat application powered by local LLMs, featuring conversation history, prompt templates, and plugin support.',
     platform: 'Desktop',
     techStack: 'Electron, React, TypeScript, TailwindCSS, Ollama',
-    uiStyle: 'Modern glassmorphism with dark mode, collapsible sidebar, and animated message bubbles.',
+    uiStyle: 'Clean desktop-tool UI with compact panels, clear status badges, and a restrained dark mode.',
     difficulty: 'Medium',
     status: 'active',
     createdAt: now,

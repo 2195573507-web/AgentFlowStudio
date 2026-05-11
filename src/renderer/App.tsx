@@ -51,9 +51,9 @@ function RequirePermission({ permission, children }: { permission: Permission; c
   if (!hasPermission(user, permission)) {
     return (
       <div className="p-6">
-        <div className="liquid-glass-card p-5">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Access denied</h2>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">This route requires {permission}.</p>
+        <div className="surface-card p-5">
+          <h2 className="text-xl font-bold text-[var(--text-primary)] dark:text-[var(--text-primary)]">Access denied</h2>
+          <p className="mt-2 text-sm text-[var(--text-muted)] dark:text-[var(--text-muted)]">This route requires {permission}.</p>
         </div>
       </div>
     );
@@ -110,14 +110,14 @@ function ForcePasswordChange({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen w-screen items-center justify-center p-6">
-      <form onSubmit={change} className="liquid-glass-card w-full max-w-md space-y-4 p-5">
+      <form onSubmit={change} className="surface-card w-full max-w-md space-y-4 p-5">
         <div className="flex items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-accent-500/15 text-accent-600 dark:text-accent-300">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-panel bg-accent-500/15 text-accent-600 dark:text-accent-300">
             <ShieldCheck className="h-5 w-5" />
           </div>
           <div className="space-y-1">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">请先修改默认管理员密码</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <h2 className="text-xl font-bold text-[var(--text-primary)] dark:text-[var(--text-primary)]">请先修改默认管理员密码</h2>
+            <p className="text-sm text-[var(--text-muted)] dark:text-[var(--text-muted)]">
               你已经登录默认管理员账号。为保护本地工作区，请先把初始密码 123456 改成你自己的密码。
             </p>
           </div>
@@ -143,7 +143,7 @@ function ForcePasswordChange({ children }: { children: React.ReactNode }) {
           icon={<KeyRound className="h-4 w-4" />}
         />
         {error && (
-          <div className="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-300">
+          <div className="rounded-panel border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-300">
             {error}
           </div>
         )}
