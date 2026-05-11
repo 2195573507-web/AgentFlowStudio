@@ -487,6 +487,8 @@ export interface NexusRuntimeProfile {
   toml: string
   yaml: string
   diagnostics: string[]
+  command: string
+  redaction: 'no-secrets' | 'requires-user-confirmation'
   updatedAt: string
 }
 
@@ -502,6 +504,99 @@ export interface NexusGatewayStatus {
   providerCount: number
   defaultBaseUrlHint: string
   v1BaseUrlHint: string
+  lastTraceId?: string
+  lastRouteReason?: string
+}
+
+export type NexusGatewayRequestKind = 'chat.completions' | 'responses' | 'messages'
+export type NexusGatewayStreamEventType = 'message_start' | 'content_delta' | 'message_delta' | 'message_stop' | 'error'
+
+export interface NexusGatewayForwardInput {
+  endpoint: string
+  kind: NexusGatewayRequestKind
+  body: Record<string, unknown>
+  stream?: boolean
+  requestId?: string
+}
+
+export interface NexusGatewayForwardResult {
+  ok: boolean
+  statusCode: number
+  body: unknown
+  providerId?: string
+  providerName?: string
+  model: string
+  routed: boolean
+  routeReason: string
+  fallbackUsed: boolean
+  traceId: string
+  inputTokens: number
+  outputTokens: number
+  latencyMs: number
+  failureCategory: NexusFailureCategory
+  streamed?: boolean
+  events?: Array<{ type: NexusGatewayStreamEventType; data: unknown }>
+}
+
+export interface NexusTokenPolicy {
+  id: string
+  providerId?: string
+  model?: string
+  dailyQuota: number
+  monthlyQuota: number
+  concurrencyLimit: number
+  cooldownMinutes: number
+  enabled: boolean
+  updatedAt: string
+}
+
+export interface NexusRouterDecision {
+  id: string
+  providerId?: string
+  providerName?: string
+  model: string
+  intent: string
+  reason: string
+  fallbackUsed: boolean
+  quotaState: 'available' | 'cooldown' | 'quota_exhausted' | 'unconfigured'
+  checkedAt: string
+}
+
+export interface NexusSecurityReport {
+  id: string
+  generatedAt: string
+  scope: string
+  summary: string
+  findings: Array<{ id: string; severity: import('./auditTypes.js').AuditSeverity; title: string; detail: string; recommendation: string }>
+  redaction: 'secrets-redacted'
+  auditEventCount: number
+  deniedEventCount: number
+  providerRiskCount: number
+  externalUrlPolicy: 'confirm-before-open'
+}
+
+export interface NexusTemplateBundle {
+  id: string
+  name: string
+  description: string
+  type: 'skill' | 'template' | 'workflow' | 'mcp'
+  version: string
+  riskLevel: WorkflowTemplateRisk | 'critical'
+  enabled: boolean
+  localOnly: boolean
+  assumptions: string[]
+  templates: Array<{ id: string; name: string; projectType: string; prompt: string; acceptance: string[] }>
+  createdAt: string
+  updatedAt: string
+}
+
+export interface NexusContextPackPreview {
+  id: string
+  generatedAt: string
+  sources: Array<{ type: 'memory' | 'files' | 'git_diff' | 'logs' | 'terminal_summary' | 'docs' | 'workflow_run' | 'provider_trace'; label: string; included: boolean; redacted: boolean }>
+  memoryCount: number
+  staleMemoryCount: number
+  prompt: string
 }
 
 export type NexusSkillType =
@@ -743,6 +838,12 @@ export const IPC_CHANNELS = {
   HEALTH_SUMMARY: 'health:summary',
   HEALTH_CHECK_PROVIDER: 'health:provider:check',
   RUNTIME_PROFILES_GENERATE: 'runtime:profiles:generate',
+  ROUTER_DECISIONS_LIST: 'router:decisions:list',
+  SECURITY_REPORT_GENERATE: 'security:report:generate',
+  CONTEXT_PACK_PREVIEW: 'contextPack:preview',
+  TEMPLATE_BUNDLES_LIST: 'templateBundles:list',
+  TEMPLATE_BUNDLES_UPSERT: 'templateBundles:upsert',
+  TEMPLATE_BUNDLES_TOGGLE: 'templateBundles:toggle',
 
   // Agents
   AGENT_LIST: 'agent:list',

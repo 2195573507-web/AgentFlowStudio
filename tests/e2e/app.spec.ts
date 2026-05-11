@@ -143,6 +143,203 @@ function installAgentflowMock() {
         testConnection: async () => ({ ok: false, status: 'failure', message: 'Missing API Key', checkedAt: now() }),
         setActive: async (config: Record<string, string>) => config,
       },
+      gateway: {
+        status: async () => ({
+          online: true,
+          host: '127.0.0.1',
+          port: 8317,
+          baseUrl: 'http://127.0.0.1:8317',
+          providerCount: 1,
+          defaultBaseUrlHint: 'http://127.0.0.1:8317',
+          v1BaseUrlHint: 'http://127.0.0.1:8317/v1',
+          lastTraceId: 'trace-e2e',
+          lastRouteReason: 'mock route',
+        }),
+        start: async () => ({
+          online: true,
+          host: '127.0.0.1',
+          port: 8317,
+          baseUrl: 'http://127.0.0.1:8317',
+          providerCount: 1,
+          defaultBaseUrlHint: 'http://127.0.0.1:8317',
+          v1BaseUrlHint: 'http://127.0.0.1:8317/v1',
+          lastTraceId: 'trace-e2e',
+          lastRouteReason: 'mock route',
+        }),
+        stop: async () => ({
+          online: false,
+          host: '127.0.0.1',
+          port: 8317,
+          baseUrl: 'http://127.0.0.1:8317',
+          providerCount: 1,
+          defaultBaseUrlHint: 'http://127.0.0.1:8317',
+          v1BaseUrlHint: 'http://127.0.0.1:8317/v1',
+        }),
+      },
+      usage: {
+        summary: async () => ({
+          todayRequests: 1,
+          weekRequests: 2,
+          monthRequests: 3,
+          inputTokens: 10,
+          outputTokens: 20,
+          totalTokens: 30,
+          successRate: 1,
+          failureRate: 0,
+          averageLatencyMs: 42,
+          p95LatencyMs: 60,
+          byProvider: [],
+          byModel: [],
+          recentFailureReason: 'None',
+        }),
+        list: async () => [
+          {
+            id: 'usage-e2e',
+            endpoint: '/v1/chat/completions',
+            model: 'mock-model',
+            providerName: 'LocalAI Mock',
+            inputTokens: 10,
+            outputTokens: 20,
+            totalTokens: 30,
+            success: true,
+            failureCategory: 'none',
+            latencyMs: 42,
+            requestId: 'trace-e2e',
+            createdAt: now(),
+          },
+        ],
+      },
+      health: {
+        summary: async () => ({ latest: [], byStatus: { Healthy: 1 } }),
+        checkProvider: async () => ({
+          id: 'health-e2e',
+          providerId: 'provider-e2e',
+          providerName: 'LocalAI Mock',
+          status: 'Healthy',
+          checks: [{ name: 'configuration', ok: true, message: 'Mock provider is configured.' }],
+          averageLatencyMs: 1,
+          errorRate: 0,
+          failureCategory: 'none',
+          suggestion: 'Ready for mocked routing.',
+          checkedAt: now(),
+        }),
+      },
+      runtimeProfiles: {
+        generate: async () => [
+          {
+            id: 'runtime-e2e',
+            name: 'Codex profile',
+            kind: 'codex',
+            baseUrl: 'http://127.0.0.1:8317/v1',
+            model: 'mock-model',
+            env: { OPENAI_BASE_URL: 'http://127.0.0.1:8317/v1' },
+            json: { baseUrl: 'http://127.0.0.1:8317/v1' },
+            toml: 'base_url = "http://127.0.0.1:8317/v1"',
+            yaml: 'base_url: http://127.0.0.1:8317/v1',
+            diagnostics: ['Use /v1 for OpenAI-compatible clients.'],
+            command: 'set OPENAI_BASE_URL=http://127.0.0.1:8317/v1',
+            redaction: 'no-secrets',
+            updatedAt: now(),
+          },
+        ],
+      },
+      router: {
+        decisions: async () => [
+          {
+            id: 'route-e2e',
+            providerId: 'provider-e2e',
+            providerName: 'LocalAI Mock',
+            model: 'mock-model',
+            intent: 'default',
+            reason: 'Mock route selected.',
+            fallbackUsed: false,
+            quotaState: 'available',
+            checkedAt: now(),
+          },
+        ],
+      },
+      security: {
+        report: async () => ({
+          id: 'security-e2e',
+          generatedAt: now(),
+          scope: 'workspace',
+          summary: 'E2E redacted security report.',
+          findings: [
+            {
+              id: 'baseline-ok',
+              severity: 'info',
+              title: 'Baseline security posture is clean',
+              detail: 'No mock risks found.',
+              recommendation: 'Keep using redacted exports.',
+            },
+          ],
+          redaction: 'secrets-redacted',
+          auditEventCount: 1,
+          deniedEventCount: 0,
+          providerRiskCount: 0,
+          externalUrlPolicy: 'confirm-before-open',
+        }),
+      },
+      contextPack: {
+        preview: async () => ({
+          id: 'context-e2e',
+          generatedAt: now(),
+          sources: [
+            { type: 'memory', label: 'Active Shared Memory', included: true, redacted: true },
+            { type: 'docs', label: 'TEST_REPORT', included: true, redacted: true },
+          ],
+          memoryCount: 0,
+          staleMemoryCount: 0,
+          prompt: '# LocalAI Nexus Recovery Context\n\nE2E preview.',
+        }),
+      },
+      templateBundles: {
+        list: async () => [
+          {
+            id: 'bundle-e2e',
+            name: 'Desktop App Pack',
+            description: 'Local-only E2E template pack.',
+            type: 'template',
+            version: '1.0.0',
+            riskLevel: 'low',
+            enabled: true,
+            localOnly: true,
+            assumptions: ['Local only'],
+            templates: [],
+            createdAt: now(),
+            updatedAt: now(),
+          },
+        ],
+        toggle: async (id: string, enabled: boolean) => ({
+          id,
+          name: 'Desktop App Pack',
+          description: 'Local-only E2E template pack.',
+          type: 'template',
+          version: '1.0.0',
+          riskLevel: 'low',
+          enabled,
+          localOnly: true,
+          assumptions: ['Local only'],
+          templates: [],
+          createdAt: now(),
+          updatedAt: now(),
+        }),
+        upsert: async (bundle: Record<string, unknown>) => ({ ...bundle, id: bundle.id || 'bundle-e2e' }),
+      },
+      audit: {
+        list: async () => [
+          {
+            id: 'audit-e2e',
+            type: 'gateway.request',
+            action: 'gateway.request',
+            status: 'success',
+            severity: 'info',
+            actor: {},
+            createdAt: now(),
+          },
+        ],
+        exportAll: async () => ({ auditLogs: [], exportedAt: now() }),
+      },
       settings: {
         getAll: async () => ({ theme: 'system', defaultProjectPath: '', defaultAITool: 'Claude Code', dataPath: '', appVersion: '1.1.1' }),
         get: async () => null,
@@ -153,6 +350,8 @@ function installAgentflowMock() {
       agents: {
         list: async () => [],
         create: async (agent: Record<string, string>) => ({ ...agent, id: 'agent-e2e', createdAt: now(), updatedAt: now() }),
+        executions: async () => [],
+        timeline: async () => [],
       },
       agentFeedback: { create: async (feedback: Record<string, string>) => ({ ...feedback, id: 'feedback-e2e' }) },
       config: {
@@ -249,13 +448,23 @@ test.describe('LocalAI Nexus React web entry', () => {
 
   test('navigates through core pages including Workflows', async ({ page }) => {
     const routes = [
+      ['/#/providers', /providers/],
+      ['/#/tokens', /tokens/],
+      ['/#/health', /health/],
+      ['/#/router', /router/],
+      ['/#/gateway', /gateway/],
+      ['/#/runtime', /runtime/],
+      ['/#/diagnostics', /diagnostics/],
       ['/#/projects', /projects/],
+      ['/#/agents', /agents/],
       ['/#/workflows', /workflows/],
       ['/#/prompts', /prompts|prompt-lab/],
       ['/#/logs', /logs|log-analyzer/],
+      ['/#/security', /security/],
       ['/#/safety', /safety|safety-box/],
       ['/#/memory', /memory|shared-memory-hub/],
       ['/#/skills', /skills/],
+      ['/#/ecosystem', /ecosystem/],
       ['/#/git', /git|git-timeline/],
       ['/#/settings', /settings/],
     ] as const
@@ -269,8 +478,10 @@ test.describe('LocalAI Nexus React web entry', () => {
 
   test('dashboard quick actions use primary routes', async ({ page }) => {
     const quickActions = [
+      { name: /Provider Hub/, url: /\/providers$/ },
+      { name: /Runtime Profile/, url: /\/runtime$/ },
       { name: /Skill Hub/, url: /\/skills$/ },
-      { name: /Diagnostics/, url: /\/settings$/ },
+      { name: /Diagnostics/, url: /\/diagnostics$/ },
       { name: /Shared Memory/, url: /\/memory$/ },
       { name: /Git Timeline/, url: /\/git$/ },
     ]
@@ -280,6 +491,26 @@ test.describe('LocalAI Nexus React web entry', () => {
       await page.getByRole('button', { name: action.name }).first().click()
       await expect(page).toHaveURL(action.url)
       await expect(page.locator('main')).not.toBeEmpty()
+    }
+  })
+
+  test('new LocalAI Nexus modules render operational state', async ({ page }) => {
+    const expectations = [
+      ['/#/providers', /Provider Hub|Add Provider/],
+      ['/#/tokens', /Token Center|Total tokens/],
+      ['/#/health', /Health Monitor|Healthy/],
+      ['/#/router', /Model Router|Recent decisions/],
+      ['/#/gateway', /Local Gateway|Supported endpoints/],
+      ['/#/runtime', /Runtime Switcher|Codex profile/],
+      ['/#/diagnostics', /Diagnostics|Recovery prompt preview/],
+      ['/#/agents', /Agent Studio|Execution timeline/],
+      ['/#/security', /Security Center|Findings/],
+      ['/#/ecosystem', /Local Ecosystem|Desktop App Pack/],
+    ] as const
+
+    for (const [route, pattern] of expectations) {
+      await page.goto(route, { waitUntil: 'networkidle' })
+      await expect(page.locator('main')).toContainText(pattern)
     }
   })
 

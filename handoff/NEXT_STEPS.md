@@ -2,38 +2,45 @@
 
 ## Current Truth
 
-LocalAI Nexus is now the active product identity on branch `refactor-localai-nexus`. The implementation is not a full final product yet, but the app has a verified LocalAI Nexus desktop shell, icon, shortcut, dashboard, gateway diagnostics, usage summaries, health diagnostics, runtime profile generation, and prompt skill testing.
+LocalAI Nexus is the active product identity on branch `refactor-localai-nexus`. The Iteration 0-12 closeout is implemented and locally verified except for environment-limited packaging download.
+
+The app now has a verified desktop shell, icon, shortcut, dashboard, first-class Provider/Token/Health/Router/Gateway/Runtime/Diagnostics/Agent/Security/Ecosystem pages, CI-safe gateway/provider paths, runtime exports, context/security reports, Shared Memory context-pack surfaces, and local bundle registry behavior.
+
+The next-stage plan is `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`.
 
 ## Next-Round Priorities
 
-1. **Live Provider Forwarding**
-   - Add real upstream calls for OpenAI-compatible chat/responses.
-   - Keep `/responses` and `/v1/responses` Base URL diagnostics.
-   - Add stream handling after non-streaming forwarding is stable.
+1. **Live Provider Confidence**
+   - Run opt-in live smoke against user-supplied OpenAI-compatible credentials.
+   - Keep renderer key handling masked and main-process controlled.
+   - Record skipped live-provider tests when credentials are not supplied.
 
-2. **Provider Hub / Token Center / Health Monitor UI**
-   - Promote existing settings and diagnostics into first-class feature pages.
-   - Add token pool, quota, cooldown, concurrency, and failure-class controls.
-   - Show health by Provider/model with clear repair suggestions.
+2. **Streaming And Cancellation**
+   - Add real upstream stream pass-through for compatible providers.
+   - Preserve mock streaming for CI.
+   - Add abort/cancel/timeout trace accounting.
 
-3. **Runtime Switcher**
-   - Add one-click copy/export for `.env`, JSON, TOML, YAML.
-   - Add Codex and Claude Code config diagnosis from actual local files when user opts in.
+3. **Token Policy Enforcement**
+   - Make quota, cooldown, concurrency, and per-model policy records actively affect router decisions.
+   - Show enforcement effects on Provider Hub, Token Center, Model Router, and Dashboard.
 
-4. **Skill Hub / Agent Studio / Workflow Studio**
-   - Expand beyond Prompt Skill to Tool/MCP/Workflow/Composite skills.
-   - Connect Agent and Workflow runs to Provider/Gateway/Skill usage attribution.
-   - Add run timeline and retry/pause/cancel controls.
+4. **Agent/Workflow Execution Controls**
+   - Add pause, cancel, retry-safe-node, and resume behavior where safe.
+   - Require human ownership and explicit permission for risky tool/MCP actions.
 
-5. **Security Center**
-   - Add exportable security reports.
-   - Expand provider risk scoring and prompt-injection checks.
-   - Keep secrets out of renderer-visible long-term state.
+5. **Memory Graph And Recovery Packs**
+   - Add graph/list relationship views and stale-memory review.
+   - Build source-explicit context packs and recovery prompts with strict redaction.
+
+6. **Packaging And Release Hardening**
+   - Re-run `npm.cmd run dist` when Electron download/cache is available.
+   - Verify installer artifact, shortcut, startup, auth bridge, static fallback, long-run, and accessibility before release.
 
 ## Remaining Risks
 
-- Gateway is currently diagnostic/mock-style for completions; it records usage but does not forward to upstream providers yet.
-- Health checks are local configuration diagnostics, not real provider network probes.
+- Real credentialed provider behavior is not proven without user-supplied keys.
+- Real upstream streaming pass-through is still next-stage work.
+- `npm.cmd run dist` is currently blocked by electron-builder Electron download timeout, despite the application build passing.
 - Compatibility names remain for bridge/storage/launcher stability: `window.agentflow`, `agentflow-data`, `start-agentflow*.bat`.
 - Historical handoff/archive files still mention AgentFlow Studio; active top-level docs explain the evolution.
 
@@ -42,7 +49,6 @@ LocalAI Nexus is now the active product identity on branch `refactor-localai-nex
 ```bat
 cd /d D:\AgentFlowStudio
 git checkout refactor-localai-nexus
-npm.cmd install
 npm.cmd run typecheck
 npm.cmd run test
 npm.cmd run build
@@ -62,15 +68,17 @@ powershell -NoProfile -Command "Invoke-RestMethod http://127.0.0.1:8317/v1/model
 2. `PROJECT_PROGRESS.md`
 3. `handoff/TEST_REPORT.md`
 4. `handoff/NEXT_STEPS.md`
-5. `docs/PROJECT_WORKLOG.md`
-6. `docs/PROJECT_STRUCTURE_AUDIT.md`
-7. `docs/LOCALAI_NEXUS_REFACTOR_PLAN.md`
-8. `docs/LOCALAI_NEXUS_ARCHITECTURE.md`
+5. `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`
+6. `docs/PROJECT_WORKLOG.md`
+7. `docs/PROJECT_STRUCTURE_AUDIT.md`
+8. `docs/LOCALAI_NEXUS_ITERATION_PLAN.md`
+9. `docs/LOCALAI_NEXUS_ARCHITECTURE.md`
 
 ## Completion Discipline
 
 Mark work as:
 
 - `Completed`: implemented and verified.
-- `In progress`: partial implementation exists.
+- `In progress`: partial implementation exists or live credentials are required.
 - `Planned`: design exists but code/tests do not prove it yet.
+- `Environment-limited`: implementation/build gates passed, but local machine/network/tooling blocked the requested final side effect.

@@ -242,6 +242,28 @@ Final focused verification and shortcut inspection passed. Ready for:
 
 ```bat
 git add .
-git commit -m "refactor: evolve AgentFlowStudio into LocalAI Nexus"
+git commit -m "feat: complete LocalAI Nexus iteration roadmap"
 git push -u origin refactor-localai-nexus
+```
+
+## 13. Iteration 0-12 Closeout Update
+
+Date: 2026-05-11
+
+The current roadmap in `docs/LOCALAI_NEXUS_ITERATION_PLAN.md` was completed to the locally verifiable level:
+
+- Iteration 0-3: active docs, information architecture, flat UI shell, route coverage, IPC/preload/API compatibility, and domain boundaries were reconciled.
+- Iteration 4-7: Provider Hub, Local Gateway, Model Router, Token Center, Health Monitor, and Runtime Switcher surfaces were implemented or connected.
+- Iteration 8-10: Skill/Ecosystem bundle registry, Agent/Workflow execution records, Shared Memory context-pack preview, and Security Center report/risk surfaces were added or connected.
+- Iteration 11-12: startup, auth bridge, static fallback, shortcut, long-run stability, E2E/static/gateway verification, local extensibility docs, and the required next-stage plan were completed.
+
+Packaging note:
+
+- `npm.cmd run dist` completed the build step but failed at electron-builder's Electron `v33.4.11` Windows zip download with a network timeout / `ERR_ELECTRON_BUILDER_CANNOT_EXECUTE`.
+- This is an environment-limited packaging blocker, not an app build/startup failure.
+
+Current next-stage plan:
+
+```text
+docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md
 ```

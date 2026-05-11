@@ -69,6 +69,8 @@ async function waitForUrl(timeoutMs = 15_000) {
     if (child && child.exitCode !== null) {
       throw new Error(`Static server exited early: ${child.exitCode}\n${serverOutput}`);
     }
+    const markerMatch = readLog().match(/AGENTFLOW_STATIC_LAUNCH_URL=(http:\/\/127\.0\.0\.1:\d+\/\?token=[^\s]+)/);
+    if (markerMatch) return markerMatch[1];
     const match = readLog().match(/http:\/\/127\.0\.0\.1:\d+/);
     if (match) return match[0];
     await wait(250);
@@ -123,7 +125,7 @@ function appendHandoff(summary) {
     '',
     `## ${summary.startedAt} Static Fallback Long-Run`,
     '',
-    `- Startup command: \`node scripts/static-server.js static-app 4173\``,
+    `- Startup command: \`node scripts/static-server.js static-app 4173\` with launch-token URL parsing`,
     `- Start time: ${summary.startedAt}`,
     `- End time: ${summary.endedAt}`,
     `- Duration: ${summary.durationMinutes.toFixed(2)} minutes`,

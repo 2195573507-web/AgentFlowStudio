@@ -1,23 +1,37 @@
 # Progress Log
 
 ## 2026-05-10
-- Started lightweight UI second refactor.
-- Read applicable skills: `planning-with-files`, `ui-ux-pro-max`, `webapp-testing`.
-- Recorded initial git state.
-- Created planning files in project root.
-- Audited package scripts, docs, renderer files, main/shared structure, static app, assets, scripts, and tests.
-- Spawned read-only agents for UI audit, launch/shortcut inspection, and test planning; incorporated their findings.
-- Confirmed external CC Switch design principles from public references without copying resources.
-- Logged `rg` and Python skill-script environment failures; switched to PowerShell and manual UI synthesis.
 
-## 2026-05-11
-- Continued after interruption.
-- Restored corrupted renderer files from HEAD text where mojibake had broken JSX, then reapplied flat token styling.
+- Started the lightweight flat UI refactor.
+- Read applicable planning/UI/testing skills.
+- Created root planning files.
+- Audited package scripts, docs, renderer files, main/shared structure, static app, assets, scripts, and tests.
+- Confirmed the UI direction: compact desktop-tool surfaces, no Liquid Glass default language, no heavy blur or decorative effects.
+- Logged `rg` and Python helper failures and switched to PowerShell/manual synthesis.
+
+## 2026-05-11 - UI Closeout
+
+- Restored corrupted renderer files from HEAD where mojibake had broken JSX, then reapplied flat token styling.
 - Migrated shared card primitive from `GlassCard` to `SurfaceCard`.
-- Reworked renderer and static fallback tokens to flat surfaces, restrained teal-blue accent, system typography, and no backdrop blur.
+- Reworked renderer and static fallback tokens to flat surfaces, restrained accent color, system typography, and no backdrop blur.
 - Regenerated app icons as a minimal geometric node mark.
 - Updated E2E/static/smoke/unit tests for flat UI expectations.
-- Verified `npm.cmd run typecheck`, `npm.cmd run lint`, `npm.cmd run test`, `npm.cmd run build`, and `npm.cmd run smoke`.
-- Added `docs/UI_DESIGN_SYSTEM.md` and updated progress/test/README documentation.
-- Re-ran `npm.cmd run shortcut` and verified `LocalAI Nexus.lnk` through COM inspection against the latest built Electron entry.
-- Removed active demo/template/agent-instruction references that still encouraged glassmorphism as a default UI style.
+- Verified typecheck, lint, unit tests, build, smoke, shortcut creation, and COM shortcut inspection.
+
+## 2026-05-11 - LocalAI Nexus Iteration 0-12 Closeout
+
+- Continued from an already implemented working tree on `refactor-localai-nexus`.
+- Confirmed the active scope covers both the previous UI closeout and `docs/LOCALAI_NEXUS_ITERATION_PLAN.md` Iteration 0-12.
+- Verified newly connected first-class pages: Provider Hub, Token Center, Health Monitor, Model Router, Local Gateway, Runtime Switcher, Diagnostics, Agent Studio, Security Center, Ecosystem, Shared Memory, Git/Handoff, Admin, and Settings.
+- Confirmed main-process domain extensions for provider, gateway, router, runtime, security, memory/context pack, and local ecosystem bundle services.
+- Confirmed verification scripts were expanded to check new routes, APIs, domain services, gateway/router/runtime/security/context/bundle surfaces, and next-stage plan presence.
+- Recorded completed verification: typecheck, lint, unit tests, smoke, verify, build, E2E, static browser, launch-static, Electron startup, Electron auth bridge, long-run, shortcut, shortcut COM inspection, and Gateway HTTP smoke.
+- Recorded packaging limitation: `npm.cmd run dist` completed its build step but electron-builder failed to download the Electron `v33.4.11` Windows zip due network timeout.
+- Updated active planning, progress, findings, project progress, test report, next steps, changelog, worklog, architecture, and audit docs so Completed / In progress / Planned / Environment-limited status is explicit.
+
+## Remaining Before Final Response
+
+- Run final light verification after documentation changes.
+- Stage all accepted changes.
+- Commit with a conventional message.
+- Push `refactor-localai-nexus`.

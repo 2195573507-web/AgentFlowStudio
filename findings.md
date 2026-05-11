@@ -1,31 +1,56 @@
 # Findings
 
-## Initial State
+## Repository State
+
+- Workspace: `D:\AgentFlowStudio`
 - Branch: `refactor-localai-nexus`
-- Initial `git status -sb`: `## refactor-localai-nexus...origin/refactor-localai-nexus`
-- Existing project folders include `src`, `static-app`, `assets`, `scripts`, `tests`, `docs`, `handoff`, `dist`, `dist-electron`, and `node_modules`.
+- Product identity: LocalAI Nexus
+- Storage strategy remains local JSON.
+- Shared Memory Hub remains active.
+- Electron security boundary remains renderer -> preload -> IPC -> main-process domain service.
+- Compatibility bridge `window.agentflow` remains intentionally preserved.
 
-## UI Audit
-- `rg` could not run in this environment: PowerShell reported `Access is denied`; fallback was PowerShell file enumeration and `Select-String`.
-- Current UI is still driven by Liquid Glass-era tokens in `src/renderer/styles.css`, `tailwind.config.ts`, and `static-app/styles.css`: glass variables, backdrop blur, radial highlights, high-shadow cards, and gradient backgrounds.
-- Global default font stack uses KaiTi/STKaiti, which makes the app feel like a document/calligraphy surface instead of a professional desktop tool.
-- Shared primitives still encode glass styling: `GlassCard`, `Button`, `Input`, `Textarea`, `Badge`, `Modal`, `Sidebar`, `Topbar`, `TaskBoard`, and `RiskMeter`.
-- Routes contain many bespoke controls and hardcoded dark-mode utility classes, especially `Projects`, `Workflows`, `Settings`, `GitTimeline`, `PromptLab`, `SafetyBox`, and `SharedMemoryHub`.
-- Several active/historical docs and route strings display as mojibake when read from PowerShell. This needs a UI-facing cleanup pass, but core logic should not be rewritten.
-- Hidden hover-only project actions reduce discoverability and keyboard confidence.
-- Static fallback has its own Liquid Glass-like design system and must be aligned enough to avoid a split visual language.
+## Completed Product Surfaces
 
-## CCS / cc-switch UI Principles
-- Public CC Switch references describe a desktop control surface for AI coding CLIs with provider switching, MCP/prompts/skills, proxy/gateway status, session search, sync, and usage dashboards in one place.
-- Useful design ideas to adopt: compact desktop-tool density, clear active context, provider/gateway/skills/logs grouped operationally, low-friction switching, inline status, masked/validated config values, explicit risky actions, and list/table-first layouts.
-- Do not copy CC Switch branding, assets, icons, or code.
+- Dashboard routes users into Provider Hub, Local Gateway, Workflow, Shared Memory, Git/Handoff, Security, and Settings.
+- Sidebar now exposes Provider Hub, Token Center, Health Monitor, Model Router, Local Gateway, Runtime Switcher, Diagnostics, Skill Hub, Agent Studio, Workflow Studio, Security Center, Ecosystem, Shared Memory, Git/Handoff, Admin, and Settings.
+- Provider Hub includes masked credential handling and provider management/testing surfaces.
+- Local Gateway supports CI-safe mock behavior and OpenAI/Anthropic-compatible route handling.
+- Model Router records decisions, fallback reasons, tags, health/quota/cooldown signals, and trace IDs.
+- Runtime Switcher can generate `.env`, JSON, TOML, YAML, and CLI-oriented snippets with root vs `/v1` guidance.
+- Token Center and Health Monitor expose usage, latency, failure categories, quotas/cooldowns, repair hints, and router impact surfaces.
+- Agent Studio and Workflow Studio have execution-oriented records and attribution surfaces ready for deeper controls.
+- Shared Memory includes context-pack preview and recovery-oriented surfaces.
+- Security Center includes security report/risk surfaces without exposing raw provider keys.
+- Local Ecosystem bundle registry supports validation-oriented local extensibility.
 
-## Implementation Notes
-- Desktop shortcut inspection found `C:\Users\至亲\Desktop\LocalAI Nexus.lnk` already targets `D:\AgentFlowStudio\node_modules\electron\dist\electron.exe` with `D:\AgentFlowStudio\dist-electron\main\index.js` arguments and the current icon.
-- Required launch artifacts already exist: Electron executable, built main/preload files, renderer `dist/index.html`, and `assets/localai-nexus.ico`.
-- `ui-ux-pro-max` script attempt failed because the local Python runtime resolved stdlib under `D:\AgentFlowStudio\Lib` and could not import `encodings`; continue with skill rules and manual synthesis.
+## Verification Findings
 
-## Test Notes
-- Required validation after changes: `npm.cmd install` or dependency check, `npm.cmd run typecheck`, `npm.cmd run lint`, `npm.cmd run test`, `npm.cmd run build`, `npm.cmd run test:e2e`, `npm.cmd run test:static-browser`, `npm.cmd run test:electron-startup`, `npm.cmd run test:electron-auth-bridge`, and `npm.cmd run verify`.
-- Existing Playwright E2E covers dashboard, navigation, settings, skills, workflows, prompt lab, project create flow, theme/language persistence, and browser errors.
-- Static browser smoke targets `static-app`, so renderer UI visual checks still need a dedicated smoke script or manual Playwright screenshot checks.
+- `npm.cmd run typecheck`: PASS.
+- `npm.cmd run lint`: PASS with warnings under configured threshold.
+- `npm.cmd run test`: PASS.
+- `npm.cmd run smoke`: PASS.
+- `npm.cmd run verify`: PASS.
+- `npm.cmd run build`: PASS with non-fatal Vite chunk/dynamic import warnings.
+- `npm.cmd run test:e2e`: PASS.
+- `npm.cmd run test:static-browser`: PASS, including `1024x680` and mobile overflow checks.
+- `npm.cmd run test:launch-static`: PASS.
+- `npm.cmd run test:electron-startup`: PASS.
+- `npm.cmd run test:electron-auth-bridge`: PASS.
+- `npm.cmd run test:long-run`: PASS, 30-minute default run.
+- `npm.cmd run shortcut`: PASS.
+- Shortcut COM inspection: PASS.
+- Gateway HTTP smoke: PASS for `GET /health`, `GET /v1/models`, `POST /v1/chat/completions`, `POST /v1/responses`, `POST /responses`, and `POST /v1/messages`.
+
+## Environment-Limited Finding
+
+- `npm.cmd run dist` failed after a successful build step because electron-builder could not download `https://github.com/electron/electron/releases/download/v33.4.11/electron-v33.4.11-win32-x64.zip`.
+- The observed failure was a Windows network timeout / `ERR_ELECTRON_BUILDER_CANNOT_EXECUTE`.
+- Treat this as packaging environment limitation, not a TypeScript/build/startup/product verification failure.
+
+## Known Limits To Keep Honest
+
+- No raw provider API keys were provided, so live credentialed provider smoke remains skipped.
+- Real upstream streaming pass-through remains next-stage work; mock/non-streaming routes are the verified current path.
+- Static fallback remains recovery-only, not the primary product target.
+- Compatibility names such as `window.agentflow`, `agentflow-data`, and `start-agentflow*.bat` are intentionally retained.

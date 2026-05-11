@@ -1,76 +1,59 @@
 # Next Codex Loop Prompt
 
-Continue AgentFlow Studio in `D:\AgentFlowStudio`.
+Continue LocalAI Nexus in `D:\AgentFlowStudio` on branch `refactor-localai-nexus`.
 
 Read first:
 
 - `AGENTS.md`
+- `PROJECT_PROGRESS.md`
 - `handoff/TEST_REPORT.md`
-- `handoff/TASK_STATUS.md`
-- `handoff/CURRENT_CONTEXT_FOR_ANY_MODEL.md`
-- `handoff/CODEX_HANDOFF.md`
-- `archive/2026-05/parallel-agents/run-20260508-current/PARALLEL_SUMMARY.md`
-
-Important: archived reports under `handoff\archived-agents\run-20260508-125051` and `handoff\archived-agents\run-20260508-173352` are historical only. Do not use archived results as current PASS evidence.
+- `handoff/NEXT_STEPS.md`
+- `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`
+- `docs/LOCALAI_NEXUS_ARCHITECTURE.md`
 
 ## Current Verified Deliverable
 
-Static fallback is the active usable scheme.
-
-```bat
-D:\AgentFlowStudio\start-agentflow-static.bat
-```
+The built Electron LocalAI Nexus desktop app is the primary deliverable. Static fallback remains a recovery path.
 
 Desktop shortcut:
 
 ```text
-C:\Users\至亲\Desktop\AgentFlow Studio.lnk
-TargetPath: D:\AgentFlowStudio\start-agentflow-static.bat
+C:\Users\至亲\Desktop\LocalAI Nexus.lnk
+TargetPath: D:\AgentFlowStudio\node_modules\electron\dist\electron.exe
+Arguments: "D:\AgentFlowStudio\dist-electron\main\index.js"
 WorkingDirectory: D:\AgentFlowStudio
-IconLocation: D:\AgentFlowStudio\assets\icon.ico,0
+IconLocation: D:\AgentFlowStudio\assets\localai-nexus.ico,0
 ```
-
-The static app is in:
-
-```text
-D:\AgentFlowStudio\static-app
-```
-
-It now covers bilingual language switching, light/dark/system theme preferences, Shared Memory Prompt injection, recursive redaction, route fallback errors, and expanded static QA.
 
 ## Verified In Latest Loop
 
-Run evidence from 2026-05-08:
-
 ```bat
-npm.cmd run icon
-npm.cmd run smoke
 npm.cmd run typecheck
+npm.cmd run lint
+npm.cmd run test
+npm.cmd run smoke
+npm.cmd run verify
+npm.cmd run build
+npm.cmd run test:e2e
+npm.cmd run test:static-browser
 npm.cmd run test:launch-static
+npm.cmd run test:electron-startup
+npm.cmd run test:electron-auth-bridge
+npm.cmd run test:long-run
 npm.cmd run shortcut
 ```
 
-Real bat launch was verified:
+Shortcut COM inspection and Gateway HTTP smoke also passed.
 
-```bat
-cmd /k start-agentflow-static.bat
-```
+## Known Environment Limit
 
-After 15 seconds, logs existed and `http://127.0.0.1:4173` returned HTTP 200.
-
-## Known Environment Limits
-
-- `npm.cmd run test` fails at Vite/Vitest esbuild `spawn EPERM`.
-- `npm.cmd run build` fails at Vite esbuild `spawn EPERM`.
-- Playwright Chromium is not installed in this environment.
-
-Do not treat these as Static fallback blockers.
+`npm.cmd run dist` passed the build step, then electron-builder failed to download Electron `v33.4.11` for Windows from GitHub due network timeout / `ERR_ELECTRON_BUILDER_CANNOT_EXECUTE`.
 
 ## Recommended Next Work
 
-1. Retry Electron/Vite/Vitest in a normal unrestricted Windows shell.
-2. Install Playwright browsers and add click-level E2E for language/theme/Shared Memory injection.
-3. Continue low-frequency React route copy polish.
-4. Keep shortcut pointed at Static fallback until Electron/Vite are truly verified.
+1. Continue from `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`.
+2. Add live provider smoke only when user supplies explicit credentials.
+3. Add real upstream streaming/cancellation after non-streaming behavior stays green.
+4. Re-run packaging when Electron download/cache is available.
 
-Do not rebuild from scratch. Do not remove Shared Memory Hub. Use `npm.cmd`, not `npm`, from PowerShell.
+Do not rebuild from scratch. Do not remove Shared Memory Hub. Preserve JSON storage, Electron security boundaries, and `window.agentflow`. Use `npm.cmd`, not plain `npm`, from PowerShell.

@@ -1,91 +1,67 @@
-# Codex Handoff - AgentFlow Studio
+# Codex Handoff - LocalAI Nexus
 
-## Latest Verified State - 2026-05-08
+## Latest Verified State - 2026-05-11
 
-Baseline commit for this round: `cec7dfb fix: stabilize localized static launcher`
+Workspace: `D:\AgentFlowStudio`
+Branch: `refactor-localai-nexus`
+Product: LocalAI Nexus
 
-Current deliverable remains **Static fallback / 静态可交付模式**.
-
-Use this launcher:
-
-```bat
-D:\AgentFlowStudio\start-agentflow-static.bat
-```
+The current deliverable is the built Electron LocalAI Nexus desktop app. Static fallback remains a recovery path, not the primary product target.
 
 Desktop shortcut:
 
 ```text
-C:\Users\至亲\Desktop\AgentFlow Studio.lnk
-TargetPath: D:\AgentFlowStudio\start-agentflow-static.bat
+C:\Users\至亲\Desktop\LocalAI Nexus.lnk
+TargetPath: D:\AgentFlowStudio\node_modules\electron\dist\electron.exe
+Arguments: "D:\AgentFlowStudio\dist-electron\main\index.js"
 WorkingDirectory: D:\AgentFlowStudio
-IconLocation: D:\AgentFlowStudio\assets\icon.ico,0
+IconLocation: D:\AgentFlowStudio\assets\localai-nexus.ico,0
 ```
-
-Do not switch the shortcut back to Electron or a packaged executable until `npm.cmd run dev`, `npm.cmd run build`, and the packaged app are truly verified in a normal Windows shell.
-
-## This Round
-
-- Previous `.codex-parallel` was archived to `handoff\archived-agents\run-20260508-173352`.
-- New `.codex-parallel\tasks` and `.codex-parallel\logs` were created for agents A-G.
-- Six real subagents were used for B-G; Agent A regression was executed by the main thread.
-- Static fallback remained stable and was verified before enhancements.
 
 ## What Changed
 
-- Static app now has `zh/en` translations, a `t(key)` function, and topbar language toggle.
-- Static app persists `agentflow.language` and `agentflow.theme`.
-- Static and React theme controls support light, dark, and system.
-- Settings now includes `界面偏好 / Interface Preferences` with language and theme controls.
-- Prompt Lab Shared Memory injection supports `off`, `minimal`, `balanced`, and `full`.
-- Shared Memory recovery Prompt includes project name, current scheme, usable launch method, known limitation, and next step.
-- Recursive secret redaction is shared across renderer/main code and covers nested structures, key-aware fields, and circular references.
-- Static export, memory save, recovery prompt, and injection paths redact secrets.
-- React routes are wrapped by a route-level ErrorBoundary.
-- Static render errors show a localized fallback instead of white-screening.
-- Smoke and launch-static tests were expanded for language, theme, memory injection, redaction, and error fallback markers.
+- Completed the Iteration 0-12 LocalAI Nexus roadmap to the locally verifiable level.
+- Added first-class pages for Provider Hub, Token Center, Health Monitor, Model Router, Local Gateway, Runtime Switcher, Diagnostics, Agent Studio, Security Center, Ecosystem, Shared Memory, Git/Handoff, Admin, and Settings.
+- Added or connected domain services for provider, gateway, router, runtime, memory context packs, security report/risk surfaces, and local ecosystem bundle validation.
+- Expanded preload, IPC, renderer API, shared types, smoke, verify, unit, and E2E coverage.
+- Added the required next-stage plan at `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`.
 
 ## Verified Commands And Checks
 
-- `npm.cmd run icon`: PASS.
-- `npm.cmd run smoke`: PASS, 106/106.
 - `npm.cmd run typecheck`: PASS.
+- `npm.cmd run lint`: PASS.
+- `npm.cmd run test`: PASS.
+- `npm.cmd run smoke`: PASS.
+- `npm.cmd run verify`: PASS.
+- `npm.cmd run build`: PASS.
+- `npm.cmd run test:e2e`: PASS.
+- `npm.cmd run test:static-browser`: PASS.
 - `npm.cmd run test:launch-static`: PASS.
+- `npm.cmd run test:electron-startup`: PASS.
+- `npm.cmd run test:electron-auth-bridge`: PASS.
+- `npm.cmd run test:long-run`: PASS.
 - `npm.cmd run shortcut`: PASS.
-- PowerShell COM shortcut verification: PASS.
-- Real bat launch: PASS; `cmd /k start-agentflow-static.bat` stayed open after 15 seconds and wrote logs.
-- HTTP smoke: PASS; `http://127.0.0.1:4173` returned 200 and included required Chinese navigation plus English preference keywords.
+- Shortcut COM inspection: PASS.
+- Gateway HTTP smoke: PASS for `/health`, `/v1/models`, `/v1/chat/completions`, `/v1/responses`, `/responses`, and `/v1/messages`.
 
-## Environment Limits
+## Environment-Limited
 
-- `npm.cmd run test`: blocked by Vite/Vitest esbuild `spawn EPERM`.
-- `npm.cmd run build`: blocked by Vite esbuild `spawn EPERM`.
-- Playwright browser binary is not installed, so browser-click verification could not run.
+- `npm.cmd run dist` passed the build step, then electron-builder failed to download Electron `v33.4.11` for Windows from GitHub.
+- Observed class: Windows network timeout / `ERR_ELECTRON_BUILDER_CANNOT_EXECUTE`.
+- This is a packaging environment blocker, not an app typecheck/build/startup failure.
 
-These are environment limitations, not Static fallback blockers.
+## Current Limits
 
-## Current Static Scope
+- No raw provider API keys were supplied, so live credentialed provider smoke remains skipped.
+- Real upstream streaming pass-through is next-stage work.
+- Static fallback, old launcher names, `agentflow-data`, and `window.agentflow` remain for compatibility.
 
-The Static fallback includes:
+## Read Next
 
-- 仪表盘 / Dashboard
-- 项目管理 / Projects
-- 项目详情 / Project Detail
-- 提示词实验室 / Prompt Lab
-- 日志分析 / Log Analyzer
-- 安全检查 / SafetyBox
-- 共享记忆中心 / Shared Memory Hub
-- 技能管理 / Skills
-- Git 时间线 / Git Timeline
-- 设置 / Settings
-- 界面偏好 / Interface Preferences
+1. `PROJECT_PROGRESS.md`
+2. `handoff/TEST_REPORT.md`
+3. `handoff/NEXT_STEPS.md`
+4. `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`
+5. `docs/LOCALAI_NEXUS_ARCHITECTURE.md`
 
-Allowed English terms remain as product/domain names in context: AgentFlow Studio, Codex, Claude Code, Cursor, DeepSeek, API, Prompt, Git, Shared Memory Hub, localStorage, Static fallback.
-
-## Next Work
-
-1. Retry Electron/Vite/Vitest in a normal unrestricted Windows terminal.
-2. Install Playwright browsers and add browser-level E2E for language/theme/memory injection.
-3. Continue low-frequency React route copy polish.
-4. Decide with the user whether to switch launch priority only after Electron is truly verified.
-
-Do not rebuild from scratch. Do not remove Shared Memory Hub. Treat archived agent reports as historical only.
+Do not rebuild from scratch. Do not remove Shared Memory Hub. Use `npm.cmd`, not plain `npm`, from PowerShell.

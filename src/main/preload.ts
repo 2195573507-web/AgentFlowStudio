@@ -119,6 +119,20 @@ export interface AgentFlowAPI {
   runtimeProfiles: {
     generate(): Promise<unknown>;
   };
+  router: {
+    decisions(): Promise<unknown>;
+  };
+  security: {
+    report(scope?: string): Promise<unknown>;
+  };
+  contextPack: {
+    preview(options?: unknown): Promise<unknown>;
+  };
+  templateBundles: {
+    list(): Promise<unknown>;
+    upsert(bundle: unknown): Promise<unknown>;
+    toggle(id: string, enabled: boolean): Promise<unknown>;
+  };
   agents: {
     list(filters?: unknown): Promise<unknown>;
     get(id: string): Promise<unknown>;
@@ -306,6 +320,24 @@ const api: AgentFlowAPI = {
 
   runtimeProfiles: {
     generate: () => ipcRenderer.invoke(IPC_CHANNELS.RUNTIME_PROFILES_GENERATE, buildAuthEnvelope()),
+  },
+
+  router: {
+    decisions: () => ipcRenderer.invoke(IPC_CHANNELS.ROUTER_DECISIONS_LIST, buildAuthEnvelope()),
+  },
+
+  security: {
+    report: (scope?: string) => ipcRenderer.invoke(IPC_CHANNELS.SECURITY_REPORT_GENERATE, buildAuthEnvelope(), scope),
+  },
+
+  contextPack: {
+    preview: (options?: unknown) => ipcRenderer.invoke(IPC_CHANNELS.CONTEXT_PACK_PREVIEW, buildAuthEnvelope(), options),
+  },
+
+  templateBundles: {
+    list: () => ipcRenderer.invoke(IPC_CHANNELS.TEMPLATE_BUNDLES_LIST, buildAuthEnvelope()),
+    upsert: (bundle: unknown) => ipcRenderer.invoke(IPC_CHANNELS.TEMPLATE_BUNDLES_UPSERT, buildAuthEnvelope(), bundle),
+    toggle: (id: string, enabled: boolean) => ipcRenderer.invoke(IPC_CHANNELS.TEMPLATE_BUNDLES_TOGGLE, buildAuthEnvelope(), id, enabled),
   },
 
   agents: {

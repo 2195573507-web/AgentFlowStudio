@@ -590,3 +590,14 @@ Not allowed at startup:
 - file explorer.
 - old static fallback window.
 - duplicate BrowserWindow.
+
+## 29. 2026-05-11 Verified Implementation Notes
+
+The Iteration 0-12 closeout expanded the architecture from the first refactor draft into a verified local-first control plane:
+
+- Renderer routes now include Provider Hub, Token Center, Health Monitor, Model Router, Local Gateway, Runtime Switcher, Diagnostics, Agent Studio, Security Center, Ecosystem, Shared Memory, Git/Handoff, Admin, and Settings.
+- Main-process domain services now cover provider surfaces, gateway/mock forwarding, router traces, runtime profile exports, memory context-pack preview, security reporting, and local ecosystem bundle validation.
+- `window.agentflow` remains the compatibility bridge; new renderer APIs are layered through preload and IPC rather than direct Node access.
+- Gateway direct smoke has passed for `/health`, `/v1/models`, `/v1/chat/completions`, `/v1/responses`, `/responses`, and `/v1/messages`.
+- Real credentialed upstream calls and real streaming are next-stage work because no provider credentials were supplied in this run.
+- Packaging is environment-limited until electron-builder can download or reuse the Electron `v33.4.11` Windows artifact.

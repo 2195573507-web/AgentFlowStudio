@@ -242,7 +242,7 @@ export default function Dashboard() {
       title: 'Add a provider',
       body: 'Connect OpenAI-compatible, Anthropic-compatible, Gemini, Ollama, or custom local providers.',
       icon: KeyRound,
-      route: '/settings',
+      route: '/providers',
       done: providers.length > 0,
     },
     {
@@ -250,7 +250,7 @@ export default function Dashboard() {
       title: 'Start the local gateway',
       body: 'Expose the local OpenAI-compatible gateway at http://127.0.0.1:8317.',
       icon: Activity,
-      route: '/settings',
+      route: '/gateway',
       done: gatewayOnline,
     },
     {
@@ -298,10 +298,10 @@ export default function Dashboard() {
   const nextStep = firstRunSteps.find((step) => !step.done) || firstRunSteps[firstRunSteps.length - 1];
 
   const quickActions = [
-    { label: 'Provider Hub', icon: Settings, route: '/settings', tone: 'text-blue-500' },
-    { label: 'Runtime Profile', icon: Activity, route: '/settings', tone: 'text-emerald-500' },
+    { label: 'Provider Hub', icon: Settings, route: '/providers', tone: 'text-blue-500' },
+    { label: 'Runtime Profile', icon: Activity, route: '/runtime', tone: 'text-emerald-500' },
     { label: 'Skill Hub', icon: Wand2, route: '/skills', tone: 'text-violet-500' },
-    { label: 'Diagnostics', icon: FileSearch, route: '/settings', tone: 'text-amber-500' },
+    { label: 'Diagnostics', icon: FileSearch, route: '/diagnostics', tone: 'text-amber-500' },
     { label: 'Shared Memory', icon: Brain, route: '/memory', tone: 'text-rose-500' },
     { label: 'Git Timeline', icon: GitBranch, route: '/git', tone: 'text-cyan-500' },
   ];
@@ -430,7 +430,7 @@ export default function Dashboard() {
             {activeProviderRecord?.providerName || 'Not selected'}
           </h2>
           <p className="mt-1 truncate text-xs text-[var(--text-secondary)] dark:text-[var(--text-secondary)]">
-            {activeProvider.model || activeProviderRecord?.modelName || 'Choose a model in Settings'}
+            {activeProvider.model || activeProviderRecord?.modelName || 'Choose a model in Provider Hub'}
           </p>
         </SurfaceCard>
 

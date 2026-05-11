@@ -10,6 +10,16 @@ import { hasPermission, type Permission } from './lib/permissions';
 
 const Login = lazy(() => import('./routes/Login'));
 const Dashboard = lazy(() => import('./routes/Dashboard'));
+const ProviderHub = lazy(() => import('./routes/ProviderHub'));
+const TokenCenter = lazy(() => import('./routes/TokenCenter'));
+const HealthMonitor = lazy(() => import('./routes/HealthMonitor'));
+const ModelRouter = lazy(() => import('./routes/ModelRouter'));
+const LocalGateway = lazy(() => import('./routes/LocalGateway'));
+const RuntimeSwitcher = lazy(() => import('./routes/RuntimeSwitcher'));
+const Diagnostics = lazy(() => import('./routes/Diagnostics'));
+const AgentStudio = lazy(() => import('./routes/AgentStudio'));
+const SecurityCenter = lazy(() => import('./routes/SecurityCenter'));
+const Ecosystem = lazy(() => import('./routes/Ecosystem'));
 const Workflows = lazy(() => import('./routes/Workflows'));
 const Projects = lazy(() => import('./routes/Projects'));
 const ProjectDetail = lazy(() => import('./routes/ProjectDetail'));
@@ -162,6 +172,16 @@ function AppRoutes() {
         <Routes>
           <Route path="/login" element={routeElement('Login', <Login />)} />
           <Route path="/" element={routeElement('LocalAI Nexus Dashboard', <Dashboard />)} />
+          <Route path="/providers" element={routeElement('Provider Hub', <ProviderHub />)} />
+          <Route path="/tokens" element={routeElement('Token Center', <TokenCenter />)} />
+          <Route path="/health" element={routeElement('Health Monitor', <HealthMonitor />)} />
+          <Route path="/router" element={routeElement('Model Router', <ModelRouter />)} />
+          <Route path="/gateway" element={routeElement('Local Gateway', <LocalGateway />)} />
+          <Route path="/runtime" element={routeElement('Runtime Switcher', <RuntimeSwitcher />)} />
+          <Route path="/diagnostics" element={routeElement('Diagnostics', <Diagnostics />)} />
+          <Route path="/agents" element={routeElement('Agent Studio', <AgentStudio />)} />
+          <Route path="/security" element={routeElement('Security Center', <SecurityCenter />)} />
+          <Route path="/ecosystem" element={routeElement('Local Ecosystem', <Ecosystem />)} />
           <Route path="/workflows" element={routeElement('Workflows', <Workflows />)} />
           <Route path="/projects" element={routeElement('Projects', <Projects />)} />
           <Route path="/projects/:id" element={routeElement('Project Detail', <ProjectDetail />)} />

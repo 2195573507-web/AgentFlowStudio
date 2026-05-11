@@ -44,6 +44,12 @@ function profileFor(kind: NexusRuntimeProfileKind, provider?: ProviderSetting): 
   const env = kind === 'claude-code'
     ? { ...baseEnv, ANTHROPIC_BASE_URL: GATEWAY_ROOT, ANTHROPIC_MODEL: model }
     : { ...baseEnv, OPENAI_BASE_URL: GATEWAY_V1, OPENAI_MODEL: model };
+  const command =
+    kind === 'codex'
+      ? `set OPENAI_BASE_URL=${GATEWAY_V1} && set OPENAI_MODEL=${model}`
+      : kind === 'claude-code'
+        ? `set ANTHROPIC_BASE_URL=${GATEWAY_ROOT} && set ANTHROPIC_MODEL=${model}`
+        : `set OPENAI_BASE_URL=${GATEWAY_V1} && set OPENAI_MODEL=${model}`;
   return {
     id: kind,
     name,
@@ -61,6 +67,8 @@ function profileFor(kind: NexusRuntimeProfileKind, provider?: ProviderSetting): 
     toml: toToml(env),
     yaml: toYaml(env),
     diagnostics,
+    command,
+    redaction: 'no-secrets',
     updatedAt: new Date().toISOString(),
   };
 }

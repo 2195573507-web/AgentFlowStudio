@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import { randomUUID } from 'crypto';
 import { IPC_CHANNELS } from '../shared/types.js';
-import type { AgentExecutionRecord, AgentFeedbackRecord, AgentRecord, McpAllowlistEntry, McpGatewayRequest, MemoryType, Project, ProviderSetting, ReleaseStatus, ReleaseTestResult, ReleaseTestStatus, SkillRegistryEntry } from '../shared/types.js';
+import type { AgentExecutionRecord, AgentFeedbackRecord, AgentRecord, McpAllowlistEntry, McpGatewayRequest, MemoryType, NexusRouterDecision, NexusTemplateBundle, Project, ProviderSetting, ReleaseStatus, ReleaseTestResult, ReleaseTestStatus, SkillRegistryEntry } from '../shared/types.js';
 import { sanitizeObject } from '../shared/secretRedaction.js';
 import { buildAuditExportManifest } from '../shared/auditCore.js';
 import { PROVIDER_PRESETS } from '../shared/providerPresets.js';
@@ -41,6 +41,9 @@ import { checkProviderHealth, healthSummary } from './domain/health/healthServic
 import { listUsageRecords, summarizeUsage } from './domain/usage/usageService.js';
 import { generateRuntimeProfiles } from './domain/runtime/runtimeProfileService.js';
 import { createPromptSkill, testPromptSkill } from './domain/skills/skillService.js';
+import { generateSecurityReport } from './domain/security/securityReportService.js';
+import { previewContextPack } from './domain/memory/contextPackService.js';
+import { listTemplateBundles, toggleTemplateBundle, upsertTemplateBundle } from './domain/ecosystem/bundleRegistryService.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -125,6 +128,12 @@ const CHANNEL_PERMISSIONS: Partial<Record<string, Permission>> = {
   [IPC_CHANNELS.HEALTH_SUMMARY]: 'provider:read',
   [IPC_CHANNELS.HEALTH_CHECK_PROVIDER]: 'provider:write',
   [IPC_CHANNELS.RUNTIME_PROFILES_GENERATE]: 'provider:read',
+  [IPC_CHANNELS.ROUTER_DECISIONS_LIST]: 'provider:read',
+  [IPC_CHANNELS.SECURITY_REPORT_GENERATE]: 'admin:audit',
+  [IPC_CHANNELS.CONTEXT_PACK_PREVIEW]: 'memory:read',
+  [IPC_CHANNELS.TEMPLATE_BUNDLES_LIST]: 'skill:read',
+  [IPC_CHANNELS.TEMPLATE_BUNDLES_UPSERT]: 'mcp:write',
+  [IPC_CHANNELS.TEMPLATE_BUNDLES_TOGGLE]: 'mcp:write',
   [IPC_CHANNELS.AGENT_LIST]: 'project:read',
   [IPC_CHANNELS.AGENT_GET]: 'project:read',
   [IPC_CHANNELS.AGENT_CREATE]: 'project:write',
@@ -356,6 +365,7 @@ const ALLOWED_STORAGE_COLLECTIONS = new Set([
   'healthChecks',
   'runtimeProfiles',
   'modelRoutes',
+  'templateBundles',
   'skills',
   'skillRuns',
   'gatewayRequests',
@@ -1843,6 +1853,61 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.RUNTIME_PROFILES_GENERATE, async () => {
     try {
       return await generateRuntimeProfiles();
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.ROUTER_DECISIONS_LIST, async () => {
+    try {
+      const decisions = await storage.getAll<NexusRouterDecision>('modelRoutes');
+      return decisions.sort((a, b) => b.checkedAt.localeCompare(a.checkedAt)).slice(0, 100);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.SECURITY_REPORT_GENERATE, async (_event, scope?: string, context?: SessionContext) => {
+    try {
+      const report = await generateSecurityReport(String(scope || 'workspace'));
+      await recordMutationAudit(context, 'security.report.generate', { type: 'security_report', id: report.id }, { scope: report.scope });
+      return report;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.CONTEXT_PACK_PREVIEW, async (_event, options?: { projectId?: string }) => {
+    try {
+      return await previewContextPack(options?.projectId);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.TEMPLATE_BUNDLES_LIST, async () => {
+    try {
+      return await listTemplateBundles();
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.TEMPLATE_BUNDLES_UPSERT, async (_event, bundle: Partial<NexusTemplateBundle>, context?: SessionContext) => {
+    try {
+      const saved = await upsertTemplateBundle(sanitizeObject(bundle) as Partial<NexusTemplateBundle>);
+      await recordMutationAudit(context, 'templateBundle.upsert', { type: 'template_bundle', id: saved.id, label: saved.name }, { riskLevel: saved.riskLevel });
+      return saved;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.TEMPLATE_BUNDLES_TOGGLE, async (_event, id: string, enabled: boolean, context?: SessionContext) => {
+    try {
+      const saved = await toggleTemplateBundle(id, enabled);
+      await recordMutationAudit(context, 'templateBundle.toggle', { type: 'template_bundle', id: saved.id, label: saved.name }, { enabled });
+      return saved;
     } catch (err) {
       return handleError(err);
     }

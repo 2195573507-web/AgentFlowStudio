@@ -26,6 +26,10 @@ import type {
   McpGatewayRequest,
   NexusGatewayStatus,
   NexusHealthCheckResult,
+  NexusContextPackPreview,
+  NexusRouterDecision,
+  NexusSecurityReport,
+  NexusTemplateBundle,
   NexusRuntimeProfile,
   NexusSkillTestResult,
   NexusUsageRecord,
@@ -173,6 +177,20 @@ interface AgentFlowPreloadAPI {
   };
   runtimeProfiles?: {
     generate(): Promise<NexusRuntimeProfile[] | { error: string }>;
+  };
+  router?: {
+    decisions(): Promise<NexusRouterDecision[] | { error: string }>;
+  };
+  security?: {
+    report(scope?: string): Promise<NexusSecurityReport | { error: string }>;
+  };
+  contextPack?: {
+    preview(options?: { projectId?: string }): Promise<NexusContextPackPreview | { error: string }>;
+  };
+  templateBundles?: {
+    list(): Promise<NexusTemplateBundle[] | { error: string }>;
+    upsert(bundle: Partial<NexusTemplateBundle>): Promise<NexusTemplateBundle | { error: string }>;
+    toggle(id: string, enabled: boolean): Promise<NexusTemplateBundle | { error: string }>;
   };
   agents?: {
     list(filters?: { projectId?: string }): Promise<AgentRecord[] | { error: string }>;
@@ -1042,6 +1060,54 @@ export const api = {
         'runtimeProfiles.generate',
         (a) => a.runtimeProfiles?.generate() ?? Promise.resolve([]),
         [],
+      ),
+  },
+
+  router: {
+    decisions: () =>
+      apiCall<NexusRouterDecision[] | { error: string }>(
+        'router.decisions',
+        (a) => a.router?.decisions() ?? Promise.resolve([]),
+        [],
+      ),
+  },
+
+  security: {
+    report: (scope?: string) =>
+      apiCall<NexusSecurityReport | { error: string }>(
+        'security.report',
+        (a) => a.security?.report(scope) ?? Promise.resolve({ error: 'Security report bridge unavailable.' }),
+        { error: 'Security report bridge unavailable.' },
+      ),
+  },
+
+  contextPack: {
+    preview: (options?: { projectId?: string }) =>
+      apiCall<NexusContextPackPreview | { error: string }>(
+        'contextPack.preview',
+        (a) => a.contextPack?.preview(options) ?? Promise.resolve({ error: 'Context pack bridge unavailable.' }),
+        { error: 'Context pack bridge unavailable.' },
+      ),
+  },
+
+  templateBundles: {
+    list: () =>
+      apiCall<NexusTemplateBundle[] | { error: string }>(
+        'templateBundles.list',
+        (a) => a.templateBundles?.list() ?? Promise.resolve([]),
+        [],
+      ),
+    upsert: (bundle: Partial<NexusTemplateBundle>) =>
+      apiCall<NexusTemplateBundle | { error: string }>(
+        'templateBundles.upsert',
+        (a) => a.templateBundles?.upsert(bundle) ?? Promise.resolve({ error: 'Template bundle bridge unavailable.' }),
+        { error: 'Template bundle bridge unavailable.' },
+      ),
+    toggle: (id: string, enabled: boolean) =>
+      apiCall<NexusTemplateBundle | { error: string }>(
+        'templateBundles.toggle',
+        (a) => a.templateBundles?.toggle(id, enabled) ?? Promise.resolve({ error: 'Template bundle bridge unavailable.' }),
+        { error: 'Template bundle bridge unavailable.' },
       ),
   },
 

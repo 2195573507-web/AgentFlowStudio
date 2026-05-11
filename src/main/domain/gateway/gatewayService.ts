@@ -1,17 +1,20 @@
 import http from 'http';
 import { randomUUID } from 'crypto';
 import type { IncomingMessage, ServerResponse } from 'http';
-import type { NexusFailureCategory, NexusGatewayStatus } from '../../../shared/types.js';
+import type { NexusFailureCategory, NexusGatewayForwardResult, NexusGatewayRequestKind, NexusGatewayStatus } from '../../../shared/types.js';
 import storage from '../../storage.js';
 import { recordAudit } from '../../audit.js';
 import { routeModel } from '../router/modelRouter.js';
 import { recordUsage } from '../usage/usageService.js';
+import { forwardProviderRequest } from '../provider/providerForwardService.js';
 
 const HOST = '127.0.0.1';
 const PORT = 8317;
 let server: http.Server | null = null;
 let startedAt = '';
 let lastError = '';
+let lastTraceId = '';
+let lastRouteReason = '';
 
 function json(res: ServerResponse, statusCode: number, body: unknown): void {
   const payload = JSON.stringify(body);
@@ -51,11 +54,6 @@ function readBody(req: IncomingMessage): Promise<unknown> {
   });
 }
 
-function estimateTokens(value: unknown): number {
-  const text = typeof value === 'string' ? value : JSON.stringify(value ?? '');
-  return text.trim() ? Math.ceil(text.trim().split(/\s+/).length * 1.25) : 0;
-}
-
 function gatewayError(code: NexusFailureCategory | 'not_found', message: string, hint?: string, status = 400) {
   return { status, body: { error: { code, message, hint } } };
 }
@@ -84,75 +82,97 @@ async function handleHealth(_req: IncomingMessage, res: ServerResponse): Promise
   json(res, 200, await getGatewayStatus());
 }
 
-async function handleChat(req: IncomingMessage, res: ServerResponse, endpoint: string): Promise<void> {
-  const started = Date.now();
+function writeStream(res: ServerResponse, result: NexusGatewayForwardResult): void {
+  res.writeHead(result.statusCode, {
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-store',
+    Connection: 'keep-alive',
+    'Access-Control-Allow-Origin': '*',
+  });
+  for (const event of result.events ?? []) {
+    res.write(`event: ${event.type}\n`);
+    res.write(`data: ${JSON.stringify({ ...event, trace_id: result.traceId })}\n\n`);
+  }
+  res.write(`event: done\n`);
+  res.write(`data: ${JSON.stringify({ trace_id: result.traceId, usage: { input_tokens: result.inputTokens, output_tokens: result.outputTokens } })}\n\n`);
+  res.write('data: [DONE]\n\n');
+  res.end();
+}
+
+function attachNexusMetadata(body: unknown, result: NexusGatewayForwardResult): unknown {
+  const metadata = {
+    routed: result.routed,
+    reason: result.routeReason,
+    fallbackUsed: result.fallbackUsed,
+    traceId: result.traceId,
+    providerId: result.providerId,
+    providerName: result.providerName,
+  };
+  if (body && typeof body === 'object' && !Array.isArray(body)) {
+    return { ...(body as Record<string, unknown>), nexus: metadata };
+  }
+  return { data: body, nexus: metadata };
+}
+
+async function handleChat(req: IncomingMessage, res: ServerResponse, endpoint: string, kind: NexusGatewayRequestKind): Promise<void> {
   const requestId = randomUUID();
   const body = await readBody(req) as Record<string, unknown>;
   const model = typeof body.model === 'string' ? body.model : undefined;
   const route = await routeModel({ model, intent: 'default' });
-  const inputTokens = estimateTokens(body.messages ?? body.input ?? body.prompt ?? body);
-  const outputText = route.provider
-    ? `LocalAI Nexus routed ${endpoint} to ${route.provider.providerName} using model ${route.model}. Provider forwarding is configured for this Nexus route; live upstream calls are in progress for this build.`
-    : `LocalAI Nexus diagnostic response. ${route.reason}`;
-  const outputTokens = estimateTokens(outputText);
+  const result = await forwardProviderRequest({
+    endpoint,
+    kind,
+    body,
+    stream: Boolean(body.stream),
+    requestId,
+  }, route);
+  lastTraceId = result.traceId;
+  lastRouteReason = result.routeReason;
   await recordUsage({
     provider: route.provider,
-    model: route.model,
+    model: result.model,
     endpoint,
-    inputTokens,
-    outputTokens,
-    success: true,
-    failureCategory: 'none',
-    latencyMs: Date.now() - started,
-    requestId,
+    inputTokens: result.inputTokens,
+    outputTokens: result.outputTokens,
+    success: result.ok,
+    failureCategory: result.failureCategory,
+    statusCode: result.statusCode,
+    latencyMs: result.latencyMs,
+    requestId: result.traceId,
   });
   await storage.create('gatewayRequests', {
-    id: requestId,
+    id: result.traceId,
     endpoint,
-    model: route.model,
-    providerId: route.provider?.id,
-    status: 'success',
+    model: result.model,
+    providerId: result.providerId,
+    status: result.ok ? 'success' : 'failure',
+    routeReason: result.routeReason,
+    failureCategory: result.failureCategory,
+    streamed: result.streamed,
     createdAt: new Date().toISOString(),
   } as never);
+  await recordAudit({
+    type: 'gateway.request',
+    action: endpoint,
+    status: result.ok ? 'success' : 'failure',
+    severity: result.ok ? 'info' : 'warning',
+    actor: {},
+    resource: { type: 'gateway_request', id: result.traceId, label: endpoint },
+    metadata: {
+      providerId: result.providerId,
+      providerName: result.providerName,
+      model: result.model,
+      failureCategory: result.failureCategory,
+      streamed: result.streamed,
+      routeReason: result.routeReason,
+    },
+  }).catch(() => undefined);
 
-  if (endpoint.includes('responses')) {
-    json(res, 200, {
-      id: `resp_${requestId}`,
-      object: 'response',
-      model: route.model,
-      output: [{
-        type: 'message',
-        role: 'assistant',
-        content: [{ type: 'output_text', text: outputText }],
-      }],
-      usage: { input_tokens: inputTokens, output_tokens: outputTokens, total_tokens: inputTokens + outputTokens },
-      nexus: { routed: Boolean(route.provider), reason: route.reason, fallbackUsed: route.fallbackUsed },
-    });
+  if (result.streamed && result.events?.length) {
+    writeStream(res, result);
     return;
   }
-
-  if (endpoint.includes('messages')) {
-    json(res, 200, {
-      id: `msg_${requestId}`,
-      type: 'message',
-      role: 'assistant',
-      model: route.model,
-      content: [{ type: 'text', text: outputText }],
-      usage: { input_tokens: inputTokens, output_tokens: outputTokens },
-      nexus: { routed: Boolean(route.provider), reason: route.reason, fallbackUsed: route.fallbackUsed },
-    });
-    return;
-  }
-
-  json(res, 200, {
-    id: `chatcmpl_${requestId}`,
-    object: 'chat.completion',
-    created: Math.floor(Date.now() / 1000),
-    model: route.model,
-    choices: [{ index: 0, message: { role: 'assistant', content: outputText }, finish_reason: 'stop' }],
-    usage: { prompt_tokens: inputTokens, completion_tokens: outputTokens, total_tokens: inputTokens + outputTokens },
-    nexus: { routed: Boolean(route.provider), reason: route.reason, fallbackUsed: route.fallbackUsed },
-  });
+  json(res, result.statusCode, attachNexusMetadata(result.body, result));
 }
 
 function responsesDiagnostic(res: ServerResponse): void {
@@ -188,11 +208,11 @@ async function requestHandler(req: IncomingMessage, res: ServerResponse): Promis
       return;
     }
     if (req.method === 'POST' && url.pathname === '/v1/chat/completions') {
-      await handleChat(req, res, '/v1/chat/completions');
+      await handleChat(req, res, '/v1/chat/completions', 'chat.completions');
       return;
     }
     if (req.method === 'POST' && url.pathname === '/v1/responses') {
-      await handleChat(req, res, '/v1/responses');
+      await handleChat(req, res, '/v1/responses', 'responses');
       return;
     }
     if (req.method === 'POST' && url.pathname === '/responses') {
@@ -200,7 +220,7 @@ async function requestHandler(req: IncomingMessage, res: ServerResponse): Promis
       return;
     }
     if (req.method === 'POST' && url.pathname === '/v1/messages') {
-      await handleChat(req, res, '/v1/messages');
+      await handleChat(req, res, '/v1/messages', 'messages');
       return;
     }
     const error = gatewayError(
@@ -238,6 +258,8 @@ export async function startGateway(): Promise<NexusGatewayStatus> {
     server?.listen(PORT, HOST, () => {
       startedAt = new Date().toISOString();
       lastError = '';
+      lastTraceId = '';
+      lastRouteReason = '';
       resolve();
     });
   }).catch((error) => {
@@ -282,5 +304,7 @@ export async function getGatewayStatus(): Promise<NexusGatewayStatus> {
     providerCount: providers.filter((provider) => provider.enabled !== false).length,
     defaultBaseUrlHint: `http://${HOST}:${PORT}`,
     v1BaseUrlHint: `http://${HOST}:${PORT}/v1`,
+    lastTraceId: lastTraceId || undefined,
+    lastRouteReason: lastRouteReason || undefined,
   };
 }

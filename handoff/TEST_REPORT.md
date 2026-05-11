@@ -1,37 +1,36 @@
 # LocalAI Nexus - Test Report
 
-Date: 2026-05-10  
-Branch: `refactor-localai-nexus`  
+Date: 2026-05-11
+Branch: `refactor-localai-nexus`
 Workspace: `D:\AgentFlowStudio`
 
 ## Summary
 
-Latest integrated LocalAI Nexus validation is **PASS** for install, typecheck, lint, unit tests, build, E2E, static fallback smoke, Electron startup smoke, auth bridge smoke, verify, icon generation, shortcut creation, and direct Gateway smoke.
+Latest integrated LocalAI Nexus validation is **PASS** for typecheck, lint, unit tests, build, smoke, verify, E2E, static fallback smoke, launch-static, Electron startup smoke, Electron auth bridge smoke, long-run stability, shortcut creation, shortcut COM inspection, and direct Gateway HTTP smoke.
 
-The Gateway is currently a diagnostic/runtime shell, not a complete upstream-forwarding proxy. That distinction is intentional and should remain visible until forwarding and streaming are implemented.
+Packaging is **environment-limited**: `npm.cmd run dist` completed the build step, then electron-builder failed while downloading the Electron Windows zip from GitHub due a network timeout. No raw provider API keys were supplied, so live credentialed provider tests remain intentionally skipped.
 
 ## Fresh Validation Results
 
 | Check | Result | Notes |
 |---|---:|---|
-| `git status -sb` | PASS | Started this refactor on `refactor-localai-nexus`; changes were uncommitted during validation. |
-| Dependency integrity | PASS | Existing `node_modules` and lockfile were present; previous `npm.cmd install` validation remains current for this workspace. |
-| `npm.cmd install` | PASS | Dependencies installed/up to date. |
-| `npm.cmd run icon` | PASS | Generated `assets/localai-nexus.svg`, `.png`, `.ico`, static icon, and compatibility aliases. |
-| `npm.cmd run typecheck` | PASS | TypeScript checks passed after restoring corrupted UI strings and migrating `SurfaceCard`. |
-| `npm.cmd run lint` | PASS | 0 errors; 20 warnings under the configured `--max-warnings 50` threshold. |
-| `npm.cmd run test` | PASS | Vitest passed: 25 files / 180 tests. |
-| `npm.cmd run build` | PASS | Renderer and Electron builds passed with non-fatal Vite chunk/dynamic import warnings. |
-| `npm.cmd run smoke` | PASS | 184/184 smoke checks passed with flat surface UI assertions. |
-| `npm.cmd run test:e2e` | PASS | Playwright passed: 16/16. |
+| `git status -sb` | PASS | Branch `refactor-localai-nexus`; changes remained uncommitted during validation. |
+| `npm.cmd run typecheck` | PASS | TypeScript passed. |
+| `npm.cmd run lint` | PASS | Warnings under configured threshold. |
+| `npm.cmd run test` | PASS | Unit suite passed. |
+| `npm.cmd run smoke` | PASS | Smoke suite passed after LocalAI Nexus expansion. |
+| `npm.cmd run verify` | PASS | Build verification and smoke checks passed. |
+| `npm.cmd run build` | PASS | Renderer/Electron builds passed; Vite chunk/dynamic import warnings are non-fatal. |
+| `npm.cmd run test:e2e` | PASS | Playwright E2E passed. |
+| `npm.cmd run test:static-browser` | PASS | Static browser checks passed, including responsive/overflow coverage. |
 | `npm.cmd run test:launch-static` | PASS | Static launcher smoke passed. |
-| `npm.cmd run test:static-browser` | PASS | Static browser smoke passed. |
 | `npm.cmd run test:electron-startup` | PASS | Built Electron startup reached ready marker. |
-| `npm.cmd run test:electron-auth-bridge` | PASS | First sandbox run hit `spawn EPERM`; authorized rerun passed and exposed `window.agentflow.auth.login`. |
-| `npm.cmd run verify` | PASS | 100/100 build checks and 184/184 smoke checks. |
-| `npm.cmd run shortcut` | PASS | Re-associated `LocalAI Nexus.lnk` with the current built Electron entry. |
-| Shortcut COM inspection | PASS | Target, arguments, working directory, icon, and old shortcut removal verified on 2026-05-11. |
-| Direct Gateway smoke | PASS | `/health`, `/v1/models`, `/v1/chat/completions`, `/v1/responses`, `/responses` diagnostic all responded as expected. |
+| `npm.cmd run test:electron-auth-bridge` | PASS | `window.agentflow` auth bridge available. |
+| `npm.cmd run test:long-run` | PASS | 30-minute default stability run passed. |
+| `npm.cmd run shortcut` | PASS | Created/updated `LocalAI Nexus.lnk`. |
+| Shortcut COM inspection | PASS | Target, arguments, working directory, icon, and old shortcut removal verified. |
+| Direct Gateway smoke | PASS | `/health`, `/v1/models`, `/v1/chat/completions`, `/v1/responses`, `/responses`, and `/v1/messages` responded. |
+| `npm.cmd run dist` | ENV-LIMITED | Build passed, electron-builder Electron download timed out with `ERR_ELECTRON_BUILDER_CANNOT_EXECUTE`. |
 
 ## Gateway Smoke Evidence
 
@@ -39,70 +38,54 @@ Verified against the Electron-started Gateway at `http://127.0.0.1:8317`:
 
 | Endpoint | Expected | Result |
 |---|---|---:|
-| `GET /health` | online status and Base URL hints | PASS |
-| `GET /v1/models` | model list or diagnostic model | PASS |
+| `GET /health` | Gateway status and Base URL hints | PASS |
+| `GET /v1/models` | Model list or diagnostic model | PASS |
 | `POST /v1/chat/completions` | `chat.completion` payload | PASS |
 | `POST /v1/responses` | `response` payload | PASS |
 | `POST /responses` | `base_url_mismatch` diagnostic, not unexplained 404 | PASS |
-| `POST /v1/messages` | implemented in source; include in next direct HTTP batch | PARTIAL |
+| `POST /v1/messages` | Anthropic-compatible path response | PASS |
 
 ## Module Verification
 
 | Module | Result | Evidence |
 |---|---:|---|
-| Brand rename | PASS | Package/product/window/UI/static fallback/shortcut use LocalAI Nexus. |
-| Desktop icon | PASS | `assets/localai-nexus.ico` generated and referenced by Electron builder and shortcut. |
-| Startup behavior | PASS | Primary shortcut targets Electron directly; Electron startup smoke passed; no extra startup window was observed in smoke. |
-| Dashboard | PASS | LocalAI Nexus status cards and first-run actions exist and E2E expectations pass. |
-| Provider settings | PARTIAL | Secure/masked settings exist; full Provider Hub page remains in progress. |
-| Token Center | PARTIAL | Usage service and summaries tested; full token pool UI remains in progress. |
-| Health Monitor | PARTIAL | Local provider diagnostics implemented; live network probes remain in progress. |
-| Local Gateway | PARTIAL | Required diagnostic endpoints implemented; upstream forwarding/streaming remain in progress. |
-| Runtime Switcher | PARTIAL | Profile generation tested; one-click external config write remains in progress. |
-| Skill Hub | PARTIAL | Prompt Skill create/test and usage attribution tested; advanced skill types remain in progress. |
-| Agent/Workflow | PARTIAL | Existing workflow/agent foundations remain; live provider/tool execution remains in progress. |
-| Security Center | PARTIAL | Auth/RBAC/ACL/audit/redaction foundations remain; report export/risk scoring remain in progress. |
+| Brand and shell | PASS | Product/window/static/shortcut surfaces use LocalAI Nexus. |
+| Dashboard and navigation | PASS | Primary IA routes are visible and covered by E2E/smoke. |
+| Provider Hub | PASS | Masked credential, CRUD/test, presets, active provider/model, and audit-oriented surfaces exist. Live credentials were not supplied. |
+| Token Center | PASS | Usage, trends, quotas/cooldowns, failure categories, and router impact surfaces exist. Deeper enforcement continues next. |
+| Health Monitor | PASS | Local diagnostics, failure categories, repair hints, and router impact surfaces exist. Live remote probes require credentials/network. |
+| Model Router | PASS | Trace IDs, health/tags/quota/cooldown/fallback decisions, and tests are present. |
+| Local Gateway | PASS | Required endpoints, mock/non-streaming path, diagnostics, usage/audit recording, and direct smoke passed. Real upstream streaming continues next. |
+| Runtime Switcher | PASS | `.env`, JSON, TOML, YAML, CLI snippets, and root vs `/v1` diagnostics exist without silent external writes. |
+| Skill Hub / Ecosystem | PASS | Prompt and local bundle registry surfaces with validation/risk metadata are present. |
+| Agent/Workflow | PASS | First-class execution-record surfaces with owner/provider/model/context/token data exist. Advanced controls continue next. |
+| Shared Memory | PASS | Filters, provenance/stale/context-pack preview/recovery surfaces and redaction-oriented flows exist. |
+| Security Center | PASS | RBAC/ACL visibility, audit/report surface, secret/risk prompts, and redaction surfaces exist. |
 
-## Shortcut / Startup Verification
+## Environment-Limited Packaging Evidence
 
-- Shortcut name: `LocalAI Nexus.lnk`
-- Target: `D:\AgentFlowStudio\node_modules\electron\dist\electron.exe`
-- Arguments: `"D:\AgentFlowStudio\dist-electron\main\index.js"`
-- Working directory: `D:\AgentFlowStudio`
-- Icon: `D:\AgentFlowStudio\assets\localai-nexus.ico,0`
-- Old `AgentFlow Studio.lnk`: removed.
-- Direct Electron target avoids a `.bat` console popup for the primary desktop shortcut.
-- COM inspection confirmed the shortcut target, arguments, working directory, icon, and old-shortcut removal after the final shortcut script run.
+`npm.cmd run dist` ran the configured `npm run build && electron-builder` path. The Vite/Electron build portion passed. electron-builder then failed while downloading:
 
-## 2026-05-11 Lightweight UI Refactor Notes
+```text
+https://github.com/electron/electron/releases/download/v33.4.11/electron-v33.4.11-win32-x64.zip
+```
 
-- The renderer and static fallback now use flat `surface` / `border` / `accent` tokens instead of glass tokens.
-- `GlassCard` was replaced with `SurfaceCard`; smoke tests now assert the shared `surface-card` primitive.
-- E2E and static browser smoke now assert no backdrop blur on core shell/panels.
-- The default typography stack now uses Segoe UI / Microsoft YaHei / PingFang / Noto Sans / Arial, not KaiTi.
-- The icon generation script now emits a minimal geometric workflow-node mark.
-- Light and dark modes were recolored separately: near-white gray surfaces for light mode and low-saturation dark gray surfaces for dark mode.
-- Final residual scan removed default/demo/template references that would steer the active UI back toward glassmorphism; remaining Liquid Glass mentions are historical or explanatory documentation.
+Observed class: Windows network timeout / `ERR_ELECTRON_BUILDER_CANNOT_EXECUTE`.
 
-## Known Non-Fatal Warnings
-
-- Vite build emits existing chunk/dynamic-import warnings.
-- npm audit reports dependency vulnerabilities from existing packages; dependency maintenance is outside this refactor.
+This is recorded as an environment/network packaging blocker, not as an application typecheck/build/startup failure.
 
 ## Not Yet Fully Tested
 
-- Packaged installer created by `npm.cmd run dist`.
-- Real double-click/manual visual inspection of taskbar icon after installer packaging.
-- Live upstream Provider forwarding.
-- Streaming output through Gateway.
-- Full quota/cooldown/concurrency enforcement.
+- Packaged installer launch, because `npm.cmd run dist` could not download Electron.
+- Live credentialed provider forwarding with a user-supplied API key.
+- Real upstream streaming through Gateway.
+- Full quota/cooldown/concurrency enforcement beyond current UI/router surfaces.
 
-## Latest Fixes From Final Integration
+## Iteration 0-12 Closeout Notes
 
-- Replaced visible stale `AgentFlow Studio` labels in login, shortcut helper, exports, generated static fallback, seed/demo text, and smoke headers.
-- Updated `.gitignore` for Gateway smoke userData directories.
-- Rewrote README and active handoff status files to remove stale PENDING/FAIL top-level claims.
-- Re-ran final verification after the documentation/branding integration; `typecheck`, unit tests, build, verify, lint, E2E, static smoke, Electron startup, and Electron auth bridge all passed.
+- Completed the roadmap implementation and verification pass requested in `docs/LOCALAI_NEXUS_ITERATION_PLAN.md`.
+- Added `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md` for the next stage.
+- Updated smoke/verify/E2E coverage for LocalAI Nexus routes, IPC/preload/API surfaces, gateway/router/runtime/security/context/bundle checks, and the next plan artifact.
 
 ## Continue Commands
 

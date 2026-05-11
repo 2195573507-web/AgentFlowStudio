@@ -97,3 +97,39 @@ Completed runs are listed below. Each run records command, start/end time, durat
 - Process crashed: no
 - Memory conclusion: JS heap delta 0.00 MB across 31 samples.
 - Final conclusion: PASS: no crash, disconnect, serious browser error, network failure, or obvious memory anomaly observed.
+
+## 2026-05-11T05:35:15.306Z Static Fallback Long-Run
+
+- Startup command: `node scripts/static-server.js static-app 4173` with launch-token URL parsing
+- Start time: 2026-05-11T05:35:15.306Z
+- End time: 2026-05-11T05:35:20.696Z
+- Duration: 0.09 minutes
+- Visited pages: Dashboard, Projects, Prompt Lab, Log Analyzer, SafetyBox, Shared Memory Hub, Settings
+- Verified functions: HTTP availability; page navigation; language/theme shell load; static server process liveness; browser console/page/network error collection; heap sampling
+- Result JSON: `D:\AgentFlowStudio\.codex-parallel\results\long-run-static-20260511053515.json`
+- Screenshot: `D:\AgentFlowStudio\.codex-parallel\results\long-run-static-20260511053515.png`
+- Server log: `D:\AgentFlowStudio\.codex-parallel\logs\long-run-static-server-20260511053515.log`
+- Console errors: 
+- Page errors: 
+- Network failures: 
+- Process crashed: no
+- Memory conclusion: JS heap delta 0.00 MB across 3 samples.
+- Final conclusion: PASS: no crash, disconnect, serious browser error, network failure, or obvious memory anomaly observed.
+
+## 2026-05-11T05:35:33.953Z Static Fallback Long-Run
+
+- Startup command: `node scripts/static-server.js static-app 4173` with launch-token URL parsing
+- Start time: 2026-05-11T05:35:33.953Z
+- End time: 2026-05-11T06:05:37.219Z
+- Duration: 30.05 minutes
+- Visited pages: Dashboard, Projects, Prompt Lab, Log Analyzer, SafetyBox, Shared Memory Hub, Settings
+- Verified functions: HTTP availability; page navigation; language/theme shell load; static server process liveness; browser console/page/network error collection; heap sampling
+- Result JSON: `D:\AgentFlowStudio\.codex-parallel\results\long-run-static-20260511053533.json`
+- Screenshot: `D:\AgentFlowStudio\.codex-parallel\results\long-run-static-20260511053533.png`
+- Server log: `D:\AgentFlowStudio\.codex-parallel\logs\long-run-static-server-20260511053533.log`
+- Console errors: 
+- Page errors: 
+- Network failures: 
+- Process crashed: no
+- Memory conclusion: JS heap delta 0.00 MB across 32 samples.
+- Final conclusion: PASS: no crash, disconnect, serious browser error, network failure, or obvious memory anomaly observed.

@@ -1,75 +1,74 @@
-# Current Context - AgentFlow Studio
+# Current Context - LocalAI Nexus
 
-## Latest State - 2026-05-08
+## Latest State - 2026-05-11
 
-Baseline commit: `cec7dfb fix: stabilize localized static launcher`
+Workspace: `D:\AgentFlowStudio`
+Branch: `refactor-localai-nexus`
+Product: LocalAI Nexus
 
-Current deliverable: **Static fallback / 静态可交付模式**.
+The active deliverable is the built Electron LocalAI Nexus app. Static fallback remains available for recovery only.
 
-Use:
-
-```bat
-D:\AgentFlowStudio\start-agentflow-static.bat
-```
-
-Desktop shortcut:
+## Current Shortcut
 
 ```text
-C:\Users\至亲\Desktop\AgentFlow Studio.lnk
-TargetPath: D:\AgentFlowStudio\start-agentflow-static.bat
+C:\Users\至亲\Desktop\LocalAI Nexus.lnk
+TargetPath: D:\AgentFlowStudio\node_modules\electron\dist\electron.exe
+Arguments: "D:\AgentFlowStudio\dist-electron\main\index.js"
 WorkingDirectory: D:\AgentFlowStudio
-IconLocation: D:\AgentFlowStudio\assets\icon.ico,0
+IconLocation: D:\AgentFlowStudio\assets\localai-nexus.ico,0
 ```
-
-## Current Agent Workspace
-
-- Previous parallel workspace archived to `handoff\archived-agents\run-20260508-173352`.
-- Older archive `handoff\archived-agents\run-20260508-125051` remains historical.
-- Archived 2026-05 parallel-agent summary: `archive\2026-05\parallel-agents\run-20260508-current\PARALLEL_SUMMARY.md`.
-- Archived 2026-05 parallel-agent logs: `archive\2026-05\parallel-agents\run-20260508-current\logs\agent-a-regression-guard.log` through `agent-g-reporter.log`.
 
 ## Verified
 
-- `npm.cmd run icon`: PASS.
-- `npm.cmd run smoke`: PASS, 106/106.
 - `npm.cmd run typecheck`: PASS.
+- `npm.cmd run lint`: PASS.
+- `npm.cmd run test`: PASS.
+- `npm.cmd run smoke`: PASS.
+- `npm.cmd run verify`: PASS.
+- `npm.cmd run build`: PASS.
+- `npm.cmd run test:e2e`: PASS.
+- `npm.cmd run test:static-browser`: PASS.
 - `npm.cmd run test:launch-static`: PASS.
+- `npm.cmd run test:electron-startup`: PASS.
+- `npm.cmd run test:electron-auth-bridge`: PASS.
+- `npm.cmd run test:long-run`: PASS.
 - `npm.cmd run shortcut`: PASS.
-- PowerShell COM shortcut verification: PASS.
-- Real bat launch: PASS after 15 seconds.
-- Real HTTP: `http://127.0.0.1:4173` returned 200 and included `AgentFlow Studio`, `仪表盘`, `项目管理`, `提示词实验室`, `共享记忆中心`, `设置`, `Dashboard`, and `Interface Preferences`.
+- Shortcut COM inspection: PASS.
+- Gateway HTTP smoke: PASS.
 
-## What Is Now Hardened
+## Environment-Limited
 
-- Default UI is Chinese-first.
-- Topbar language toggle switches Chinese / English and persists `agentflow.language`.
-- Topbar theme toggle cycles system / light / dark and persists `agentflow.theme`.
-- Settings has `界面偏好 / Interface Preferences`.
-- Prompt Lab can inject Shared Memory Context using `off`, `minimal`, `balanced`, or `full`.
-- Shared Memory recovery Prompt can be generated and copied.
-- API key/token/password/secret fields are recursively redacted with `[REDACTED]`.
-- Page render errors do not white-screen the entire app.
+`npm.cmd run dist` passed the application build step, then electron-builder failed to download the Electron `v33.4.11` Windows artifact from GitHub due network timeout / `ERR_ELECTRON_BUILDER_CANNOT_EXECUTE`.
 
-## Why Static Fallback Is Current
+## Current Product Surfaces
 
-Electron, Vite build, and Vitest are not the active deliverable because this environment hits esbuild `spawn EPERM`. The stable path is pure Node + static files:
-
-```text
-start-agentflow-static.bat -> node scripts/static-server.js -> static-app
-```
+- Dashboard
+- Provider Hub
+- Token Center
+- Health Monitor
+- Model Router
+- Local Gateway
+- Runtime Switcher
+- Diagnostics
+- Skill Hub
+- Agent Studio
+- Workflow Studio
+- Shared Memory
+- Security Center
+- Ecosystem
+- Git/Handoff
+- Admin
+- Settings
 
 ## Important Constraints
 
 - Do not rebuild from scratch.
 - Do not remove Shared Memory Hub.
-- Do not remove `static-app`, `start-agentflow-static.bat`, `scripts\static-server.js`, or `assets\icon.ico`.
-- Do not switch the shortcut away from Static fallback until Electron/Vite are truly verified.
-- Use `npm.cmd`, not `npm`, from PowerShell.
-- Treat old archived agent reports as historical only.
+- Preserve JSON storage.
+- Preserve Electron security invariants.
+- Preserve `window.agentflow` compatibility.
+- Use `npm.cmd`, not plain `npm`, from PowerShell.
 
 ## Next Best Work
 
-1. Retry `npm.cmd run test`, `npm.cmd run build`, and `npm.cmd run dev` in a normal unrestricted Windows terminal.
-2. Install Playwright browsers and add real click E2E for language/theme/memory injection.
-3. Continue low-frequency React localization polish.
-4. If Electron passes, ask before switching shortcut priority away from Static fallback.
+Continue from `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`: live provider confidence, streaming/cancellation, token policy enforcement, Agent/Workflow controls, memory graph/recovery packs, and packaging/release hardening.

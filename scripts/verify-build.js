@@ -58,6 +58,23 @@ check('main/filesystem.ts', 'src/main/filesystem.ts')
 check('main/shortcut.ts', 'src/main/shortcut.ts')
 check('main/security.ts', 'src/main/security.ts')
 
+console.log('\n[Source - LocalAI Nexus Domain Services]')
+const domainServices = [
+  'provider/providerForwardService',
+  'gateway/gatewayService',
+  'router/modelRouter',
+  'usage/usageService',
+  'health/healthService',
+  'runtime/runtimeProfileService',
+  'skills/skillService',
+  'security/securityReportService',
+  'memory/contextPackService',
+  'ecosystem/bundleRegistryService',
+]
+for (const service of domainServices) {
+  check(`domain/${service}`, `src/main/domain/${service}.ts`)
+}
+
 console.log('\n[Source - Renderer Core]')
 check('renderer/main.tsx', 'src/renderer/main.tsx')
 check('renderer/App.tsx', 'src/renderer/App.tsx')
@@ -65,8 +82,11 @@ check('renderer/styles.css', 'src/renderer/styles.css')
 
 console.log('\n[Source - Renderer Pages]')
 const pages = [
-  'Dashboard', 'Projects', 'ProjectDetail', 'PromptLab', 'LogAnalyzer',
-  'GitTimeline', 'SafetyBox', 'SharedMemoryHub', 'Skills', 'Settings'
+  'Dashboard', 'ProviderHub', 'TokenCenter', 'HealthMonitor', 'ModelRouter',
+  'LocalGateway', 'RuntimeSwitcher', 'Diagnostics', 'AgentStudio',
+  'SecurityCenter', 'Ecosystem', 'Projects', 'ProjectDetail', 'PromptLab',
+  'LogAnalyzer', 'GitTimeline', 'SafetyBox', 'SharedMemoryHub', 'Skills',
+  'Settings', 'Workflows'
 ]
 for (const page of pages) {
   check(`page/${page}`, `src/renderer/routes/${page}.tsx`)
@@ -94,6 +114,7 @@ for (const lib of libs) {
 
 console.log('\n[Source - Shared]')
 check('shared/types', 'src/shared/types.ts')
+check('shared/providerPresets', 'src/shared/providerPresets.ts')
 
 console.log('\n[Skills]')
 const skills = [
@@ -108,6 +129,10 @@ console.log('\n[Scripts]')
 check('create-icon', 'scripts/create-icon.js')
 check('create-shortcut', 'scripts/create-shortcut.ps1')
 check('verify-build', 'scripts/verify-build.js')
+check('smoke-test', 'scripts/smoke-test.js')
+check('long-run-stability-test', 'scripts/long-run-stability-test.js')
+check('electron-startup-smoke', 'scripts/electron-startup-smoke.js')
+check('electron-auth-bridge-smoke', 'scripts/electron-auth-bridge-smoke.js')
 
 console.log('\n[Assets]')
 check('icon.svg', 'assets/icon.svg')
@@ -123,15 +148,21 @@ for (const test of tests) {
 }
 check('e2e/app.spec', 'tests/e2e/app.spec.ts')
 check('e2e/playwright.config', 'playwright.config.ts')
+check('test/localaiNexusServices.test', 'tests/unit/localaiNexusServices.test.ts')
 
 console.log('\n[Handoff Files]')
 const handoffFiles = [
   'CODEX_HANDOFF', 'PROJECT_MEMORY', 'ARCHITECTURE', 'FILE_MAP',
-  'TASK_STATUS', 'TEST_REPORT', 'CODEX_OPTIMIZE_PROMPT', 'CURRENT_CONTEXT_FOR_ANY_MODEL'
+  'TASK_STATUS', 'TEST_REPORT', 'NEXT_STEPS', 'CODEX_OPTIMIZE_PROMPT',
+  'CURRENT_CONTEXT_FOR_ANY_MODEL'
 ]
 for (const hf of handoffFiles) {
   check(`handoff/${hf}`, `handoff/${hf}.md`)
 }
+
+console.log('\n[Iteration Docs]')
+check('docs/LOCALAI_NEXUS_ITERATION_PLAN', 'docs/LOCALAI_NEXUS_ITERATION_PLAN.md')
+check('docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN', 'docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md')
 
 console.log('\n[Package Scripts]')
 try {

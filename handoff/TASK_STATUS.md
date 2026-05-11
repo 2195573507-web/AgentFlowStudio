@@ -1,59 +1,46 @@
-# AgentFlow Studio - Task Status
+# LocalAI Nexus - Task Status
 
-## Static Quality Pass - 2026-05-08
-
-Baseline commit: `cec7dfb fix: stabilize localized static launcher`
+## Iteration 0-12 Closeout - 2026-05-11
 
 | Item | Status | Verification |
 |---|---:|---|
-| Static fallback regression guard | Complete | `icon`, `smoke`, `typecheck`, `test:launch-static`, `shortcut`, COM shortcut verification, and real HTTP launch passed. |
-| Fresh agent workspace | Complete | Old `.codex-parallel` archived to `handoff\archived-agents\run-20260508-173352`; A-G task/log files recreated. |
-| New subagents | Complete | Six real subagents B-G were used; Agent A was executed in main thread. |
-| Launcher and shortcut preservation | Complete | `start-agentflow-static.bat`, `scripts\static-server.js`, `static-app`, `assets\icon.ico`, and Desktop shortcut remain intact. |
-| Bilingual UI hardening | Complete | Static app has `zh/en` translations, `t(key)`, topbar language toggle, settings language controls, and `agentflow.language`. React has `i18n.ts` and topbar language toggle. |
-| Theme hardening | Complete | Static app and React use `agentflow.theme`; Static app supports light, dark, and system with CSS variables and `prefers-color-scheme`. |
-| Shared Memory Prompt injection | Complete | Static and React Prompt Lab now use off/minimal/balanced/full injection modes and canonical Shared Memory Context markers. |
-| Shared Memory recovery Prompt | Complete | Recovery Prompt includes project name, current scheme, launch method, known limitation, next step, and redacted memory context. |
-| Recursive secret redaction | Complete | Shared redaction module handles nested arrays/objects, circular references, key-aware fields, exports, memory save, and injection paths. |
-| Route-level error handling | Complete | Static fallback has render try/catch with localized fallback; React routes use `ErrorBoundary`. |
-| Static QA expansion | Complete | `smoke` now has 111 checks; `launch-static` validates bilingual keywords and new static markers. |
-| Launcher log-lock fix | Complete | Static launcher writes per-run launcher/server logs and passed a regression with legacy `logs\launcher-static.log` held under an exclusive lock. |
-| Handoff docs | Complete | TEST_REPORT, TASK_STATUS, CODEX_HANDOFF, CURRENT_CONTEXT_FOR_ANY_MODEL, NEXT_CODEX_LOOP_PROMPT, and PARALLEL_SUMMARY updated. |
+| Previous lightweight UI plan | Complete | Flat SurfaceCard UI, static fallback alignment, icon/shortcut, and UI checks completed. |
+| Baseline/product contract | Complete | Active docs now separate Completed, In progress, Planned, and Environment-limited status. |
+| Information architecture | Complete | Primary LocalAI Nexus pages are in sidebar/router and covered by tests. |
+| UI design system | Complete | Compact flat desktop-tool style remains active. |
+| IPC/domain structure | Complete | New surfaces are layered through preload/IPC/domain services with `window.agentflow` compatibility preserved. |
+| Provider Hub | Complete | Masked credential/provider surfaces implemented; live key tests are opt-in. |
+| Local Gateway / Model Router | Complete | Required endpoints, mock/non-streaming path, traces, and direct HTTP smoke passed. |
+| Token Center / Health Monitor | Complete | Usage, trends, failure categories, quotas/cooldowns, repair hints, and router impact surfaces exist. |
+| Runtime Switcher | Complete | `.env`, JSON, TOML, YAML, and CLI snippets with Base URL diagnostics exist. |
+| Skill / Agent / Workflow / Ecosystem | Complete | Skill and bundle registry surfaces plus execution-record views exist; advanced controls continue next. |
+| Shared Memory | Complete | Context-pack/recovery surfaces and redaction-oriented flows exist. |
+| Security Center | Complete | Report/risk/audit/redaction surfaces exist. |
+| Reliability checks | Complete | Typecheck, lint, test, smoke, verify, build, E2E, static, startup, auth bridge, long-run, shortcut, and gateway smoke passed. |
+| Packaging | Environment-limited | `npm.cmd run dist` could not download Electron `v33.4.11` after build passed. |
+| Git commit/push | Pending | Final stage after light verification. |
 
-## Current Launch Entry
+## Latest Verification Matrix
 
-```bat
-D:\AgentFlowStudio\start-agentflow-static.bat
-```
-
-## Features Available In Static Fallback
-
-- 仪表盘 / Dashboard
-- 项目管理 / Projects
-- 项目详情 / Project Detail
-- 提示词实验室 / Prompt Lab
-- 日志分析 / Log Analyzer
-- 安全检查 / SafetyBox
-- 共享记忆中心 / Shared Memory Hub
-- 技能管理 / Skills
-- Git 时间线 / Git Timeline
-- 设置 / Settings
-- 界面偏好 / Interface Preferences
-- localStorage persistence through `agentflow.static.v1`, `agentflow.language`, and `agentflow.theme`
-
-## Environment-Limited Work
-
-| Task | Status | Notes |
-|---|---:|---|
-| `npm.cmd run test` | Blocked | Vite/Vitest config loading fails at esbuild `spawn EPERM`. |
-| `npm.cmd run build` | Blocked | Vite config loading fails at esbuild `spawn EPERM`. |
-| Playwright browser click check | Blocked | Chromium headless shell is not installed. |
-| Electron shortcut restore | Deferred | Keep shortcut pointed at Static fallback until Electron/Vite are truly verified. |
+| Command / Gate | Result |
+|---|---:|
+| `npm.cmd run typecheck` | PASS |
+| `npm.cmd run lint` | PASS |
+| `npm.cmd run test` | PASS |
+| `npm.cmd run smoke` | PASS |
+| `npm.cmd run verify` | PASS |
+| `npm.cmd run build` | PASS |
+| `npm.cmd run test:e2e` | PASS |
+| `npm.cmd run test:static-browser` | PASS |
+| `npm.cmd run test:launch-static` | PASS |
+| `npm.cmd run test:electron-startup` | PASS |
+| `npm.cmd run test:electron-auth-bridge` | PASS |
+| `npm.cmd run test:long-run` | PASS |
+| `npm.cmd run shortcut` | PASS |
+| Shortcut COM inspection | PASS |
+| Gateway HTTP smoke | PASS |
+| `npm.cmd run dist` | ENV-LIMITED |
 
 ## Next Work
 
-| Task | Priority | Notes |
-|---|---:|---|
-| Retry Electron/Vite/Vitest in unrestricted Windows shell | High | Needed before switching launch priority away from Static fallback. |
-| Add browser-level E2E once Playwright browsers are installed | Medium | Useful for real click checks of language/theme/memory injection. |
-| Continue low-frequency React copy polish | Medium | Static and high-frequency React paths are covered; deep page copy can continue gradually. |
+Follow `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`.

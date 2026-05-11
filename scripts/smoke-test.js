@@ -71,6 +71,16 @@ const coreFiles = [
   'src/renderer/main.tsx',
   'src/renderer/App.tsx',
   'src/renderer/routes/Dashboard.tsx',
+  'src/renderer/routes/ProviderHub.tsx',
+  'src/renderer/routes/TokenCenter.tsx',
+  'src/renderer/routes/HealthMonitor.tsx',
+  'src/renderer/routes/ModelRouter.tsx',
+  'src/renderer/routes/LocalGateway.tsx',
+  'src/renderer/routes/RuntimeSwitcher.tsx',
+  'src/renderer/routes/Diagnostics.tsx',
+  'src/renderer/routes/AgentStudio.tsx',
+  'src/renderer/routes/SecurityCenter.tsx',
+  'src/renderer/routes/Ecosystem.tsx',
   'src/renderer/routes/Projects.tsx',
   'src/renderer/routes/ProjectDetail.tsx',
   'src/renderer/routes/PromptLab.tsx',
@@ -174,6 +184,14 @@ const main = readText('src/main/index.ts')
 const preload = readText('src/main/preload.ts')
 const security = readText('src/main/security.ts')
 const mainIpc = readText('src/main/ipc.ts')
+const sharedTypes = readText('src/shared/types.ts')
+const gatewayService = readText('src/main/domain/gateway/gatewayService.ts')
+const providerForwardService = readText('src/main/domain/provider/providerForwardService.ts')
+const routerService = readText('src/main/domain/router/modelRouter.ts')
+const runtimeProfileService = readText('src/main/domain/runtime/runtimeProfileService.ts')
+const securityReportService = readText('src/main/domain/security/securityReportService.ts')
+const contextPackService = readText('src/main/domain/memory/contextPackService.ts')
+const bundleRegistryService = readText('src/main/domain/ecosystem/bundleRegistryService.ts')
 check('contextIsolation enabled', main.includes('contextIsolation: true'))
 check('nodeIntegration disabled', main.includes('nodeIntegration: false'))
 check('preload uses contextBridge', preload.includes('contextBridge.exposeInMainWorld'))
@@ -199,6 +217,38 @@ check('audit logging records permission denials', mainIpc.includes('permission.d
 check('audit hash chain exists', readText('src/main/audit.ts').includes('previousHash') && readText('src/shared/auditCore.ts').includes('computeAuditHash'))
 check('audit export manifest checkpoint exists', readText('src/shared/auditCore.ts').includes('buildAuditExportManifest') && mainIpc.includes('manifest'))
 check('durable secure store wrapper exists', fileExists('src/main/secureStore.ts') && readText('src/main/session.ts').includes('auth.activeSessionSecret') && mainIpc.includes('protectSecret(submittedApiKey'))
+check('LocalAI Nexus IPC channels declared', [
+  'GATEWAY_STATUS',
+  'GATEWAY_START',
+  'GATEWAY_STOP',
+  'USAGE_SUMMARY',
+  'HEALTH_CHECK_PROVIDER',
+  'RUNTIME_PROFILES_GENERATE',
+  'ROUTER_DECISIONS_LIST',
+  'SECURITY_REPORT_GENERATE',
+  'CONTEXT_PACK_PREVIEW',
+  'TEMPLATE_BUNDLES_LIST',
+  'TEMPLATE_BUNDLES_UPSERT',
+  'TEMPLATE_BUNDLES_TOGGLE',
+].every((keyword) => sharedTypes.includes(keyword)))
+check('LocalAI Nexus IPC permissions declared', [
+  'ROUTER_DECISIONS_LIST',
+  'SECURITY_REPORT_GENERATE',
+  'CONTEXT_PACK_PREVIEW',
+  'TEMPLATE_BUNDLES_LIST',
+  'TEMPLATE_BUNDLES_UPSERT',
+  'TEMPLATE_BUNDLES_TOGGLE',
+].every((keyword) => mainIpc.includes(`IPC_CHANNELS.${keyword}`)))
+check('LocalAI Nexus preload bridge exposes domains', ['providers', 'gateway', 'usage', 'health', 'runtimeProfiles', 'router', 'security', 'contextPack', 'templateBundles'].every((keyword) => preload.includes(`${keyword}:`)))
+check('gateway forwards through provider service', gatewayService.includes('forwardProviderRequest') && gatewayService.includes('routeModel') && gatewayService.includes('recordUsage'))
+check('gateway endpoint surface is complete', ['/health', '/v1/models', '/v1/chat/completions', '/v1/responses', '/responses', '/v1/messages'].every((endpoint) => gatewayService.includes(endpoint)))
+check('gateway stream event path exists', gatewayService.includes('text/event-stream') && providerForwardService.includes('streamEvents') && providerForwardService.includes('content_delta'))
+check('mock provider keeps CI-safe forwarding path', providerForwardService.includes('localai-mock') && providerForwardService.includes('mock://') && providerForwardService.includes('LocalAI Nexus mock provider'))
+check('router records cooldown quota decisions', routerService.includes('quotaState') && routerService.includes('cooldown') && routerService.includes('quota_exhausted') && routerService.includes('modelRoutes'))
+check('runtime profiles include portable formats', ['env', 'json', 'toml', 'yaml', 'command', 'redaction'].every((keyword) => runtimeProfileService.includes(keyword)))
+check('security report service is redacted', securityReportService.includes('secrets-redacted') && securityReportService.includes('providerRiskCount') && securityReportService.includes('externalUrlPolicy'))
+check('context pack preview includes redacted sources', contextPackService.includes('sanitizeObject') && contextPackService.includes('staleMemoryCount') && contextPackService.includes('provider_trace'))
+check('local template bundle registry is local-only', bundleRegistryService.includes('localOnly === false') && bundleRegistryService.includes('BUILTIN_TEMPLATE_BUNDLES') && bundleRegistryService.includes('toggleTemplateBundle'))
 
 console.log('\n[Shared Memory Safety]')
 const secretRedaction = readText('src/renderer/lib/secretRedaction.ts')
@@ -226,17 +276,23 @@ check('memory context marker exists', memoryInjection.includes('[Shared Memory C
 check('memory context canonical sections exist', ['项目背景', '已做决策', '当前进度', '已知问题', '用户偏好', 'API Provider 注意事项'].every((keyword) => memoryInjection.includes(keyword)))
 const appTsx = readText('src/renderer/App.tsx')
 check('route ErrorBoundary wrapper exists', appTsx.includes('ErrorBoundary') && appTsx.includes('routeElement'))
+check('LocalAI Nexus primary routes exist', ['/providers', '/tokens', '/health', '/router', '/gateway', '/runtime', '/diagnostics', '/agents', '/security', '/ecosystem'].every((route) => appTsx.includes(`path="${route}"`)))
 
 console.log('\n[Flat Surface UI]')
 const rendererStyles = readText('src/renderer/styles.css')
 const surfaceCard = readText('src/renderer/components/SurfaceCard.tsx')
 const dashboard = readText('src/renderer/routes/Dashboard.tsx')
+const sidebar = readText('src/renderer/components/Sidebar.tsx')
+const apiWrapper = readText('src/renderer/lib/api.ts')
 const tailwindConfig = readText('tailwind.config.ts')
 check('renderer flat surface token set exists', ['--surface', '--surface-muted', '--surface-hover', '--border', '--focus-ring'].every((keyword) => rendererStyles.includes(keyword)) && !rendererStyles.includes('--gla' + 'ss-') && !rendererStyles.includes('backdrop-filter'))
 check('renderer SurfaceCard uses shared surface primitive', surfaceCard.includes('surface-card') && surfaceCard.includes('focus-ring'))
 check('Tailwind accent palette supports used shades', ['400', '500', '600', '700'].every((shade) => tailwindConfig.includes(`${shade}:`)))
 check('Dashboard Nexus first-run path exists', ['Provider', 'Gateway', 'Workflow', 'Prompt', 'Guard', 'Memory'].every((keyword) => dashboard.includes(keyword)))
 check('Dashboard next-step copy exists', dashboard.includes('First-run checklist') && dashboard.includes('Continue:'))
+check('Dashboard quick actions target Nexus modules', ['/providers', '/runtime', '/diagnostics', '/gateway'].every((route) => dashboard.includes(route)) && dashboard.includes('Provider Hub'))
+check('Sidebar includes Nexus IA modules', ['Provider Hub', 'Token Center', 'Health Monitor', 'Model Router', 'Local Gateway', 'Runtime Switcher', 'Diagnostics', 'Agent Studio', 'Security Center', 'Ecosystem'].every((label) => sidebar.includes(label)))
+check('renderer API wraps Nexus domains', ['gateway:', 'usage:', 'health:', 'runtimeProfiles:', 'router:', 'security:', 'contextPack:', 'templateBundles:'].every((keyword) => apiWrapper.includes(keyword)))
 
 const promptLab = readText('src/renderer/routes/PromptLab.tsx')
 const templates = readText('src/renderer/lib/templates.ts')

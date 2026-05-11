@@ -217,3 +217,31 @@ src/renderer/layouts
 ```
 
 Current status: main-process domain split has begun; renderer feature-folder migration remains incremental to avoid breaking tested routes.
+
+## 13. 2026-05-11 Iteration Closeout Additions
+
+New active files from the Iteration 0-12 closeout include:
+
+| Path | Purpose | Treatment |
+|---|---|---|
+| `docs/LOCALAI_NEXUS_ITERATION_PLAN.md` | Completed Iteration 0-12 roadmap and acceptance matrix | Keep |
+| `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md` | Next-stage roadmap after the closeout | Keep |
+| `src/main/domain/provider/*` | Provider Hub service behavior | Keep |
+| `src/main/domain/security/*` | Security report/risk service behavior | Keep |
+| `src/main/domain/memory/*` | Context-pack preview and recovery behavior | Keep |
+| `src/main/domain/ecosystem/*` | Local bundle registry and validation behavior | Keep |
+| `src/renderer/routes/ProviderHub.tsx` | Provider Hub page | Keep |
+| `src/renderer/routes/TokenCenter.tsx` | Token Center page | Keep |
+| `src/renderer/routes/HealthMonitor.tsx` | Health Monitor page | Keep |
+| `src/renderer/routes/ModelRouter.tsx` | Model Router page | Keep |
+| `src/renderer/routes/LocalGateway.tsx` | Local Gateway page | Keep |
+| `src/renderer/routes/RuntimeSwitcher.tsx` | Runtime Switcher page | Keep |
+| `src/renderer/routes/Diagnostics.tsx` | Diagnostics page | Keep |
+| `src/renderer/routes/AgentStudio.tsx` | Agent Studio page | Keep |
+| `src/renderer/routes/SecurityCenter.tsx` | Security Center page | Keep |
+| `src/renderer/routes/Ecosystem.tsx` | Local Ecosystem page | Keep |
+
+Verification status:
+
+- All standard build, unit, smoke, verify, E2E, static, startup, auth bridge, long-run, shortcut, and gateway smoke gates passed.
+- `release/` remains generated/regenerable. Installer packaging is blocked only by electron-builder's Electron download timeout in the current environment.

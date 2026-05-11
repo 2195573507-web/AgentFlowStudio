@@ -1,30 +1,72 @@
-# Lightweight UI Refactor Plan
+# LocalAI Nexus Iteration 0-12 Completion Plan
+
+Date: 2026-05-11
+Workspace: `D:\AgentFlowStudio`
+Branch: `refactor-localai-nexus`
 
 ## Goal
-Refactor AgentFlow Studio toward a simple, clean, compact desktop-tool UI inspired by CCS / cc-switch style principles, without Liquid Glass, glassmorphism, heavy blur, excessive gradients, or complex animation.
 
-## Constraints
-- Work only inside `D:\AgentFlowStudio`.
-- Preserve Electron, React, IPC, Auth, RBAC, Workflow, MCP, Git, and Storage behavior.
-- Verify app, tests, desktop shortcut/launch entry, docs, commit, and push.
+Complete the active LocalAI Nexus roadmap in `docs/LOCALAI_NEXUS_ITERATION_PLAN.md` and close the older UI task plan with verified evidence. Preserve Git history, JSON storage, Shared Memory Hub, Electron security boundaries, static fallback recovery behavior, and `window.agentflow` compatibility.
 
-## Phases
-| Phase | Status | Notes |
+## Phase Status
+
+| Phase | Status | Evidence |
 |---|---|---|
-| 1. Audit repository and current UI | complete | Initial git state, structure, docs, visual issues, shortcut and tests reviewed. |
-| 2. Study CCS / cc-switch UI patterns | complete | Extracted principles only: compact control surface, active context, clear config/status paths. |
-| 3. Define design tokens | complete | Flat surface, border, text, accent, status, spacing, radius, and component tokens defined. |
-| 4. Refactor layout/components/pages | complete | Main shell, shared primitives, key routes, static fallback, tests, and icon style migrated. |
-| 5. Desktop launch and shortcut validation | in_progress | Build done; shortcut relink and COM inspection still pending after final validation. |
-| 6. Test and visual regression pass | in_progress | Typecheck, lint, unit, build, and smoke passed; E2E/static/Electron checks pending. |
-| 7. Documentation, git commit, push | in_progress | UI design system doc, progress, README, and test report being updated. |
+| 1. Recover context and active plan | complete | Read AGENTS guidance, handoff docs, README/package metadata, local skills, memory notes, and current git state. |
+| 2. Close previous lightweight UI plan | complete | Flat SurfaceCard UI, icon/shortcut, static fallback alignment, and UI verification were already completed and recorded. |
+| 3. Iteration 0-3: contract, IA, UI, IPC structure | complete | Active routes and navigation now include Provider Hub, Token Center, Health Monitor, Model Router, Local Gateway, Runtime Switcher, Diagnostics, Agent Studio, Security Center, Ecosystem, Shared Memory, Git/Handoff, Admin, and Settings. IPC/preload/domain surfaces were extended without breaking `window.agentflow`. |
+| 4. Iteration 4-7: provider, gateway, token, health, runtime | complete | Provider CRUD/masked credential surfaces, CI-safe mock provider path, OpenAI-compatible non-streaming gateway path, router traces, token/health pages, and runtime exports for env/JSON/TOML/YAML/CLI snippets were implemented and covered by tests. |
+| 5. Iteration 8-10: skills, agents, workflows, memory, security | complete | Skill bundle registry, Agent/Workflow records, context-pack preview, security report surface, audit/risk signals, and Shared Memory extensions were added or connected. |
+| 6. Iteration 11-12: reliability, packaging, extensibility | complete with environment-limited packaging | Startup, auth bridge, static fallback, shortcut, E2E, long-run, gateway smoke, local bundle registry, and docs passed. `npm.cmd run dist` reached the build step but electron-builder download failed on network timeout. |
+| 7. Documentation and next-stage plan | complete | Added `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md` and updated progress, findings, test report, next steps, changelog, architecture/worklog docs. |
+| 8. Git stage, commit, push | pending | Run after final light verification. |
 
-## Decisions
-- Default style direction: restrained desktop configuration tool, medium density, flat surfaces, fine borders, one main accent.
-- No Liquid Glass as default UI language.
+## Completed
+
+- Current UI closeout from the older plan is finished.
+- Iteration 0-12 roadmap implementation is present in the working tree.
+- Required next-stage plan exists at `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`.
+- Verification matrix passed except for environment-limited packaging download.
+
+## In Progress
+
+- Live credentialed provider validation remains opt-in because no user API keys were provided.
+- Real upstream streaming pass-through is planned for the next stage; CI-safe mock/non-streaming paths are covered.
+- Token policy enforcement and richer Agent/Workflow controls have first-class surfaces but will continue as deeper product work.
+
+## Planned
+
+- Next-stage milestones are documented in `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`: live provider confidence, streaming/cancellation, token policy enforcement, Agent/Workflow controls, memory graph/recovery packs, and packaging/release hardening.
+
+## Verification Snapshot
+
+| Gate | Result |
+|---|---:|
+| `npm.cmd run typecheck` | PASS |
+| `npm.cmd run lint` | PASS, warnings under threshold |
+| `npm.cmd run test` | PASS |
+| `npm.cmd run smoke` | PASS |
+| `npm.cmd run verify` | PASS |
+| `npm.cmd run build` | PASS |
+| `npm.cmd run test:e2e` | PASS |
+| `npm.cmd run test:static-browser` | PASS |
+| `npm.cmd run test:launch-static` | PASS |
+| `npm.cmd run test:electron-startup` | PASS |
+| `npm.cmd run test:electron-auth-bridge` | PASS |
+| `npm.cmd run test:long-run` | PASS |
+| `npm.cmd run shortcut` | PASS |
+| Shortcut COM inspection | PASS |
+| Gateway HTTP smoke | PASS for `/health`, `/v1/models`, `/v1/chat/completions`, `/v1/responses`, `/responses`, `/v1/messages` |
+| `npm.cmd run dist` | ENV-LIMITED: electron-builder could not download Electron `v33.4.11` zip from GitHub due Windows network timeout |
 
 ## Errors Encountered
+
 | Error | Attempt | Resolution |
 |---|---|---|
-| `rg --files` failed with Access denied | Repository enumeration | Used PowerShell `Get-ChildItem` and `Select-String`. |
-| `ui-ux-pro-max` Python search failed due missing `encodings` | Design-system script | Used skill guidance plus manual synthesis from audited app and public CC Switch sources. |
+| `rg` failed with Access denied | Memory/workspace search | Used PowerShell `Select-String` and targeted file reads. |
+| `ui-ux-pro-max` Python helper failed due missing `encodings` | UI study helper | Used skill guidance and manual UI synthesis. |
+| `npm.cmd run dist` failed during Electron download | Packaging gate | Recorded as environment/network-limited; build, startup, shortcut, and all other gates passed. |
+
+## Completion Rule
+
+Do not mark this run fully closed until final light verification passes, all accepted changes are staged, a conventional commit is created, and `refactor-localai-nexus` is pushed.

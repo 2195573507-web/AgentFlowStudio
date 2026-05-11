@@ -19,6 +19,7 @@ type CollectionName =
   | 'healthChecks'
   | 'runtimeProfiles'
   | 'modelRoutes'
+  | 'templateBundles'
   | 'skills'
   | 'skillRuns'
   | 'gatewayRequests'

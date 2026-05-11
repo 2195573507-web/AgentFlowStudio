@@ -3,6 +3,9 @@
 ## [Unreleased] - 2026-05-10
 
 ### Added
+- Completed the LocalAI Nexus Iteration 0-12 roadmap with first-class Provider Hub, Token Center, Health Monitor, Model Router, Local Gateway, Runtime Switcher, Diagnostics, Agent Studio, Security Center, Ecosystem, Shared Memory, Git/Handoff, Admin, and Settings surfaces.
+- Added CI-safe mock provider/gateway coverage, OpenAI-compatible non-streaming gateway path, router decision traces, runtime export formats, context-pack preview, security report surfaces, and local skill/template bundle registry behavior.
+- Added `docs/LOCALAI_NEXUS_ITERATION_PLAN.md` and `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md` to record the completed roadmap and next-stage milestones.
 - Added local authentication with PBKDF2 password hashing, persistent opaque sessions, secure logout, failed-login lockout, and forced default-admin password rotation.
 - Added admin user management for listing users, creating users, changing roles, enabling/disabling users, and resetting passwords with one-time random temporary passwords.
 - Added RBAC policy enforcement across renderer routes and Electron IPC channels, including admin-only user/audit operations and provider write restrictions.
@@ -14,6 +17,8 @@
 - Added GitTimeline release-status snapshot labeling so parsed report data is not confused with fresh test execution.
 
 ### Fixed
+- Fixed long-run stability testing so authenticated static launch URLs reuse the tokenized `AGENTFLOW_STATIC_LAUNCH_URL` instead of losing the auth token.
+- Fixed LocalAI Nexus provider/runtime type exports and storage collection coverage for new bundle and service surfaces.
 - Redacted copied/exported run fields including summary, error, raw log, node input/output summaries, and failure reasons.
 - Updated E2E onboarding assertion to current UI text: `查看结果和日志`.
 - Hardened short `sk-` leak marker redaction, clipboard redaction, legacy memory read redaction, Shared Memory import normalization, and large-log handling.
@@ -21,6 +26,8 @@
 - Fixed duplicate React key risks in GitTimeline and SharedMemoryHub repeated values.
 
 ### Changed
+- Updated smoke, verify, and E2E coverage to check the new LocalAI Nexus routes, IPC/preload/API surfaces, gateway/router/runtime/security/context/bundle surfaces, and required next-stage plan file.
+- Reconciled active progress, handoff, architecture, worklog, and test-report docs so Completed / In progress / Planned / Environment-limited statuses are explicit.
 - Login is now the public entry point, with authenticated app routes rendered behind a protected Liquid Glass shell.
 - Renderer API calls now attach an opaque session envelope through preload; authorization is still decided only in the main process.
 - Replaced the renderer i18n table with a clean UTF-8 translation map for nav/admin labels.
@@ -29,6 +36,22 @@
 - Unified workflow template types through `src/shared/types.ts`.
 
 ### Validation
+- `npm.cmd run typecheck`: PASS.
+- `npm.cmd run lint`: PASS, warnings under threshold.
+- `npm.cmd run test`: PASS, 25 files / 182 tests.
+- `npm.cmd run smoke`: PASS, 210/210.
+- `npm.cmd run verify`: PASS, 130/130 plus smoke 210/210.
+- `npm.cmd run build`: PASS, Vite chunk/dynamic import warnings only.
+- `npm.cmd run test:e2e`: PASS, 17/17.
+- `npm.cmd run test:static-browser`: PASS.
+- `npm.cmd run test:launch-static`: PASS.
+- `npm.cmd run test:electron-startup`: PASS.
+- `npm.cmd run test:electron-auth-bridge`: PASS.
+- `npm.cmd run test:long-run`: PASS.
+- `npm.cmd run shortcut`: PASS.
+- Shortcut COM inspection: PASS.
+- Gateway HTTP smoke: PASS for `/health`, `/v1/models`, `/v1/chat/completions`, `/v1/responses`, `/responses`, and `/v1/messages`.
+- `npm.cmd run dist`: ENV-LIMITED after successful build; electron-builder could not download Electron `v33.4.11` Windows zip from GitHub due network timeout / `ERR_ELECTRON_BUILDER_CANNOT_EXECUTE`.
 - `npm.cmd run typecheck`: PASS.
 - `npm.cmd run test`: PASS, 16 files, 149 tests.
 - `npm.cmd run test:e2e`: PASS, 14/14.
