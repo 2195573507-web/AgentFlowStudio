@@ -8,7 +8,6 @@
 | `README.md` | Current LocalAI Nexus overview and commands. |
 | `CHANGELOG.md` | Release and validation history. |
 | `PROJECT_PROGRESS.md` | Current progress, completed/in-progress/planned/environment-limited status. |
-| `task_plan.md`, `progress.md`, `findings.md` | Active file-based planning and closeout log. |
 | `AGENTS.md` | Project rules for AI agents. |
 
 ## Source
@@ -74,9 +73,15 @@
 | `docs/LOCALAI_NEXUS_ARCHITECTURE.md` | Detailed architecture and verified notes. |
 | `docs/PROJECT_STRUCTURE_AUDIT.md` | Structure audit and artifact treatment. |
 | `docs/PROJECT_WORKLOG.md` | Worklog and decisions. |
+| `docs/cleanup/cleanup-review.md` | Cleanup candidates intentionally kept for review. |
+| `docs/cleanup/cleanup-report.md` | Cleanup action log and validation matrix. |
 | `handoff/TEST_REPORT.md` | Latest validation evidence. |
 | `handoff/NEXT_STEPS.md` | Next-round priorities. |
 | `handoff/CURRENT_CONTEXT_FOR_ANY_MODEL.md` | Short context recovery file. |
+| `archive/2026-05/root-progress/localai-nexus-iteration-0-12/` | Archived file-based planning and closeout logs from the completed Iteration 0-12 round. |
+| `archive/2026-05/docs-history/` | Historical rebuild/refactor planning documents removed from the active docs surface. |
+| `archive/2026-05/handoff-history/` | Historical handoff/rebuild snapshots removed from the active handoff surface. |
+| `archive/2026-05/parallel-agents/handoff-archived-agents/` | Historical parallel-agent prompts and logs removed from active handoff. |
 
 ## Assets And Launch
 

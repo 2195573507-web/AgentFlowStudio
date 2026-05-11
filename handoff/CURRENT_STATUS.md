@@ -30,21 +30,21 @@ IconLocation: D:\AgentFlowStudio\assets\localai-nexus.ico,0
 ## Latest Validation
 
 - `npm.cmd run typecheck`: PASS.
-- `npm.cmd run test`: PASS, 25 files / 182 tests.
-- `npm.cmd run verify`: PASS, 130/130 plus smoke 210/210.
+- `npm.cmd run test`: PASS, 25 files / 185 tests.
+- `npm.cmd run verify`: PASS, 131/131 plus smoke 213/213.
 - Previously recorded in this closeout: lint, build, E2E, static browser, launch-static, Electron startup, Electron auth bridge, long-run, shortcut, shortcut COM inspection, and Gateway HTTP smoke all passed.
 
 ## Environment-Limited
 
-- `npm.cmd run dist` completed the build step but electron-builder could not download Electron `v33.4.11` for Windows from GitHub.
-- Observed class: network timeout / `ERR_ELECTRON_BUILDER_CANNOT_EXECUTE`.
+- `npm.cmd run dist` rebuilt the app and produced `release/win-unpacked/LocalAI Nexus.exe`.
+- Observed class: electron-builder/app-builder packaging did not finish before the 15-minute verification timeout.
 
 ## Current Limits
 
 - Live credentialed provider smoke requires user-supplied API credentials.
 - Real upstream streaming pass-through is next-stage work.
-- Packaging needs the Electron download/cache issue resolved before installer verification.
+- Packaging needs the local electron-builder/app-builder timeout resolved before installer verification.
 
 ## Next
 
-Commit and push `refactor-localai-nexus`, then continue from `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`.
+After cleanup commit/push, continue from `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`.

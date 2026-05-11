@@ -2,7 +2,7 @@
 
 ## Current Truth
 
-LocalAI Nexus is the active product identity on branch `refactor-localai-nexus`. The Iteration 0-12 closeout is implemented and locally verified except for environment-limited packaging download.
+LocalAI Nexus is the active product identity on branch `refactor-localai-nexus`. The Iteration 0-12 closeout is implemented and locally verified except for environment-limited final packaging.
 
 The app now has a verified desktop shell, icon, shortcut, dashboard, first-class Provider/Token/Health/Router/Gateway/Runtime/Diagnostics/Agent/Security/Ecosystem pages, CI-safe gateway/provider paths, runtime exports, context/security reports, Shared Memory context-pack surfaces, and local bundle registry behavior.
 
@@ -33,14 +33,14 @@ The next-stage plan is `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`.
    - Build source-explicit context packs and recovery prompts with strict redaction.
 
 6. **Packaging And Release Hardening**
-   - Re-run `npm.cmd run dist` when Electron download/cache is available.
+   - Re-run `npm.cmd run dist` with a longer timeout or corrected electron-builder/app-builder environment.
    - Verify installer artifact, shortcut, startup, auth bridge, static fallback, long-run, and accessibility before release.
 
 ## Remaining Risks
 
 - Real credentialed provider behavior is not proven without user-supplied keys.
 - Real upstream streaming pass-through is still next-stage work.
-- `npm.cmd run dist` is currently blocked by electron-builder Electron download timeout, despite the application build passing.
+- `npm.cmd run dist` currently builds and produces `release/win-unpacked/LocalAI Nexus.exe`, but the final electron-builder/app-builder package step exceeded the local verification timeout.
 - Compatibility names remain for bridge/storage/launcher stability: `window.agentflow`, `agentflow-data`, `start-agentflow*.bat`.
 - Historical handoff/archive files still mention AgentFlow Studio; active top-level docs explain the evolution.
 

@@ -89,7 +89,7 @@ Generated/regenerable directories:
 | `tests/unit/localaiNexusServices.test.ts` | service regression tests | Added |
 | `assets/localai-nexus.*` | canonical icon assets | Added |
 | `static-app/assets/localai-nexus.svg` | static fallback icon | Added |
-| `docs/LOCALAI_NEXUS_REFACTOR_PLAN.md` | plan and module breakdown | Added |
+| `archive/2026-05/docs-history/LOCALAI_NEXUS_REFACTOR_PLAN.md` | completed refactor plan and module breakdown | Archived |
 | `docs/LOCALAI_NEXUS_ARCHITECTURE.md` | architecture and flows | Added |
 | `docs/PROJECT_WORKLOG.md` | process log | Added/rewritten |
 | `docs/PROJECT_STRUCTURE_AUDIT.md` | structure audit | Added/rewritten |
@@ -101,10 +101,13 @@ Generated/regenerable directories:
 |---|---|---|---:|
 | `BUILD_JOURNEY.md` | `archive/2026-05/root-progress/` | historical build note | Low |
 | `CURRENT_OPTIMIZATION_PROGRESS.md` | `archive/2026-05/root-progress/` | historical progress note | Low |
-| `task_plan.md`, `progress.md`, `findings.md` | `archive/2026-05/root-progress/` | old planning files | Low |
+| `task_plan.md`, `progress.md`, `findings.md` | `archive/2026-05/root-progress/localai-nexus-iteration-0-12/` | completed Iteration 0-12 planning files | Low |
 | `reports/*` | `archive/2026-05/reports/` | old reports | Low |
 | `handoff/current-progress.md`, `handoff/final-summary.md`, `handoff/validation-report.md` | `archive/2026-05/handoff-history/` | old handoff snapshots | Low |
 | old `.codex-parallel` tracked tasks/logs/results | `archive/2026-05/parallel-agents/` | old generated process records | Low |
+| old rebuild/refactor docs | `archive/2026-05/docs-history/` | completed historical docs removed from active docs surface | Low |
+| old rebuild/simulation handoff docs | `archive/2026-05/handoff-history/` | completed historical handoff material | Low |
+| `handoff/archived-agents/` | `archive/2026-05/parallel-agents/handoff-archived-agents/` | historical parallel-agent prompts and logs | Low |
 
 ## 6. Deleted From Active Root
 
@@ -244,4 +247,29 @@ New active files from the Iteration 0-12 closeout include:
 Verification status:
 
 - All standard build, unit, smoke, verify, E2E, static, startup, auth bridge, long-run, shortcut, and gateway smoke gates passed.
-- `release/` remains generated/regenerable. Installer packaging is blocked only by electron-builder's Electron download timeout in the current environment.
+- `release/` remains generated/regenerable. Installer packaging is blocked by a local electron-builder/app-builder timeout after `release/win-unpacked/LocalAI Nexus.exe` is generated.
+
+## 14. 2026-05-11 Cleanup Pass
+
+The cleanup pass scanned package scripts, Electron/Vite config, launcher scripts, source references, tests, and handoff dependencies before moving or deleting files.
+
+Deleted regenerable ignored artifacts:
+
+- `logs/`
+- `dist/`
+- `dist-electron/`
+- `release/`
+- stale `.codex-parallel` cache/userData/report folders that tests recreate
+
+Moved historical material:
+
+- `docs/COMPETITOR_MAINLINE_REBUILD_STUDY.md` -> `archive/2026-05/docs-history/`
+- `docs/REBUILD_ARCHITECTURE_PLAN.md` -> `archive/2026-05/docs-history/`
+- `docs/SECURITY_REBUILD_REVIEW.md` -> `archive/2026-05/docs-history/`
+- `docs/SECURITY_SANDBOX_CLEANUP.md` -> `archive/2026-05/docs-history/`
+- `docs/LOCALAI_NEXUS_REFACTOR_PLAN.md` -> `archive/2026-05/docs-history/`
+- old rebuild/simulation handoff docs -> `archive/2026-05/handoff-history/`
+- `handoff/archived-agents/` -> `archive/2026-05/parallel-agents/handoff-archived-agents/`
+- root `task_plan.md`, `progress.md`, and `findings.md` -> `archive/2026-05/root-progress/localai-nexus-iteration-0-12/`
+
+Deferred cleanup candidates are recorded in `docs/cleanup/cleanup-review.md`.

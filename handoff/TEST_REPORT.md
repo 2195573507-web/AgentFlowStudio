@@ -8,29 +8,31 @@ Workspace: `D:\AgentFlowStudio`
 
 Latest integrated LocalAI Nexus validation is **PASS** for typecheck, lint, unit tests, build, smoke, verify, E2E, static fallback smoke, launch-static, Electron startup smoke, Electron auth bridge smoke, long-run stability, shortcut creation, shortcut COM inspection, and direct Gateway HTTP smoke.
 
-Packaging is **environment-limited**: `npm.cmd run dist` completed the build step, then electron-builder failed while downloading the Electron Windows zip from GitHub due a network timeout. No raw provider API keys were supplied, so live credentialed provider tests remain intentionally skipped.
+Packaging is **environment-limited**: the latest `npm.cmd run dist` rebuilt the app and produced `release/win-unpacked/LocalAI Nexus.exe`, but the electron-builder/app-builder packaging process did not finish before the 15-minute verification timeout. No raw provider API keys were supplied, so live credentialed provider tests remain intentionally skipped.
 
 ## Fresh Validation Results
 
 | Check | Result | Notes |
 |---|---:|---|
-| `git status -sb` | PASS | Branch `refactor-localai-nexus`; changes remained uncommitted during validation. |
-| `npm.cmd run typecheck` | PASS | TypeScript passed. |
+| `git status -sb` | PASS | Branch `refactor-localai-nexus`; cleanup changes remained uncommitted during validation. |
+| `npm.cmd install` | PASS | Dependencies already up to date; `npm audit` still reports 17 existing advisories, and no forced dependency upgrade was applied. |
 | `npm.cmd run lint` | PASS | 0 errors / 21 warnings, under configured threshold. |
-| `npm.cmd run test` | PASS | 25 files / 185 tests passed after resume. |
-| `npm.cmd run smoke` | PASS | Smoke suite passed after LocalAI Nexus expansion. |
-| `npm.cmd run verify` | PASS | 131/131 verification checks plus smoke 213/213 passed after resume. |
+| `npm.cmd run typecheck` | PASS | TypeScript passed. |
+| `npm.cmd run test` | PASS | 25 files / 185 tests passed. |
+| `npm.cmd run smoke` | PASS | 213/213 smoke checks passed. |
+| `npm.cmd run verify` | PASS | 131/131 verification checks plus smoke 213/213 passed. |
 | `npm.cmd run build` | PASS | Renderer/Electron builds passed; Vite chunk/dynamic import warnings are non-fatal. |
-| `npm.cmd run test:e2e` | PASS | Playwright E2E passed. |
+| `npm.cmd run test:e2e` | PASS | 17/17 Playwright E2E tests passed. |
 | `npm.cmd run test:static-browser` | PASS | Static browser checks passed, including responsive/overflow coverage. |
 | `npm.cmd run test:launch-static` | PASS | Static launcher smoke passed. |
 | `npm.cmd run test:electron-startup` | PASS | Built Electron startup reached ready marker. |
 | `npm.cmd run test:electron-auth-bridge` | PASS | `window.agentflow` auth bridge available. |
 | `npm.cmd run test:long-run` | PASS | 30-minute default stability run passed. |
+| `npm.cmd run scan:mojibake` | PASS | 162 files checked; 3 legacy docs remain allowlisted. |
 | `npm.cmd run shortcut` | PASS | Created/updated `LocalAI Nexus.lnk`. |
 | Shortcut COM inspection | PASS | Target, arguments, working directory, icon, and old shortcut removal verified. |
 | Direct Gateway smoke | PASS | `/health`, `/v1/models`, `/v1/chat/completions`, `/v1/responses`, `/responses`, and `/v1/messages` responded. |
-| `npm.cmd run dist` | ENV-LIMITED | Build passed, electron-builder Electron download timed out with `ERR_ELECTRON_BUILDER_CANNOT_EXECUTE`. |
+| `npm.cmd run dist` | ENV-LIMITED | Build passed and `release/win-unpacked/LocalAI Nexus.exe` was produced, but electron-builder/app-builder did not finish before the 15-minute verification timeout. |
 
 ## Gateway Smoke Evidence
 
@@ -64,19 +66,19 @@ Verified against the Electron-started Gateway at `http://127.0.0.1:8317`:
 
 ## Environment-Limited Packaging Evidence
 
-`npm.cmd run dist` ran the configured `npm run build && electron-builder` path. The Vite/Electron build portion passed. electron-builder then failed while downloading:
+`npm.cmd run dist` ran the configured `npm run build && electron-builder` path. The Vite/Electron build portion passed, and the unpacked Windows app was produced at:
 
 ```text
-https://github.com/electron/electron/releases/download/v33.4.11/electron-v33.4.11-win32-x64.zip
+D:\AgentFlowStudio\release\win-unpacked\LocalAI Nexus.exe
 ```
 
-Observed class: Windows network timeout / `ERR_ELECTRON_BUILDER_CANNOT_EXECUTE`.
+The packaging command did not complete before the 15-minute verification timeout while electron-builder/app-builder was finalizing the Windows package metadata. The residual packaging processes were stopped after timeout to avoid file locks.
 
-This is recorded as an environment/network packaging blocker, not as an application typecheck/build/startup failure.
+This is recorded as an environment/tooling packaging blocker, not as an application typecheck/build/startup failure.
 
 ## Not Yet Fully Tested
 
-- Packaged installer launch, because `npm.cmd run dist` could not download Electron.
+- Packaged installer launch, because `npm.cmd run dist` timed out before completing the final installer/package step.
 - Live credentialed provider forwarding with a user-supplied API key.
 - Real upstream streaming through Gateway.
 - Full quota/cooldown/concurrency enforcement beyond current UI/router surfaces.

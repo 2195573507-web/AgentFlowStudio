@@ -696,3 +696,4 @@ Verification:
 Environment-limited:
 
 - `npm.cmd run dist` completed the build step but electron-builder failed to download Electron `v33.4.11` for Windows from GitHub due network timeout / `ERR_ELECTRON_BUILDER_CANNOT_EXECUTE`.
+- 2026-05-11 cleanup closeout rerun: `npm.cmd run dist` rebuilt the app and produced `release/win-unpacked/LocalAI Nexus.exe`, but electron-builder/app-builder did not finish before the 15-minute verification timeout.

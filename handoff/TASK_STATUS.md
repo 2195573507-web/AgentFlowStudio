@@ -17,8 +17,8 @@
 | Shared Memory | Complete | Context-pack/recovery surfaces and redaction-oriented flows exist. |
 | Security Center | Complete | Report/risk/audit/redaction surfaces exist. |
 | Reliability checks | Complete | Typecheck, lint, test, smoke, verify, build, E2E, static, startup, auth bridge, long-run, shortcut, and gateway smoke passed. |
-| Packaging | Environment-limited | `npm.cmd run dist` could not download Electron `v33.4.11` after build passed. |
-| Git commit/push | Pending | Final stage after light verification. |
+| Packaging | Environment-limited | `npm.cmd run dist` built the app and produced `release/win-unpacked/LocalAI Nexus.exe`, but final packaging exceeded the local verification timeout. |
+| Git commit/push | Ready | Cleanup verification passed; commit and push are the final closure commands. |
 
 ## Latest Verification Matrix
 

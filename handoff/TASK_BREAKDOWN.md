@@ -16,10 +16,10 @@
 | J | Iteration 8 Skill/Agent/Workflow | complete | First-class surfaces and execution records exist. |
 | K | Iteration 9 Shared Memory | complete | Context-pack/recovery surfaces and redaction flows exist. |
 | L | Iteration 10 Security | complete | Security report/risk/audit/redaction surfaces exist. |
-| M | Iteration 11 Reliability | complete with environment-limited packaging | All local gates passed except electron-builder download. |
+| M | Iteration 11 Reliability | complete with environment-limited packaging | All local gates passed; final electron-builder/app-builder packaging timed out locally. |
 | N | Iteration 12 Ecosystem | complete | Local bundle registry/validation surfaces and docs exist. |
 | O | Next-stage plan | complete | `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md` exists. |
-| P | Git closure | pending | Final stage after light verification. |
+| P | Git closure | ready | Cleanup verification passed; commit and push are the final closure commands. |
 
 ## Next Stage
 

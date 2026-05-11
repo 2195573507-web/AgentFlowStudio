@@ -13,6 +13,9 @@ This progress file reflects the closeout of both the previous lightweight UI pla
 
 ## Completed
 
+- Cleaned and reorganized the repository on 2026-05-11 after scanning package scripts, Electron/Vite config, source references, tests, launchers, and handoff dependencies.
+- Removed regenerable ignored build/test/log artifacts from the active tree and archived historical rebuild/parallel-agent notes under `archive/2026-05/`.
+- Added cleanup records at `docs/cleanup/cleanup-review.md` and `docs/cleanup/cleanup-report.md`.
 - Closed the lightweight UI refactor: the renderer and static fallback use the flat SurfaceCard design system, restrained desktop-tool tokens, no default Liquid Glass styling, no heavy backdrop blur, and a compact navigation shell.
 - Added first-class routes/navigation for Dashboard, Provider Hub, Token Center, Health Monitor, Model Router, Local Gateway, Runtime Switcher, Diagnostics, Skill Hub, Agent Studio, Workflow Studio, Shared Memory, Security Center, Ecosystem, Git/Handoff, Admin, and Settings.
 - Added or connected main-process domain services for provider management, gateway forwarding/mocking, router decisions, runtime profile generation, memory context-pack preview, security reporting, and local ecosystem bundle registry behavior.
@@ -37,14 +40,23 @@ This progress file reflects the closeout of both the previous lightweight UI pla
 ## Planned
 
 - Continue from `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`.
-- Re-run packaging once Electron download/cache is available.
+- Re-run packaging with a longer timeout or corrected local electron-builder/app-builder environment.
 - Add live-provider and live-streaming smoke evidence only after the user supplies explicit credentials.
 
 ## Environment-Limited
 
-- `npm.cmd run dist` reached the build step, then electron-builder failed while downloading Electron `v33.4.11` for Windows from GitHub.
-- Observed class: Windows network timeout / `ERR_ELECTRON_BUILDER_CANNOT_EXECUTE`.
-- This is recorded as an environment/network packaging blocker, not as a TypeScript, Vite, Electron startup, shortcut, or gateway product failure.
+- `npm.cmd run dist` rebuilt the app and produced `release/win-unpacked/LocalAI Nexus.exe`.
+- Observed class: electron-builder/app-builder packaging did not finish before the 15-minute verification timeout.
+- This is recorded as an environment/tooling packaging blocker, not as a TypeScript, Vite, Electron startup, shortcut, or gateway product failure.
+
+## Cleanup Snapshot
+
+| Area | Result |
+|---|---|
+| Ignored generated artifacts | Removed `logs/`, `dist/`, `dist-electron/`, `release/`, and stale `.codex-parallel` cache/userData/report folders; the build and test scripts recreate them as needed. |
+| Historical docs | Moved old rebuild/refactor/parallel-agent materials into `archive/2026-05/docs-history/`, `archive/2026-05/handoff-history/`, `archive/2026-05/parallel-agents/handoff-archived-agents/`, and `archive/2026-05/root-progress/localai-nexus-iteration-0-12/`. |
+| Active docs/scripts/source/tests | Kept in place after reference scanning. |
+| Deferred items | Kept project-local Playwright browsers, current `.codex-parallel/results` and `.codex-parallel/logs`, compatibility icons, compatibility launchers, and one old parallel workspace with unmerged diff; see `docs/cleanup/cleanup-review.md`. |
 
 ## Verification Snapshot
 
@@ -65,7 +77,7 @@ This progress file reflects the closeout of both the previous lightweight UI pla
 | `npm.cmd run shortcut` | PASS |
 | Shortcut COM inspection | PASS |
 | Gateway HTTP smoke | PASS |
-| `npm.cmd run dist` | ENV-LIMITED download timeout |
+| `npm.cmd run dist` | ENV-LIMITED packaging timeout |
 
 ## Shortcut State
 

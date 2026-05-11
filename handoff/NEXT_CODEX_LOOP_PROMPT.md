@@ -47,13 +47,13 @@ Shortcut COM inspection and Gateway HTTP smoke also passed.
 
 ## Known Environment Limit
 
-`npm.cmd run dist` passed the build step, then electron-builder failed to download Electron `v33.4.11` for Windows from GitHub due network timeout / `ERR_ELECTRON_BUILDER_CANNOT_EXECUTE`.
+`npm.cmd run dist` rebuilt the app and produced `release/win-unpacked/LocalAI Nexus.exe`, but electron-builder/app-builder did not finish before the 15-minute verification timeout.
 
 ## Recommended Next Work
 
 1. Continue from `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`.
 2. Add live provider smoke only when user supplies explicit credentials.
 3. Add real upstream streaming/cancellation after non-streaming behavior stays green.
-4. Re-run packaging when Electron download/cache is available.
+4. Re-run packaging with a longer timeout or corrected electron-builder/app-builder environment.
 
 Do not rebuild from scratch. Do not remove Shared Memory Hub. Preserve JSON storage, Electron security boundaries, and `window.agentflow`. Use `npm.cmd`, not plain `npm`, from PowerShell.

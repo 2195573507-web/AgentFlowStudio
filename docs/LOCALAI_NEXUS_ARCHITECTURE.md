@@ -600,4 +600,4 @@ The Iteration 0-12 closeout expanded the architecture from the first refactor dr
 - `window.agentflow` remains the compatibility bridge; new renderer APIs are layered through preload and IPC rather than direct Node access.
 - Gateway direct smoke has passed for `/health`, `/v1/models`, `/v1/chat/completions`, `/v1/responses`, `/responses`, and `/v1/messages`.
 - Real credentialed upstream calls and real streaming are next-stage work because no provider credentials were supplied in this run.
-- Packaging is environment-limited until electron-builder can download or reuse the Electron `v33.4.11` Windows artifact.
+- Packaging is environment-limited until the local electron-builder/app-builder timeout after unpacked app generation is resolved.

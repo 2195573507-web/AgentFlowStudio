@@ -46,8 +46,8 @@ IconLocation: D:\AgentFlowStudio\assets\localai-nexus.ico,0
 
 ## Environment-Limited
 
-- `npm.cmd run dist` passed the build step, then electron-builder failed to download Electron `v33.4.11` for Windows from GitHub.
-- Observed class: Windows network timeout / `ERR_ELECTRON_BUILDER_CANNOT_EXECUTE`.
+- `npm.cmd run dist` rebuilt the app and produced `release/win-unpacked/LocalAI Nexus.exe`.
+- Observed class: electron-builder/app-builder packaging did not finish before the 15-minute verification timeout.
 - This is a packaging environment blocker, not an app typecheck/build/startup failure.
 
 ## Current Limits

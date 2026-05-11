@@ -46,7 +46,7 @@ The work was divided into these responsibility areas:
 | Skill/Agent/Workflow | prompt skill testing, workflow/agent continuity | Completed prompt skill test path; richer execution remains in progress. |
 | Security/Audit | RBAC, ACL, redaction, audit continuity | Preserved and extended existing foundations. |
 | UI/UX/Docs/Icon | CCS-style navigation, README, icon, shortcut | Completed LocalAI Nexus UI/launcher/docs pass. |
-| Testing/Release | validation, smoke tests, shortcut inspection, commit/push | Validation and shortcut inspection completed; commit/push pending final command. |
+| Testing/Release | validation, smoke tests, shortcut inspection, commit/push | Validation and shortcut inspection completed; commit/push is the final closure command. |
 
 Read-only verification agents also checked:
 
@@ -259,7 +259,7 @@ The current roadmap in `docs/LOCALAI_NEXUS_ITERATION_PLAN.md` was completed to t
 
 Packaging note:
 
-- `npm.cmd run dist` completed the build step but failed at electron-builder's Electron `v33.4.11` Windows zip download with a network timeout / `ERR_ELECTRON_BUILDER_CANNOT_EXECUTE`.
+- `npm.cmd run dist` rebuilt the app and produced `release/win-unpacked/LocalAI Nexus.exe`, but electron-builder/app-builder did not finish before the 15-minute verification timeout.
 - This is an environment-limited packaging blocker, not an app build/startup failure.
 
 Current next-stage plan:
@@ -267,3 +267,17 @@ Current next-stage plan:
 ```text
 docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md
 ```
+
+## 14. Repository Cleanup Pass
+
+Date: 2026-05-11
+
+Actions completed:
+
+- Scanned project structure, package scripts, Electron/Vite config, launcher scripts, source references, tests, and active handoff dependencies before moving or deleting files.
+- Deleted ignored, regenerable build/test/log artifacts: `logs/`, `dist/`, `dist-electron/`, `release/`, and stale `.codex-parallel` cache/userData/report folders.
+- Moved historical rebuild/refactor/parallel-agent materials into `archive/2026-05/docs-history/`, `archive/2026-05/handoff-history/`, `archive/2026-05/parallel-agents/handoff-archived-agents/`, and `archive/2026-05/root-progress/localai-nexus-iteration-0-12/`.
+- Kept active source, scripts, tests, handoff files, `static-app/`, compatibility launchers, compatibility icons, and `.agents/skills/` in place after reference checks.
+- Deferred ambiguous cleanup to `docs/cleanup/cleanup-review.md`, including the old parallel workspace with unmerged diff and project-local Playwright browser cache.
+
+Validation for this cleanup is recorded in `docs/cleanup/cleanup-report.md` and `handoff/TEST_REPORT.md`.

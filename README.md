@@ -20,7 +20,7 @@ The project remains rooted at `D:\AgentFlowStudio` to preserve Git history, JSON
 | Agent / Workflow | Completed | First-class execution-record surfaces with owner/provider/model/context/token data exist. Advanced controls continue next. |
 | Shared Memory | Completed | Filters, provenance/stale/context-pack preview/recovery surfaces and redaction-oriented flows exist. |
 | Security Center | Completed | RBAC/ACL visibility, audit/report surface, secret/risk prompts, and redaction surfaces exist. |
-| Packaging | Environment-limited | `npm.cmd run dist` builds first, then electron-builder cannot download Electron `v33.4.11` in this environment. |
+| Packaging | Environment-limited | `npm.cmd run dist` builds the app and produced `release/win-unpacked/LocalAI Nexus.exe`, but the final electron-builder/app-builder packaging step exceeded the local verification timeout. |
 
 ## Quick Start
 
@@ -129,13 +129,15 @@ See `handoff/TEST_REPORT.md` for the complete table. Latest closeout summary:
 - `npm.cmd run shortcut`: PASS
 - Shortcut COM inspection: PASS
 - Gateway HTTP smoke: PASS
-- `npm.cmd run dist`: ENV-LIMITED Electron download timeout after successful build step
+- `npm.cmd run dist`: ENV-LIMITED packaging timeout after successful build and unpacked app generation
 
 ## Documentation
 
 - Current progress: `PROJECT_PROGRESS.md`
 - Test report: `handoff/TEST_REPORT.md`
 - Next steps: `handoff/NEXT_STEPS.md`
+- Cleanup review: `docs/cleanup/cleanup-review.md`
+- Cleanup report: `docs/cleanup/cleanup-report.md`
 - Completed iteration plan: `docs/LOCALAI_NEXUS_ITERATION_PLAN.md`
 - Next-stage plan: `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`
 - Architecture: `docs/LOCALAI_NEXUS_ARCHITECTURE.md`
@@ -151,7 +153,7 @@ Continue from `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md`:
 3. Token policy enforcement.
 4. Agent/Workflow execution controls.
 5. Memory graph and recovery packs.
-6. Packaging/release hardening after the Electron download blocker is gone.
+6. Packaging/release hardening after the local electron-builder/app-builder timeout is resolved.
 
 ## License
 

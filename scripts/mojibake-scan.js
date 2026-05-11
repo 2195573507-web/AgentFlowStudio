@@ -19,9 +19,6 @@ const allowlist = new Set([
   'README.md',
   'AGENTS.md',
   'PROJECT_PROGRESS.md',
-  'task_plan.md',
-  'findings.md',
-  'progress.md',
 ])
 
 function walk(path, files = []) {

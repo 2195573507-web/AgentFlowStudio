@@ -26,6 +26,8 @@
 - Fixed duplicate React key risks in GitTimeline and SharedMemoryHub repeated values.
 
 ### Changed
+- Cleaned the active repository structure by deleting ignored regenerable build/test/log artifacts and moving historical rebuild/refactor/parallel-agent documents into `archive/2026-05/`.
+- Added cleanup documentation at `docs/cleanup/cleanup-review.md` and `docs/cleanup/cleanup-report.md`.
 - Updated smoke, verify, and E2E coverage to check the new LocalAI Nexus routes, IPC/preload/API surfaces, gateway/router/runtime/security/context/bundle surfaces, and required next-stage plan file.
 - Reconciled active progress, handoff, architecture, worklog, and test-report docs so Completed / In progress / Planned / Environment-limited statuses are explicit.
 - Login is now the public entry point, with authenticated app routes rendered behind a protected Liquid Glass shell.

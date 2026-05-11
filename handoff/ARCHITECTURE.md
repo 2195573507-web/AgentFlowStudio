@@ -94,4 +94,4 @@ Keep these until a migration plan exists:
 
 - Real credentialed upstream calls need user-supplied provider credentials.
 - Real upstream streaming pass-through and cancellation are next-stage work.
-- Installer packaging is blocked by electron-builder's Electron download timeout in this environment.
+- Installer packaging is blocked by a local electron-builder/app-builder timeout after `release/win-unpacked/LocalAI Nexus.exe` is generated.

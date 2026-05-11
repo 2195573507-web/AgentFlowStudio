@@ -30,7 +30,7 @@ Use this prompt when continuing LocalAI Nexus after the Iteration 0-12 closeout.
 - Built Electron LocalAI Nexus app is the primary deliverable.
 - Static fallback is recovery-only.
 - Typecheck, test, verify, build, E2E, static, startup, auth bridge, long-run, shortcut, and Gateway smoke have passed.
-- `npm.cmd run dist` is blocked by electron-builder's Electron download timeout, not by app build failure.
+- `npm.cmd run dist` is blocked by a local electron-builder/app-builder packaging timeout after app build and `release/win-unpacked/LocalAI Nexus.exe` generation, not by app build failure.
 
 ## Next Stage
 
