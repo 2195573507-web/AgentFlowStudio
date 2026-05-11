@@ -62,6 +62,7 @@ export interface AgentFlowAPI {
     createFromTemplate(data: unknown): Promise<unknown>;
     save(workflowId: string, data: Partial<Workflow> & { versionMessage?: string }): Promise<unknown>;
     run(data: unknown): Promise<unknown>;
+    controlRun(runId: string, action: string): Promise<unknown>;
     versions(workflowId: string): Promise<unknown>;
   };
   mcp: {
@@ -112,6 +113,11 @@ export interface AgentFlowAPI {
     summary(): Promise<unknown>;
     list(filters?: unknown): Promise<unknown>;
   };
+  tokenPolicies: {
+    list(): Promise<unknown>;
+    upsert(policy: unknown): Promise<unknown>;
+    evaluate(providerId: string, model?: string): Promise<unknown>;
+  };
   health: {
     summary(): Promise<unknown>;
     checkProvider(providerId: string): Promise<unknown>;
@@ -127,6 +133,7 @@ export interface AgentFlowAPI {
   };
   contextPack: {
     preview(options?: unknown): Promise<unknown>;
+    recoveryPack(options?: unknown): Promise<unknown>;
   };
   templateBundles: {
     list(): Promise<unknown>;
@@ -143,6 +150,7 @@ export interface AgentFlowAPI {
     disable(id: string): Promise<unknown>;
     health(id: string): Promise<unknown>;
     executions(agentId: string): Promise<unknown>;
+    controlExecution(executionId: string, action: string): Promise<unknown>;
     timeline(agentId: string): Promise<unknown>;
   };
   agentFeedback: {
@@ -250,6 +258,8 @@ const api: AgentFlowAPI = {
     save: (workflowId: string, data: Partial<Workflow> & { versionMessage?: string }) =>
       ipcRenderer.invoke(IPC_CHANNELS.WORKFLOW_SAVE, buildAuthEnvelope(), workflowId, data),
     run: (data: unknown) => ipcRenderer.invoke(IPC_CHANNELS.WORKFLOW_RUN, buildAuthEnvelope(), data),
+    controlRun: (runId: string, action: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.WORKFLOW_RUN_CONTROL, buildAuthEnvelope(), runId, action),
     versions: (workflowId: string) => ipcRenderer.invoke(IPC_CHANNELS.WORKFLOW_VERSION_LIST, buildAuthEnvelope(), workflowId),
   },
 
@@ -313,6 +323,13 @@ const api: AgentFlowAPI = {
     list: (filters?: unknown) => ipcRenderer.invoke(IPC_CHANNELS.USAGE_LIST, buildAuthEnvelope(), filters),
   },
 
+  tokenPolicies: {
+    list: () => ipcRenderer.invoke(IPC_CHANNELS.TOKEN_POLICY_LIST, buildAuthEnvelope()),
+    upsert: (policy: unknown) => ipcRenderer.invoke(IPC_CHANNELS.TOKEN_POLICY_UPSERT, buildAuthEnvelope(), policy),
+    evaluate: (providerId: string, model?: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.TOKEN_POLICY_EVALUATE, buildAuthEnvelope(), providerId, model),
+  },
+
   health: {
     summary: () => ipcRenderer.invoke(IPC_CHANNELS.HEALTH_SUMMARY, buildAuthEnvelope()),
     checkProvider: (providerId: string) => ipcRenderer.invoke(IPC_CHANNELS.HEALTH_CHECK_PROVIDER, buildAuthEnvelope(), providerId),
@@ -332,6 +349,7 @@ const api: AgentFlowAPI = {
 
   contextPack: {
     preview: (options?: unknown) => ipcRenderer.invoke(IPC_CHANNELS.CONTEXT_PACK_PREVIEW, buildAuthEnvelope(), options),
+    recoveryPack: (options?: unknown) => ipcRenderer.invoke(IPC_CHANNELS.CONTEXT_RECOVERY_PACK, buildAuthEnvelope(), options),
   },
 
   templateBundles: {
@@ -350,6 +368,8 @@ const api: AgentFlowAPI = {
     disable: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.AGENT_DISABLE, buildAuthEnvelope(), id),
     health: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.AGENT_HEALTH, buildAuthEnvelope(), id),
     executions: (agentId: string) => ipcRenderer.invoke(IPC_CHANNELS.AGENT_EXECUTIONS_LIST, buildAuthEnvelope(), agentId),
+    controlExecution: (executionId: string, action: string) =>
+      ipcRenderer.invoke(IPC_CHANNELS.AGENT_EXECUTION_CONTROL, buildAuthEnvelope(), executionId, action),
     timeline: (agentId: string) => ipcRenderer.invoke(IPC_CHANNELS.AGENT_TIMELINE_LIST, buildAuthEnvelope(), agentId),
   },
 

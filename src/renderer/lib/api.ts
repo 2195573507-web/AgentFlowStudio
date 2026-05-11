@@ -27,9 +27,12 @@ import type {
   NexusGatewayStatus,
   NexusHealthCheckResult,
   NexusContextPackPreview,
+  NexusRecoveryPack,
   NexusRouterDecision,
   NexusSecurityReport,
   NexusTemplateBundle,
+  NexusTokenPolicy,
+  NexusTokenPolicyEvaluation,
   NexusRuntimeProfile,
   NexusSkillTestResult,
   NexusUsageRecord,
@@ -116,6 +119,7 @@ interface AgentFlowPreloadAPI {
     createFromTemplate(data: { projectId: string; templateId: string; name?: string }): Promise<Workflow | { error: string }>;
     save(workflowId: string, data: Partial<Workflow> & { versionMessage?: string }): Promise<Workflow | { error: string }>;
     run(data: { workflowId: string; input?: string }): Promise<{ run: Run; result: WorkflowRunResult } | { error: string }>;
+    controlRun?(runId: string, action: string): Promise<Run | { error: string }>;
     versions(workflowId: string): Promise<WorkflowVersion[] | { error: string }>;
   };
   mcp?: {
@@ -171,6 +175,11 @@ interface AgentFlowPreloadAPI {
     summary(): Promise<NexusUsageSummary | { error: string }>;
     list(filters?: unknown): Promise<NexusUsageRecord[] | { error: string }>;
   };
+  tokenPolicies?: {
+    list(): Promise<NexusTokenPolicy[] | { error: string }>;
+    upsert(policy: Partial<NexusTokenPolicy>): Promise<NexusTokenPolicy | { error: string }>;
+    evaluate(providerId: string, model?: string): Promise<NexusTokenPolicyEvaluation | { error: string }>;
+  };
   health?: {
     summary(): Promise<{ latest: NexusHealthCheckResult[]; byStatus: Record<string, number> } | { error: string }>;
     checkProvider(providerId: string): Promise<NexusHealthCheckResult | { error: string }>;
@@ -186,6 +195,7 @@ interface AgentFlowPreloadAPI {
   };
   contextPack?: {
     preview(options?: { projectId?: string }): Promise<NexusContextPackPreview | { error: string }>;
+    recoveryPack(options?: { projectId?: string }): Promise<NexusRecoveryPack | { error: string }>;
   };
   templateBundles?: {
     list(): Promise<NexusTemplateBundle[] | { error: string }>;
@@ -202,6 +212,7 @@ interface AgentFlowPreloadAPI {
     disable(id: string): Promise<AgentRecord | { error: string }>;
     health(id: string): Promise<unknown>;
     executions(agentId: string): Promise<AgentExecutionRecord[] | { error: string }>;
+    controlExecution?(executionId: string, action: string): Promise<AgentExecutionRecord | { error: string }>;
     timeline(agentId: string): Promise<unknown[] | { error: string }>;
   };
   agentFeedback?: {
@@ -658,6 +669,12 @@ export const api = {
         (a) => a.workflows?.run(data) ?? Promise.resolve({ error: 'Workflow bridge unavailable.' }),
         { error: 'Workflow bridge unavailable.' },
       ),
+    controlRun: (runId: string, action: string) =>
+      apiCall<Run | { error: string }>(
+        'workflows.controlRun',
+        (a) => a.workflows?.controlRun?.(runId, action) ?? Promise.resolve({ error: 'Workflow control bridge unavailable.' }),
+        { error: 'Workflow control bridge unavailable.' },
+      ),
     versions: (workflowId: string) =>
       apiCall<WorkflowVersion[] | { error: string }>(
         'workflows.versions',
@@ -1039,6 +1056,27 @@ export const api = {
       ),
   },
 
+  tokenPolicies: {
+    list: () =>
+      apiCall<NexusTokenPolicy[] | { error: string }>(
+        'tokenPolicies.list',
+        (a) => a.tokenPolicies?.list() ?? Promise.resolve([]),
+        [],
+      ),
+    upsert: (policy: Partial<NexusTokenPolicy>) =>
+      apiCall<NexusTokenPolicy | { error: string }>(
+        'tokenPolicies.upsert',
+        (a) => a.tokenPolicies?.upsert(policy) ?? Promise.resolve({ error: 'Token policy bridge unavailable.' }),
+        { error: 'Token policy bridge unavailable.' },
+      ),
+    evaluate: (providerId: string, model?: string) =>
+      apiCall<NexusTokenPolicyEvaluation | { error: string }>(
+        'tokenPolicies.evaluate',
+        (a) => a.tokenPolicies?.evaluate(providerId, model) ?? Promise.resolve({ error: 'Token policy bridge unavailable.' }),
+        { error: 'Token policy bridge unavailable.' },
+      ),
+  },
+
   health: {
     summary: () =>
       apiCall<{ latest: NexusHealthCheckResult[]; byStatus: Record<string, number> } | { error: string }>(
@@ -1088,6 +1126,12 @@ export const api = {
         (a) => a.contextPack?.preview(options) ?? Promise.resolve({ error: 'Context pack bridge unavailable.' }),
         { error: 'Context pack bridge unavailable.' },
       ),
+    recoveryPack: (options?: { projectId?: string }) =>
+      apiCall<NexusRecoveryPack | { error: string }>(
+        'contextPack.recoveryPack',
+        (a) => a.contextPack?.recoveryPack?.(options) ?? Promise.resolve({ error: 'Recovery pack bridge unavailable.' }),
+        { error: 'Recovery pack bridge unavailable.' },
+      ),
   },
 
   templateBundles: {
@@ -1130,6 +1174,8 @@ export const api = {
       apiCall<unknown>('agents.health', (a) => a.agents?.health(id) ?? Promise.resolve({ error: 'Agent bridge unavailable.' }), { error: 'Agent bridge unavailable.' }),
     executions: (agentId: string) =>
       apiCall<AgentExecutionRecord[] | { error: string }>('agents.executions', (a) => a.agents?.executions(agentId) ?? Promise.resolve([]), []),
+    controlExecution: (executionId: string, action: string) =>
+      apiCall<AgentExecutionRecord | { error: string }>('agents.controlExecution', (a) => a.agents?.controlExecution?.(executionId, action) ?? Promise.resolve({ error: 'Agent execution control bridge unavailable.' }), { error: 'Agent execution control bridge unavailable.' }),
     timeline: (agentId: string) =>
       apiCall<unknown[] | { error: string }>('agents.timeline', (a) => a.agents?.timeline(agentId) ?? Promise.resolve([]), []),
   },

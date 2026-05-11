@@ -173,7 +173,7 @@ export interface AgentRecord {
   deletedAt?: string
 }
 
-export type AgentExecutionStatus = 'queued' | 'running' | 'success' | 'failed' | 'cancelled' | 'demo'
+export type AgentExecutionStatus = 'queued' | 'running' | 'paused' | 'success' | 'failed' | 'cancelled' | 'demo'
 
 export interface AgentExecutionRecord {
   id: string
@@ -517,6 +517,7 @@ export interface NexusGatewayForwardInput {
   body: Record<string, unknown>
   stream?: boolean
   requestId?: string
+  signal?: AbortSignal
 }
 
 export interface NexusGatewayForwardResult {
@@ -535,6 +536,8 @@ export interface NexusGatewayForwardResult {
   latencyMs: number
   failureCategory: NexusFailureCategory
   streamed?: boolean
+  cancelled?: boolean
+  streamProtocol?: 'mock' | 'sse' | 'buffered'
   events?: Array<{ type: NexusGatewayStreamEventType; data: unknown }>
 }
 
@@ -547,7 +550,24 @@ export interface NexusTokenPolicy {
   concurrencyLimit: number
   cooldownMinutes: number
   enabled: boolean
+  reason?: string
+  createdAt?: string
   updatedAt: string
+}
+
+export interface NexusTokenPolicyEvaluation {
+  providerId?: string
+  model?: string
+  state: 'available' | 'cooldown' | 'quota_exhausted' | 'concurrency_limited' | 'unconfigured'
+  reason: string
+  dailyTokens: number
+  monthlyTokens: number
+  activeRequests: number
+  dailyQuota: number
+  monthlyQuota: number
+  concurrencyLimit: number
+  cooldownUntil?: string
+  checkedAt: string
 }
 
 export interface NexusRouterDecision {
@@ -558,7 +578,7 @@ export interface NexusRouterDecision {
   intent: string
   reason: string
   fallbackUsed: boolean
-  quotaState: 'available' | 'cooldown' | 'quota_exhausted' | 'unconfigured'
+  quotaState: NexusTokenPolicyEvaluation['state']
   checkedAt: string
 }
 
@@ -596,6 +616,20 @@ export interface NexusContextPackPreview {
   sources: Array<{ type: 'memory' | 'files' | 'git_diff' | 'logs' | 'terminal_summary' | 'docs' | 'workflow_run' | 'provider_trace'; label: string; included: boolean; redacted: boolean }>
   memoryCount: number
   staleMemoryCount: number
+  related: Array<{ memoryId: string; relatedMemoryId: string; reason: string }>
+  prompt: string
+}
+
+export interface NexusRecoveryPack {
+  id: string
+  generatedAt: string
+  projectId?: string
+  sourceLabels: string[]
+  memoryIds: string[]
+  staleMemoryIds: string[]
+  providerTraceIds: string[]
+  workflowRunIds: string[]
+  redaction: 'secrets-redacted'
   prompt: string
 }
 
@@ -792,6 +826,7 @@ export const IPC_CHANNELS = {
   WORKFLOW_CREATE_FROM_TEMPLATE: 'workflow:createFromTemplate',
   WORKFLOW_SAVE: 'workflow:save',
   WORKFLOW_RUN: 'workflow:run',
+  WORKFLOW_RUN_CONTROL: 'workflow:run:control',
   WORKFLOW_VERSION_LIST: 'workflow:versions:list',
 
   // MCP
@@ -835,12 +870,16 @@ export const IPC_CHANNELS = {
   GATEWAY_STOP: 'gateway:stop',
   USAGE_SUMMARY: 'usage:summary',
   USAGE_LIST: 'usage:list',
+  TOKEN_POLICY_LIST: 'tokenPolicy:list',
+  TOKEN_POLICY_UPSERT: 'tokenPolicy:upsert',
+  TOKEN_POLICY_EVALUATE: 'tokenPolicy:evaluate',
   HEALTH_SUMMARY: 'health:summary',
   HEALTH_CHECK_PROVIDER: 'health:provider:check',
   RUNTIME_PROFILES_GENERATE: 'runtime:profiles:generate',
   ROUTER_DECISIONS_LIST: 'router:decisions:list',
   SECURITY_REPORT_GENERATE: 'security:report:generate',
   CONTEXT_PACK_PREVIEW: 'contextPack:preview',
+  CONTEXT_RECOVERY_PACK: 'contextPack:recoveryPack',
   TEMPLATE_BUNDLES_LIST: 'templateBundles:list',
   TEMPLATE_BUNDLES_UPSERT: 'templateBundles:upsert',
   TEMPLATE_BUNDLES_TOGGLE: 'templateBundles:toggle',
@@ -855,6 +894,7 @@ export const IPC_CHANNELS = {
   AGENT_DISABLE: 'agent:disable',
   AGENT_HEALTH: 'agent:health',
   AGENT_EXECUTIONS_LIST: 'agent:executions:list',
+  AGENT_EXECUTION_CONTROL: 'agent:execution:control',
   AGENT_TIMELINE_LIST: 'agent:timeline:list',
   AGENT_FEEDBACK_CREATE: 'agentFeedback:create',
   AGENT_FEEDBACK_LIST: 'agentFeedback:list',

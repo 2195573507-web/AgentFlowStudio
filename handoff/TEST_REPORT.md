@@ -16,10 +16,10 @@ Packaging is **environment-limited**: `npm.cmd run dist` completed the build ste
 |---|---:|---|
 | `git status -sb` | PASS | Branch `refactor-localai-nexus`; changes remained uncommitted during validation. |
 | `npm.cmd run typecheck` | PASS | TypeScript passed. |
-| `npm.cmd run lint` | PASS | Warnings under configured threshold. |
-| `npm.cmd run test` | PASS | Unit suite passed. |
+| `npm.cmd run lint` | PASS | 0 errors / 21 warnings, under configured threshold. |
+| `npm.cmd run test` | PASS | 25 files / 185 tests passed after resume. |
 | `npm.cmd run smoke` | PASS | Smoke suite passed after LocalAI Nexus expansion. |
-| `npm.cmd run verify` | PASS | Build verification and smoke checks passed. |
+| `npm.cmd run verify` | PASS | 131/131 verification checks plus smoke 213/213 passed after resume. |
 | `npm.cmd run build` | PASS | Renderer/Electron builds passed; Vite chunk/dynamic import warnings are non-fatal. |
 | `npm.cmd run test:e2e` | PASS | Playwright E2E passed. |
 | `npm.cmd run test:static-browser` | PASS | Static browser checks passed, including responsive/overflow coverage. |

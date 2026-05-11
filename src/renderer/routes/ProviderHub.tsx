@@ -1,12 +1,12 @@
 import React from 'react';
-import { Activity, CheckCircle2, KeyRound, Plus, RefreshCw, Server, ShieldCheck, Trash2 } from 'lucide-react';
+import { Activity, Edit3, KeyRound, PauseCircle, Plus, RefreshCw, RotateCcw, Server, ShieldCheck, Trash2 } from 'lucide-react';
 import { Badge, Button, EmptyState, Input, Modal, SurfaceCard } from '../components';
 import { api } from '../lib/api';
 import type { ProviderPreset, ProviderSetting } from '../lib/types';
 import { PROVIDER_PRESETS, presetToProvider } from '../../shared/providerPresets';
 import { generateId } from '../lib/utils';
 
-const emptyProvider = {
+const emptyProvider: Pick<ProviderSetting, 'providerName' | 'baseUrl' | 'apiKey' | 'modelName' | 'enabled' | 'memoryEnabled' | 'memoryInjectionMode' | 'maxMemoryItems' | 'maxMemoryChars'> = {
   providerName: '',
   baseUrl: '',
   apiKey: '',
@@ -25,8 +25,11 @@ export default function ProviderHub() {
   const [loading, setLoading] = React.useState(true);
   const [message, setMessage] = React.useState('');
   const [open, setOpen] = React.useState(false);
+  const [editingId, setEditingId] = React.useState('');
+  const [deleteTarget, setDeleteTarget] = React.useState<ProviderSetting | null>(null);
+  const [disableTarget, setDisableTarget] = React.useState<ProviderSetting | null>(null);
   const [presetId, setPresetId] = React.useState('openai-compatible');
-  const [form, setForm] = React.useState(emptyProvider);
+  const [form, setForm] = React.useState<Partial<ProviderSetting>>(emptyProvider);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -48,6 +51,18 @@ export default function ProviderHub() {
     const base = preset ? presetToProvider(preset) : {};
     setPresetId(nextPresetId);
     setForm({ ...emptyProvider, ...base, apiKey: '' });
+    setEditingId('');
+  };
+
+  const openEdit = (provider: ProviderSetting, rotateKey = false) => {
+    setEditingId(provider.id);
+    setPresetId(provider.providerId ?? 'custom');
+    setForm({
+      ...emptyProvider,
+      ...provider,
+      apiKey: rotateKey ? '' : provider.apiKey || '',
+    });
+    setOpen(true);
   };
 
   const save = async () => {
@@ -56,26 +71,42 @@ export default function ProviderHub() {
       ...(preset ? presetToProvider(preset, form) : {}),
       ...form,
       providerId: preset?.providerId ?? presetId,
-      id: generateId(),
+      id: editingId || generateId(),
     } as ProviderSetting;
-    const saved = await api.providers.create(payload);
-    if ('error' in saved) setMessage(typeof saved.error === 'string' ? saved.error : 'Provider save failed.');
+    const saved = editingId ? await api.providers.update(editingId, payload) : await api.providers.create(payload);
+    if (!saved) setMessage('Provider save failed.');
+    else if ('error' in saved) setMessage(typeof saved.error === 'string' ? saved.error : 'Provider save failed.');
     else {
-      setMessage(`Saved ${saved.providerName}`);
+      setMessage(`${editingId ? 'Updated' : 'Saved'} ${saved.providerName}`);
       setOpen(false);
+      setEditingId('');
       await load();
     }
   };
 
   const test = async (provider: ProviderSetting) => {
     const result = await api.providers.testConnection(provider.id);
-    setMessage('error' in result ? result.error : result.message);
+    setMessage('error' in result ? String(result.error) : String(result.message ?? 'Provider test finished.'));
     await load();
   };
 
   const switchProvider = async (provider: ProviderSetting) => {
     const result = await api.providers.setActive({ providerRef: provider.id, model: provider.modelName, scope: 'workspace' });
     setMessage('error' in result ? result.error : `Active provider: ${provider.providerName} / ${provider.modelName}`);
+    await load();
+  };
+
+  const toggleEnabled = async (provider: ProviderSetting, enabled: boolean) => {
+    const result = await api.providers.update(provider.id, { enabled });
+    setMessage(!result ? 'Provider update failed.' : 'error' in result ? String(result.error) : `${provider.providerName} ${enabled ? 'enabled' : 'disabled'}.`);
+    setDisableTarget(null);
+    await load();
+  };
+
+  const removeProvider = async (provider: ProviderSetting) => {
+    await api.providers.delete(provider.id);
+    setMessage(`Deleted ${provider.providerName}.`);
+    setDeleteTarget(null);
     await load();
   };
 
@@ -116,6 +147,7 @@ export default function ProviderHub() {
               <div className="mt-4 flex flex-wrap gap-2">
                 <Badge>{provider.providerId ?? 'custom'}</Badge>
                 <Badge>{provider.modelName}</Badge>
+                <Badge>{provider.enabled === false ? 'disabled' : 'enabled'}</Badge>
                 <Badge>{provider.lastTestStatus ?? 'untested'}</Badge>
                 {provider.supportsStreaming && <Badge>streaming</Badge>}
               </div>
@@ -126,7 +158,20 @@ export default function ProviderHub() {
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button size="sm" variant="secondary" onClick={() => void test(provider)}>Test</Button>
                 <Button size="sm" onClick={() => void switchProvider(provider)}>Set Active</Button>
-                <Button size="sm" variant="ghost" className="text-red-500" onClick={() => void api.providers.delete(provider.id).then(load)} aria-label={`Delete ${provider.providerName}`}>
+                <Button size="sm" variant="ghost" onClick={() => openEdit(provider)} aria-label={`Edit ${provider.providerName}`}>
+                  <Edit3 className="h-4 w-4" />
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => openEdit(provider, true)} aria-label={`Rotate key for ${provider.providerName}`}>
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+                {provider.enabled === false ? (
+                  <Button size="sm" variant="secondary" onClick={() => void toggleEnabled(provider, true)}>Enable</Button>
+                ) : (
+                  <Button size="sm" variant="ghost" onClick={() => setDisableTarget(provider)} aria-label={`Disable ${provider.providerName}`}>
+                    <PauseCircle className="h-4 w-4" />
+                  </Button>
+                )}
+                <Button size="sm" variant="ghost" className="text-red-500" onClick={() => setDeleteTarget(provider)} aria-label={`Delete ${provider.providerName}`}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -135,7 +180,7 @@ export default function ProviderHub() {
         </div>
       )}
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Add Provider" size="lg">
+      <Modal open={open} onClose={() => { setOpen(false); setEditingId(''); }} title={editingId ? 'Edit Provider' : 'Add Provider'} size="lg">
         <div className="space-y-4">
           <label className="block text-xs font-semibold text-[var(--text-secondary)]">Preset</label>
           <select className="control-input" value={presetId} onChange={(event) => resetFromPreset(event.target.value)}>
@@ -147,11 +192,31 @@ export default function ProviderHub() {
             <Input label="Model" value={form.modelName} onChange={(event) => setForm((prev) => ({ ...prev, modelName: event.target.value }))} />
           </div>
           <Input label="Base URL" value={form.baseUrl} onChange={(event) => setForm((prev) => ({ ...prev, baseUrl: event.target.value }))} />
-          <Input label="API Key" type="password" icon={<KeyRound className="h-4 w-4" />} value={form.apiKey} onChange={(event) => setForm((prev) => ({ ...prev, apiKey: event.target.value }))} placeholder="Stored protected; renderer sees only a mask after save." />
+          <Input label={editingId ? 'API Key / rotate credential' : 'API Key'} type="password" icon={<KeyRound className="h-4 w-4" />} value={form.apiKey} onChange={(event) => setForm((prev) => ({ ...prev, apiKey: event.target.value }))} placeholder="Stored protected; renderer sees only a mask after save." />
+          <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+            <input type="checkbox" checked={form.enabled !== false} onChange={(event) => setForm((prev) => ({ ...prev, enabled: event.target.checked }))} />
+            Enabled for routing
+          </label>
         </div>
         <div className="mt-5 flex justify-end gap-2 border-t border-[var(--border)] pt-4">
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={save}>Save Provider</Button>
+          <Button onClick={save}>{editingId ? 'Update Provider' : 'Save Provider'}</Button>
+        </div>
+      </Modal>
+
+      <Modal open={!!disableTarget} onClose={() => setDisableTarget(null)} title="Disable Provider" size="sm">
+        <p className="text-sm text-[var(--text-secondary)]">Disable {disableTarget?.providerName}? Model Router will skip it and audit the change.</p>
+        <div className="mt-5 flex justify-end gap-2 border-t border-[var(--border)] pt-4">
+          <Button variant="ghost" onClick={() => setDisableTarget(null)}>Cancel</Button>
+          <Button variant="secondary" onClick={() => disableTarget && void toggleEnabled(disableTarget, false)}>Disable</Button>
+        </div>
+      </Modal>
+
+      <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Delete Provider" size="sm">
+        <p className="text-sm text-[var(--text-secondary)]">Delete {deleteTarget?.providerName}? Runtime profiles and existing traces remain, but this provider can no longer be routed.</p>
+        <div className="mt-5 flex justify-end gap-2 border-t border-[var(--border)] pt-4">
+          <Button variant="ghost" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+          <Button variant="danger" onClick={() => deleteTarget && void removeProvider(deleteTarget)}>Delete</Button>
         </div>
       </Modal>
     </div>

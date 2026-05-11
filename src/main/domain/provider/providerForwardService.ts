@@ -74,6 +74,78 @@ function streamEvents(text: string): Array<{ type: NexusGatewayStreamEventType; 
   ];
 }
 
+function normalizeStreamEvent(type: string): NexusGatewayStreamEventType {
+  if (type === 'message_start' || type === 'content_delta' || type === 'message_delta' || type === 'message_stop' || type === 'error') return type;
+  if (type.includes('delta')) return 'content_delta';
+  if (type.includes('done') || type.includes('stop') || type.includes('completed')) return 'message_stop';
+  if (type.includes('error')) return 'error';
+  return 'content_delta';
+}
+
+function parseSseStream(raw: string): Array<{ type: NexusGatewayStreamEventType; data: unknown }> {
+  const events: Array<{ type: NexusGatewayStreamEventType; data: unknown }> = [];
+  let currentEvent = 'content_delta';
+  const blocks = raw.split(/\r?\n\r?\n/);
+  for (const block of blocks) {
+    const lines = block.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    if (!lines.length) continue;
+    const dataLines: string[] = [];
+    for (const line of lines) {
+      if (line.startsWith('event:')) currentEvent = line.slice('event:'.length).trim() || currentEvent;
+      if (line.startsWith('data:')) {
+        const data = line.slice('data:'.length).trim();
+        if (data === '[DONE]') {
+          events.push({ type: 'message_stop', data: { finish_reason: 'stop' } });
+        } else {
+          dataLines.push(data);
+        }
+      }
+    }
+    if (dataLines.length) {
+      const text = dataLines.join('\n');
+      let parsed: unknown = { text };
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        // Keep text payloads as-is for providers that stream plain data lines.
+      }
+      events.push({ type: normalizeStreamEvent(currentEvent), data: parsed });
+    }
+  }
+  return events.length ? events : streamEvents(raw);
+}
+
+async function readResponseBody(response: Response, stream: boolean): Promise<{ parsed: unknown; text: string; events?: Array<{ type: NexusGatewayStreamEventType; data: unknown }>; protocol: 'sse' | 'buffered' }> {
+  const contentType = response.headers.get('content-type') ?? '';
+  const raw = await response.text();
+  if (stream && contentType.includes('text/event-stream')) {
+    const events = parseSseStream(raw);
+    const text = events
+      .map((event) => {
+        const value = event.data;
+        if (typeof value === 'string') return value;
+        if (value && typeof value === 'object') {
+          const record = value as { text?: unknown; choices?: Array<{ delta?: { content?: unknown }; message?: { content?: unknown } }> };
+          if (typeof record.text === 'string') return record.text;
+          const first = record.choices?.[0];
+          if (typeof first?.delta?.content === 'string') return first.delta.content;
+          if (typeof first?.message?.content === 'string') return first.message.content;
+        }
+        return '';
+      })
+      .filter(Boolean)
+      .join('');
+    return { parsed: { stream: events }, text: text || raw, events, protocol: 'sse' };
+  }
+  let parsed: unknown = raw;
+  try {
+    parsed = raw ? JSON.parse(raw) : {};
+  } catch {
+    parsed = { text: raw };
+  }
+  return { parsed, text: toText(parsed), protocol: 'buffered' };
+}
+
 function formatMockBody(kind: NexusGatewayRequestKind, model: string, text: string, traceId: string, inputTokens: number, outputTokens: number) {
   if (kind === 'responses') {
     return {
@@ -128,6 +200,7 @@ function mockResponse(input: NexusGatewayForwardInput, route: RouteModelResult, 
     latencyMs: Date.now() - started,
     failureCategory: 'none',
     streamed: Boolean(input.stream),
+    streamProtocol: input.stream ? 'mock' : undefined,
     events,
   };
 }
@@ -203,6 +276,12 @@ export async function forwardProviderRequest(input: NexusGatewayForwardInput, ro
   if (apiKey) headers.authorization = provider.authType === 'apiKey' ? `Bearer ${apiKey}` : `Bearer ${apiKey}`;
 
   const controller = new AbortController();
+  let cancelled = false;
+  const abortFromClient = () => {
+    cancelled = true;
+    controller.abort();
+  };
+  input.signal?.addEventListener('abort', abortFromClient, { once: true });
   const timeout = setTimeout(() => controller.abort(), provider.defaultTimeout ?? 30_000);
   try {
     const response = await fetch(url, {
@@ -211,21 +290,14 @@ export async function forwardProviderRequest(input: NexusGatewayForwardInput, ro
       body: JSON.stringify({ ...input.body, model: input.body.model ?? route.model, stream: Boolean(input.stream) }),
       signal: controller.signal,
     });
-    const raw = await response.text();
-    let parsed: unknown = raw;
-    try {
-      parsed = raw ? JSON.parse(raw) : {};
-    } catch {
-      parsed = { text: raw };
-    }
-    const text = toText(parsed);
+    const { parsed, text, events, protocol } = await readResponseBody(response, Boolean(input.stream));
     const outputTokens = estimateTokens(text);
     const failureCategory = response.ok ? 'none' : classifyFailure(response.status, text);
-    const events = input.stream && response.ok ? streamEvents(text) : undefined;
+    const streamEventsOut = input.stream && response.ok ? events ?? streamEvents(text) : undefined;
     return {
       ok: response.ok,
       statusCode: response.status,
-      body: input.stream && response.ok ? { ...(parsed as Record<string, unknown>), stream: events } : parsed,
+      body: input.stream && response.ok ? { ...(parsed as Record<string, unknown>), stream: streamEventsOut } : parsed,
       providerId: provider.id,
       providerName: provider.providerName,
       model: route.model,
@@ -238,12 +310,16 @@ export async function forwardProviderRequest(input: NexusGatewayForwardInput, ro
       latencyMs: Date.now() - started,
       failureCategory,
       streamed: Boolean(input.stream && response.ok),
-      events,
+      streamProtocol: input.stream && response.ok ? protocol : undefined,
+      events: streamEventsOut,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return diagnosticResponse(input, route, started, message, classifyFailure(undefined, message));
+    const result = diagnosticResponse(input, route, started, cancelled ? 'Gateway client cancelled the upstream request.' : message, cancelled ? 'timeout' : classifyFailure(undefined, message));
+    result.cancelled = cancelled;
+    return result;
   } finally {
     clearTimeout(timeout);
+    input.signal?.removeEventListener('abort', abortFromClient);
   }
 }

@@ -38,9 +38,9 @@
 ### Validation
 - `npm.cmd run typecheck`: PASS.
 - `npm.cmd run lint`: PASS, warnings under threshold.
-- `npm.cmd run test`: PASS, 25 files / 182 tests.
-- `npm.cmd run smoke`: PASS, 210/210.
-- `npm.cmd run verify`: PASS, 130/130 plus smoke 210/210.
+- `npm.cmd run test`: PASS, 25 files / 185 tests.
+- `npm.cmd run smoke`: PASS, 213/213.
+- `npm.cmd run verify`: PASS, 131/131 plus smoke 213/213.
 - `npm.cmd run build`: PASS, Vite chunk/dynamic import warnings only.
 - `npm.cmd run test:e2e`: PASS, 17/17.
 - `npm.cmd run test:static-browser`: PASS.
@@ -55,7 +55,7 @@
 - `npm.cmd run typecheck`: PASS.
 - `npm.cmd run test`: PASS, 16 files, 149 tests.
 - `npm.cmd run test:e2e`: PASS, 14/14.
-- `npm.cmd run lint`: PASS, 0 errors / 28 warnings under threshold.
+- `npm.cmd run lint`: PASS, 0 errors / 21 warnings under threshold.
 - `npm.cmd run build`: PASS, existing Charts chunk-size warning plus api dynamic-import note.
 - `npm.cmd run smoke`: PASS, 168/168.
 - `npm.cmd run test -- templates safety theme apiRuns runLogs utils secretRedaction`: PASS, 72/72.

@@ -42,7 +42,7 @@ import { containsSecret, redactSecrets } from '../lib/secretRedaction';
 import { exportMemoriesToMarkdown, exportJSON } from '../lib/exporters';
 import { SurfaceCard, EmptyState, Button, Input, Textarea, Badge, Modal } from '../components/';
 import type {
-  Memory, MemoryType, MemoryStatus, MemoryInjectionMode, Project,
+  Memory, MemoryType, MemoryStatus, MemoryInjectionMode, NexusContextPackPreview, NexusRecoveryPack, Project,
 } from '../lib/types';
 import { generateId, formatRelativeDate, copyToClipboard, classNames, truncate } from '../lib/utils';
 
@@ -259,6 +259,8 @@ export default function SharedMemoryHub() {
   // Context generation
   const [contextInjectionMode, setContextInjectionMode] = useState<MemoryInjectionMode>('balanced');
   const [generatedContext, setGeneratedContext] = useState<string>('');
+  const [contextPreview, setContextPreview] = useState<NexusContextPackPreview | null>(null);
+  const [recoveryPack, setRecoveryPack] = useState<NexusRecoveryPack | null>(null);
   const [generatingContext, setGeneratingContext] = useState(false);
   const [copiedContext, setCopiedContext] = useState(false);
 
@@ -578,6 +580,18 @@ export default function SharedMemoryHub() {
 ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n- 已做决策：\\n  - 暂无记录\\n- 当前进度：\\n  - 暂无记录\\n- 已知问题：\\n  - 暂无记录\\n- 用户偏好：\\n  - 暂无记录\\n- API Provider 注意事项：\\n  - 暂无记录\\n[/Shared Memory Context]'}`;
 
       setGeneratedContext(recoveryPrompt);
+      const projectId = projectFilter !== 'all' ? projectFilter : undefined;
+      const [previewResult, packResult] = await Promise.all([
+        api.contextPack.preview({ projectId }).catch(() => null),
+        api.contextPack.recoveryPack({ projectId }).catch(() => null),
+      ]);
+      if (previewResult && typeof previewResult === 'object' && !('error' in previewResult)) {
+        setContextPreview(previewResult);
+        setGeneratedContext(previewResult.prompt || recoveryPrompt);
+      }
+      if (packResult && typeof packResult === 'object' && !('error' in packResult)) {
+        setRecoveryPack(packResult);
+      }
     } catch (err) {
       console.error('Generate memory context failed:', err);
       setGeneratedContext('# 生成上下文失败\n\n请稍后重试。');
@@ -780,7 +794,7 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
           <Button variant="ghost" onClick={() => { setShowImportModal(true); setImportResult(null); }} icon={<Upload className="w-4 h-4" />}>
             导入 JSON
           </Button>
-          <Button variant="ghost" onClick={() => { setShowContextModal(true); setGeneratedContext(''); }} icon={<Sparkles className="w-4 h-4" />}>
+          <Button variant="ghost" onClick={() => { setShowContextModal(true); setGeneratedContext(''); setContextPreview(null); setRecoveryPack(null); }} icon={<Sparkles className="w-4 h-4" />}>
             生成跨模型恢复 Prompt
           </Button>
           {projectFilter !== 'all' && (
@@ -1138,6 +1152,37 @@ ${context || '[Shared Memory Context]\\n- 项目背景：\\n  - 暂无记录\\n-
           >
             生成 Prompt
           </Button>
+
+          {contextPreview && (
+            <div className="rounded-panel border border-[var(--border)] bg-[var(--surface-muted)] p-3">
+              <h4 className="text-xs font-semibold uppercase text-[var(--text-muted)]">Recovery Pack Sources</h4>
+              <div className="mt-2 grid gap-2 md:grid-cols-2">
+                {contextPreview.sources.map((source) => (
+                  <div key={`${source.type}-${source.label}`} className="rounded-tool border border-[var(--border)] bg-[var(--surface)] p-2 text-xs">
+                    <div className="font-semibold text-[var(--text-primary)]">{source.label}</div>
+                    <div className="mt-1 text-[var(--text-muted)]">{source.included ? 'included' : 'excluded'} / {source.redacted ? 'redacted' : 'raw'}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs text-[var(--text-secondary)]">
+                <Badge>{contextPreview.memoryCount} memories</Badge>
+                <Badge>{contextPreview.staleMemoryCount} stale</Badge>
+                <Badge>{contextPreview.related.length} graph edges</Badge>
+              </div>
+            </div>
+          )}
+
+          {recoveryPack && (
+            <div className="rounded-panel border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs text-[var(--text-secondary)]">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge>{recoveryPack.redaction}</Badge>
+                <span>{recoveryPack.memoryIds.length} memory ids</span>
+                <span>{recoveryPack.providerTraceIds.length} provider traces</span>
+                <span>{recoveryPack.workflowRunIds.length} workflow runs</span>
+              </div>
+              <div className="mt-2 max-h-24 overflow-auto font-mono">{recoveryPack.sourceLabels.join(' | ')}</div>
+            </div>
+          )}
 
           {generatedContext && (
             <div>

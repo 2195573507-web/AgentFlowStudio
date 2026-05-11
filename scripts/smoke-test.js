@@ -191,6 +191,7 @@ const routerService = readText('src/main/domain/router/modelRouter.ts')
 const runtimeProfileService = readText('src/main/domain/runtime/runtimeProfileService.ts')
 const securityReportService = readText('src/main/domain/security/securityReportService.ts')
 const contextPackService = readText('src/main/domain/memory/contextPackService.ts')
+const tokenPolicyService = readText('src/main/domain/usage/tokenPolicyService.ts')
 const bundleRegistryService = readText('src/main/domain/ecosystem/bundleRegistryService.ts')
 check('contextIsolation enabled', main.includes('contextIsolation: true'))
 check('nodeIntegration disabled', main.includes('nodeIntegration: false'))
@@ -222,11 +223,15 @@ check('LocalAI Nexus IPC channels declared', [
   'GATEWAY_START',
   'GATEWAY_STOP',
   'USAGE_SUMMARY',
+  'TOKEN_POLICY_LIST',
+  'TOKEN_POLICY_UPSERT',
+  'TOKEN_POLICY_EVALUATE',
   'HEALTH_CHECK_PROVIDER',
   'RUNTIME_PROFILES_GENERATE',
   'ROUTER_DECISIONS_LIST',
   'SECURITY_REPORT_GENERATE',
   'CONTEXT_PACK_PREVIEW',
+  'CONTEXT_RECOVERY_PACK',
   'TEMPLATE_BUNDLES_LIST',
   'TEMPLATE_BUNDLES_UPSERT',
   'TEMPLATE_BUNDLES_TOGGLE',
@@ -243,11 +248,14 @@ check('LocalAI Nexus preload bridge exposes domains', ['providers', 'gateway', '
 check('gateway forwards through provider service', gatewayService.includes('forwardProviderRequest') && gatewayService.includes('routeModel') && gatewayService.includes('recordUsage'))
 check('gateway endpoint surface is complete', ['/health', '/v1/models', '/v1/chat/completions', '/v1/responses', '/responses', '/v1/messages'].every((endpoint) => gatewayService.includes(endpoint)))
 check('gateway stream event path exists', gatewayService.includes('text/event-stream') && providerForwardService.includes('streamEvents') && providerForwardService.includes('content_delta'))
+check('gateway parses upstream SSE and cancellation metadata', providerForwardService.includes('parseSseStream') && providerForwardService.includes('streamProtocol') && gatewayService.includes('req.once') && gatewayService.includes('cancelled'))
 check('mock provider keeps CI-safe forwarding path', providerForwardService.includes('localai-mock') && providerForwardService.includes('mock://') && providerForwardService.includes('LocalAI Nexus mock provider'))
 check('router records cooldown quota decisions', routerService.includes('quotaState') && routerService.includes('cooldown') && routerService.includes('quota_exhausted') && routerService.includes('modelRoutes'))
+check('token policy service enforces quota cooldown concurrency', tokenPolicyService.includes('evaluateTokenPolicy') && tokenPolicyService.includes('concurrency_limited') && routerService.includes('evaluateTokenPolicy'))
 check('runtime profiles include portable formats', ['env', 'json', 'toml', 'yaml', 'command', 'redaction'].every((keyword) => runtimeProfileService.includes(keyword)))
 check('security report service is redacted', securityReportService.includes('secrets-redacted') && securityReportService.includes('providerRiskCount') && securityReportService.includes('externalUrlPolicy'))
 check('context pack preview includes redacted sources', contextPackService.includes('sanitizeObject') && contextPackService.includes('staleMemoryCount') && contextPackService.includes('provider_trace'))
+check('context recovery pack includes graph and trace ids', contextPackService.includes('buildRecoveryPack') && contextPackService.includes('relatedMemoryPairs') && contextPackService.includes('providerTraceIds') && contextPackService.includes('workflowRunIds'))
 check('local template bundle registry is local-only', bundleRegistryService.includes('localOnly === false') && bundleRegistryService.includes('BUILTIN_TEMPLATE_BUNDLES') && bundleRegistryService.includes('toggleTemplateBundle'))
 
 console.log('\n[Shared Memory Safety]')

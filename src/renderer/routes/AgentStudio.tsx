@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bot, PlayCircle, RefreshCw, UserCheck } from 'lucide-react';
+import { Bot, Pause, PlayCircle, RefreshCw, RotateCcw, Square, UserCheck } from 'lucide-react';
 import { Badge, Button, EmptyState, SurfaceCard } from '../components';
 import { api } from '../lib/api';
 import type { AgentExecutionRecord, AgentRecord } from '../lib/types';
@@ -31,6 +31,12 @@ export default function AgentStudio() {
     await load();
   };
 
+  const controlExecution = async (executionId: string, action: string) => {
+    const result = await api.agents.controlExecution(executionId, action);
+    setMessage('error' in result ? result.error : `Execution ${action}: ${result.status}`);
+    await load();
+  };
+
   return (
     <div className="mx-auto max-w-7xl space-y-5 p-6">
       <section className="surface-card p-6"><div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"><div><h1 className="text-2xl font-bold">Agent Studio</h1><p className="mt-2 text-sm text-[var(--text-secondary)]">Delegated actors with human owner, provider/model, skills, memory scope, audit policy, execution records, and feedback loops.</p></div><div className="flex gap-2"><Button variant="secondary" onClick={load} icon={<RefreshCw className="h-4 w-4" />}>Refresh</Button><Button onClick={createDemo} icon={<PlayCircle className="h-4 w-4" />}>Create Demo</Button></div></div></section>
@@ -43,7 +49,26 @@ export default function AgentStudio() {
         <SurfaceCard className="p-5">
           <h2 className="flex items-center gap-2 text-base font-semibold"><UserCheck className="h-4 w-4" /> Execution timeline</h2>
           <div className="mt-4 space-y-2">
-            {executions.map((execution) => <div key={execution.id} className="rounded-tool border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-sm"><div className="flex items-center gap-2"><Badge>{execution.status}</Badge><span className="font-semibold">{execution.inputSummary}</span></div><p className="mt-1 text-xs text-[var(--text-secondary)]">{execution.outputSummary || execution.errorSummary}</p></div>)}
+            {executions.map((execution) => (
+              <div key={execution.id} className="rounded-tool border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-sm">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge>{execution.status}</Badge>
+                  <span className="font-semibold">{execution.inputSummary}</span>
+                </div>
+                <p className="mt-1 text-xs text-[var(--text-secondary)]">{execution.outputSummary || execution.errorSummary}</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <Button size="sm" variant="ghost" onClick={() => void controlExecution(execution.id, 'pause')} icon={<Pause className="h-3.5 w-3.5" />}>Pause</Button>
+                  <Button size="sm" variant="ghost" onClick={() => void controlExecution(execution.id, 'cancel')} icon={<Square className="h-3.5 w-3.5" />}>Cancel</Button>
+                  <Button size="sm" variant="ghost" onClick={() => void controlExecution(execution.id, 'retry')} icon={<RotateCcw className="h-3.5 w-3.5" />}>Retry Safe Node</Button>
+                  <Button size="sm" variant="secondary" onClick={() => void controlExecution(execution.id, 'resume')}>Resume</Button>
+                </div>
+                {execution.customData && (
+                  <p className="mt-2 text-xs text-[var(--text-muted)]">
+                    Owner/provider/model/context/token attribution is stored in the execution record.
+                  </p>
+                )}
+              </div>
+            ))}
             {executions.length === 0 && <EmptyState icon={Bot} title="No executions" description="Workflow and agent runs will appear here with selected provider, tools, context sources, token usage, and failure reason." />}
           </div>
         </SurfaceCard>

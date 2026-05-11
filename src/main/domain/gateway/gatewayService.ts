@@ -6,6 +6,7 @@ import storage from '../../storage.js';
 import { recordAudit } from '../../audit.js';
 import { routeModel } from '../router/modelRouter.js';
 import { recordUsage } from '../usage/usageService.js';
+import { clearGatewayRequestActive, markGatewayRequestActive } from '../usage/tokenPolicyService.js';
 import { forwardProviderRequest } from '../provider/providerForwardService.js';
 
 const HOST = '127.0.0.1';
@@ -119,13 +120,20 @@ async function handleChat(req: IncomingMessage, res: ServerResponse, endpoint: s
   const body = await readBody(req) as Record<string, unknown>;
   const model = typeof body.model === 'string' ? body.model : undefined;
   const route = await routeModel({ model, intent: 'default' });
+  const controller = new AbortController();
+  req.once('aborted', () => controller.abort());
+  res.once('close', () => {
+    if (!res.writableEnded) controller.abort();
+  });
+  await markGatewayRequestActive(requestId, route.provider?.id, route.model);
   const result = await forwardProviderRequest({
     endpoint,
     kind,
     body,
     stream: Boolean(body.stream),
     requestId,
-  }, route);
+    signal: controller.signal,
+  }, route).finally(() => clearGatewayRequestActive(requestId));
   lastTraceId = result.traceId;
   lastRouteReason = result.routeReason;
   await recordUsage({
@@ -149,6 +157,8 @@ async function handleChat(req: IncomingMessage, res: ServerResponse, endpoint: s
     routeReason: result.routeReason,
     failureCategory: result.failureCategory,
     streamed: result.streamed,
+    cancelled: result.cancelled,
+    streamProtocol: result.streamProtocol,
     createdAt: new Date().toISOString(),
   } as never);
   await recordAudit({
@@ -164,6 +174,8 @@ async function handleChat(req: IncomingMessage, res: ServerResponse, endpoint: s
       model: result.model,
       failureCategory: result.failureCategory,
       streamed: result.streamed,
+      cancelled: result.cancelled,
+      streamProtocol: result.streamProtocol,
       routeReason: result.routeReason,
     },
   }).catch(() => undefined);

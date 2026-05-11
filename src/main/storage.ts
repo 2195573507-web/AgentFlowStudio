@@ -16,6 +16,8 @@ type CollectionName =
   | 'riskChecks'
   | 'providerSettings'
   | 'tokenUsage'
+  | 'tokenPolicies'
+  | 'activeGatewayRequests'
   | 'healthChecks'
   | 'runtimeProfiles'
   | 'modelRoutes'

@@ -5,11 +5,14 @@ import {
   Clock3,
   GitBranch,
   Layers,
+  Pause,
   Play,
   Plus,
   RefreshCw,
+  RotateCcw,
   Save,
   Settings,
+  Square,
   Workflow as WorkflowIcon,
 } from 'lucide-react';
 import { api } from '../lib/api';
@@ -182,6 +185,16 @@ export default function Workflows() {
     }
     await Promise.all([loadProjectWorkflows(selectedWorkflow.projectId), loadWorkflow(selectedWorkflow.id)]);
     setStatus(result.result.nextStep ? `${result.result.summary} 下一步：${result.result.nextStep}` : result.result.summary);
+  };
+
+  const controlRun = async (runId: string, action: string) => {
+    const result = await api.workflows.controlRun(runId, action);
+    if (hasError(result)) {
+      setError(result.error);
+      return;
+    }
+    await loadProjectWorkflows(result.projectId);
+    setStatus(`Workflow run ${action}: ${result.status}`);
   };
 
   const editablePromptNodes = selectedWorkflow?.nodes.filter((node) => node.type === 'prompt' || node.type === 'llm') ?? [];
@@ -360,6 +373,17 @@ export default function Workflows() {
                       </div>
                       <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">{run.summary}</p>
                       {run.error && <p className="mt-1 text-xs text-red-600 dark:text-red-300">错误原因：{run.error}</p>}
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <button className="btn-secondary min-h-[30px] px-2 py-1 text-xs" onClick={() => void controlRun(run.id, 'pause')} aria-label="Pause workflow run">
+                          <Pause className="h-3.5 w-3.5" /> Pause
+                        </button>
+                        <button className="btn-secondary min-h-[30px] px-2 py-1 text-xs" onClick={() => void controlRun(run.id, 'cancel')} aria-label="Cancel workflow run">
+                          <Square className="h-3.5 w-3.5" /> Cancel
+                        </button>
+                        <button className="btn-secondary min-h-[30px] px-2 py-1 text-xs" onClick={() => void controlRun(run.id, 'retry')} aria-label="Retry safe workflow node">
+                          <RotateCcw className="h-3.5 w-3.5" /> Retry safe node
+                        </button>
+                      </div>
                     </article>
                   ))}
                 </div>

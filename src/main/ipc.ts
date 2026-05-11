@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import { randomUUID } from 'crypto';
 import { IPC_CHANNELS } from '../shared/types.js';
-import type { AgentExecutionRecord, AgentFeedbackRecord, AgentRecord, McpAllowlistEntry, McpGatewayRequest, MemoryType, NexusRouterDecision, NexusTemplateBundle, Project, ProviderSetting, ReleaseStatus, ReleaseTestResult, ReleaseTestStatus, SkillRegistryEntry } from '../shared/types.js';
+import type { AgentExecutionRecord, AgentFeedbackRecord, AgentRecord, AgentExecutionStatus, McpAllowlistEntry, McpGatewayRequest, MemoryType, NexusRouterDecision, NexusTemplateBundle, NexusTokenPolicy, Project, ProviderSetting, ReleaseStatus, ReleaseTestResult, ReleaseTestStatus, Run, SkillRegistryEntry } from '../shared/types.js';
 import { sanitizeObject } from '../shared/secretRedaction.js';
 import { buildAuditExportManifest } from '../shared/auditCore.js';
 import { PROVIDER_PRESETS } from '../shared/providerPresets.js';
@@ -39,10 +39,11 @@ import type { Workflow, WorkflowVersion } from '../shared/workflowTypes.js';
 import { getGatewayStatus, startGateway, stopGateway } from './domain/gateway/gatewayService.js';
 import { checkProviderHealth, healthSummary } from './domain/health/healthService.js';
 import { listUsageRecords, summarizeUsage } from './domain/usage/usageService.js';
+import { evaluateTokenPolicy, listTokenPolicies, upsertTokenPolicy } from './domain/usage/tokenPolicyService.js';
 import { generateRuntimeProfiles } from './domain/runtime/runtimeProfileService.js';
 import { createPromptSkill, testPromptSkill } from './domain/skills/skillService.js';
 import { generateSecurityReport } from './domain/security/securityReportService.js';
-import { previewContextPack } from './domain/memory/contextPackService.js';
+import { buildRecoveryPack, previewContextPack } from './domain/memory/contextPackService.js';
 import { listTemplateBundles, toggleTemplateBundle, upsertTemplateBundle } from './domain/ecosystem/bundleRegistryService.js';
 
 // ---------------------------------------------------------------------------
@@ -92,6 +93,7 @@ const CHANNEL_PERMISSIONS: Partial<Record<string, Permission>> = {
   [IPC_CHANNELS.WORKFLOW_CREATE_FROM_TEMPLATE]: 'project:write',
   [IPC_CHANNELS.WORKFLOW_SAVE]: 'project:write',
   [IPC_CHANNELS.WORKFLOW_RUN]: 'run:write',
+  [IPC_CHANNELS.WORKFLOW_RUN_CONTROL]: 'run:write',
   [IPC_CHANNELS.WORKFLOW_VERSION_LIST]: 'project:read',
   [IPC_CHANNELS.MCP_ALLOWLIST_LIST]: 'mcp:write',
   [IPC_CHANNELS.MCP_ALLOWLIST_CHECK]: 'mcp:write',
@@ -125,12 +127,16 @@ const CHANNEL_PERMISSIONS: Partial<Record<string, Permission>> = {
   [IPC_CHANNELS.GATEWAY_STOP]: 'provider:write',
   [IPC_CHANNELS.USAGE_SUMMARY]: 'provider:read',
   [IPC_CHANNELS.USAGE_LIST]: 'provider:read',
+  [IPC_CHANNELS.TOKEN_POLICY_LIST]: 'provider:read',
+  [IPC_CHANNELS.TOKEN_POLICY_UPSERT]: 'provider:write',
+  [IPC_CHANNELS.TOKEN_POLICY_EVALUATE]: 'provider:read',
   [IPC_CHANNELS.HEALTH_SUMMARY]: 'provider:read',
   [IPC_CHANNELS.HEALTH_CHECK_PROVIDER]: 'provider:write',
   [IPC_CHANNELS.RUNTIME_PROFILES_GENERATE]: 'provider:read',
   [IPC_CHANNELS.ROUTER_DECISIONS_LIST]: 'provider:read',
   [IPC_CHANNELS.SECURITY_REPORT_GENERATE]: 'admin:audit',
   [IPC_CHANNELS.CONTEXT_PACK_PREVIEW]: 'memory:read',
+  [IPC_CHANNELS.CONTEXT_RECOVERY_PACK]: 'memory:export',
   [IPC_CHANNELS.TEMPLATE_BUNDLES_LIST]: 'skill:read',
   [IPC_CHANNELS.TEMPLATE_BUNDLES_UPSERT]: 'mcp:write',
   [IPC_CHANNELS.TEMPLATE_BUNDLES_TOGGLE]: 'mcp:write',
@@ -143,6 +149,7 @@ const CHANNEL_PERMISSIONS: Partial<Record<string, Permission>> = {
   [IPC_CHANNELS.AGENT_DISABLE]: 'project:write',
   [IPC_CHANNELS.AGENT_HEALTH]: 'project:read',
   [IPC_CHANNELS.AGENT_EXECUTIONS_LIST]: 'project:read',
+  [IPC_CHANNELS.AGENT_EXECUTION_CONTROL]: 'project:write',
   [IPC_CHANNELS.AGENT_TIMELINE_LIST]: 'project:read',
   [IPC_CHANNELS.AGENT_FEEDBACK_CREATE]: 'project:write',
   [IPC_CHANNELS.AGENT_FEEDBACK_LIST]: 'project:read',
@@ -362,6 +369,8 @@ const ALLOWED_STORAGE_COLLECTIONS = new Set([
   'workflowVersions',
   'diagnosticReports',
   'tokenUsage',
+  'tokenPolicies',
+  'activeGatewayRequests',
   'healthChecks',
   'runtimeProfiles',
   'modelRoutes',
@@ -599,6 +608,14 @@ function providerHasSecret(provider: ProviderRecord): boolean {
   return typeof provider.apiKey === 'string' && !isMaskedApiKey(provider.apiKey);
 }
 
+function readProviderSecret(provider: ProviderRecord): string {
+  if (provider.needsApiKey === false || provider.authType === 'none') return '';
+  if (!provider.apiKey) return '';
+  if (isProtectedSecret(provider.apiKey)) return unprotectSecret(provider.apiKey) || '';
+  if (typeof provider.apiKey === 'string' && !isMaskedApiKey(provider.apiKey)) return provider.apiKey;
+  return '';
+}
+
 function normalizeProviderUrl(baseUrl: unknown): string {
   if (typeof baseUrl !== 'string' || !baseUrl.trim()) throw new Error('Provider base URL is required.');
   const parsed = new URL(baseUrl.trim());
@@ -655,6 +672,134 @@ async function testProviderConnection(providerId: string, context?: SessionConte
     title: `Provider test: ${String(provider.providerName ?? providerId)}`,
     detail: result.message,
     metadata: sanitizeObject({ providerId, status: result.status, latencyMs: result.latencyMs }),
+    createdAt: checkedAt,
+  } as never).catch(() => undefined);
+  return result;
+}
+
+async function testProviderConnectionV2(providerId: string, context?: SessionContext) {
+  const started = Date.now();
+  const provider = await storage.getById<ProviderRecord>('providerSettings', providerId);
+  if (!provider) throw new Error('Provider not found.');
+  const checkedAt = new Date().toISOString();
+  let result: {
+    ok: boolean;
+    status: 'success' | 'failure' | 'skipped';
+    latencyMs: number;
+    checkedAt: string;
+    message: string;
+    diagnostics: Record<string, { ok: boolean; category: string; message: string }>;
+  };
+
+  try {
+    const baseUrl = normalizeProviderUrl(provider.baseUrl);
+    const providerKind = String(provider.providerId ?? provider.id ?? '');
+    const apiKey = readProviderSecret(provider);
+
+    if (providerKind === 'localai-mock' || String(provider.baseUrl ?? '').startsWith('mock://')) {
+      result = {
+        ok: true,
+        status: 'success',
+        latencyMs: Date.now() - started,
+        checkedAt,
+        message: 'Mock provider is ready for CI-safe gateway and streaming tests.',
+        diagnostics: {
+          models: { ok: true, category: 'mock', message: 'Mock model list is generated locally.' },
+          chat: { ok: true, category: 'mock', message: 'Mock chat route is available.' },
+          responses: { ok: true, category: 'mock', message: 'Mock responses route is available.' },
+        },
+      };
+    } else if (!providerHasSecret(provider)) {
+      throw new Error('provider_secret_missing');
+    } else if (providerKind && !['openai-compatible', 'custom-provider', 'custom'].includes(providerKind)) {
+      result = {
+        ok: false,
+        status: 'skipped',
+        latencyMs: Date.now() - started,
+        checkedAt,
+        message: `${String(provider.providerName ?? providerId)} needs protocol conversion before live gateway forwarding.`,
+        diagnostics: {
+          models: { ok: false, category: 'protocol_error', message: 'Live /v1/models test skipped for non OpenAI-compatible provider.' },
+          chat: { ok: false, category: 'protocol_error', message: 'Chat route requires provider-specific conversion.' },
+          responses: { ok: false, category: 'protocol_error', message: 'Responses route requires provider-specific conversion.' },
+        },
+      };
+    } else {
+      const modelsUrl = `${baseUrl.replace(/\/v1\/?$/i, '')}/v1/models`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), Number(provider.defaultTimeout ?? 15_000));
+      try {
+        const response = await fetch(modelsUrl, {
+          method: 'GET',
+          headers: {
+            authorization: apiKey ? `Bearer ${apiKey}` : '',
+            'x-localai-nexus-diagnostic': 'models',
+          },
+          signal: controller.signal,
+        });
+        const body = await response.text();
+        const category = response.ok ? 'success' : response.status === 401 ? 'auth_failure' : response.status === 404 ? 'unsupported_route' : `http_${response.status}`;
+        result = {
+          ok: response.ok,
+          status: response.ok ? 'success' : 'failure',
+          latencyMs: Date.now() - started,
+          checkedAt,
+          message: response.ok ? 'Live provider models endpoint responded successfully.' : `Live provider models endpoint failed: ${category}.`,
+          diagnostics: {
+            models: { ok: response.ok, category, message: response.ok ? 'GET /v1/models returned a response.' : body.slice(0, 240) || response.statusText },
+            chat: { ok: response.ok, category: response.ok ? 'ready' : category, message: response.ok ? 'Chat route can use the same credential and base URL.' : 'Fix models/auth/base URL before chat smoke.' },
+            responses: { ok: response.ok, category: response.ok ? 'ready' : category, message: response.ok ? 'Responses route can use the same credential and base URL.' : 'Fix models/auth/base URL before responses smoke.' },
+          },
+        };
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+  } catch (err) {
+    const raw = err instanceof Error ? err.message : String(err);
+    const category = raw === 'provider_secret_missing'
+      ? 'missing_key'
+      : raw.toLowerCase().includes('abort')
+      ? 'timeout'
+      : raw.toLowerCase().includes('url')
+      ? 'bad_base_url'
+      : 'network_failure';
+    result = {
+      ok: false,
+      status: 'failure',
+      latencyMs: Date.now() - started,
+      checkedAt,
+      message: raw === 'provider_secret_missing' ? 'API key is missing or cannot be read from secure storage.' : raw,
+      diagnostics: {
+        models: { ok: false, category, message: raw },
+        chat: { ok: false, category, message: 'Chat diagnostic waits for a successful models/auth/base URL check.' },
+        responses: { ok: false, category, message: 'Responses diagnostic waits for a successful models/auth/base URL check.' },
+      },
+    };
+  }
+
+  await storage.update('providerSettings', providerId, {
+    lastTestStatus: result.ok ? 'success' : 'failure',
+    lastTestMessage: result.message,
+    lastTestedAt: checkedAt,
+  } as never);
+  await recordAudit({
+    type: 'provider.connection_test',
+    action: 'provider.test',
+    status: result.ok ? 'success' : 'failure',
+    severity: result.ok ? 'info' : 'warning',
+    actor: actorFor(context),
+    resource: { type: 'provider', id: providerId, label: String(provider.providerName ?? '') },
+    metadata: sanitizeObject({ status: result.status, latencyMs: result.latencyMs, message: result.message, diagnostics: result.diagnostics }),
+  });
+  await storage.create('runEvents', {
+    id: randomUUID(),
+    type: 'provider.test',
+    status: result.ok ? 'success' : 'failure',
+    actorUserId: context?.user.id,
+    title: `Provider test: ${String(provider.providerName ?? providerId)}`,
+    detail: result.message,
+    metadata: sanitizeObject({ providerId, status: result.status, latencyMs: result.latencyMs, diagnostics: result.diagnostics }),
     createdAt: checkedAt,
   } as never).catch(() => undefined);
   return result;
@@ -1336,7 +1481,7 @@ export function registerIpcHandlers(): void {
         })),
         metadata: { workflowId, workflowVersion: workflow.version, output: result.output, nextStep: result.nextStep },
         createdAt: startedAt,
-      } as never);
+      } as Partial<Run> & { id: string });
       for (const event of result.nodeTrace) {
         await storage.create('runEvents', {
           id: randomUUID(),
@@ -1361,7 +1506,80 @@ export function registerIpcHandlers(): void {
         resource: { type: 'workflow', id: workflow.id, label: workflow.name },
         metadata: { projectId: workflow.projectId, runId: run.id, status: result.status, error: result.error, nextStep: result.nextStep },
       });
+      const llmNode = workflow.nodes.find((node) => node.type === 'llm');
+      const execution = await storage.create('agentExecutions', {
+        id: randomUUID(),
+        agentId: String((workflow as { agentId?: string }).agentId ?? `workflow-${workflow.id}`),
+        runId: run.id,
+        workflowId: workflow.id,
+        projectId: workflow.projectId,
+        status: result.status === 'success' ? 'success' : result.status === 'blocked' ? 'paused' : 'failed',
+        startedAt,
+        finishedAt: endedAt,
+        durationMs: Math.max(1, new Date(endedAt).getTime() - new Date(startedAt).getTime()),
+        inputSummary: String(data.input ?? '').slice(0, 180) || `Workflow ${workflow.name}`,
+        outputSummary: result.output || result.summary,
+        errorSummary: result.error,
+        customData: sanitizeObject({
+          ownerUserId: context.user.id,
+          providerRef: llmNode?.config.providerRef ?? await getSettingValue('activeProviderRef') ?? '',
+          model: llmNode?.config.model ?? await getSettingValue('activeModel') ?? '',
+          contextSources: ['workflow', 'project', 'shared-memory-preview'],
+          toolList: workflow.nodes.filter((node) => node.type === 'tool').map((node) => node.config.toolName || node.title),
+          tokenUsage: { estimated: true, total: Math.max(1, result.nodeTrace.length * 12) },
+          failureReason: result.error ?? '',
+          humanOwner: context.user.email,
+        }) as Record<string, unknown>,
+        createdAt: startedAt,
+      } as never);
+      await storage.create('runEvents', {
+        id: randomUUID(),
+        runId: run.id,
+        agentId: String((execution as AgentExecutionRecord).agentId),
+        executionId: String((execution as AgentExecutionRecord).id),
+        projectId: workflow.projectId,
+        workflowId: workflow.id,
+        type: 'agent.execution',
+        status: result.status === 'success' ? 'success' : result.status === 'blocked' ? 'info' : 'failure',
+        actorUserId: context.user.id,
+        title: `Execution control ready: ${workflow.name}`,
+        detail: 'Run can be paused, cancelled, or retried through LocalAI Nexus controlled execution records.',
+        metadata: sanitizeObject({ executionId: (execution as AgentExecutionRecord).id, workflowId: workflow.id }),
+        createdAt: endedAt,
+      } as never).catch(() => undefined);
       return { run, result };
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.WORKFLOW_RUN_CONTROL, async (_event, runId: string, action: string, context?: SessionContext) => {
+    try {
+      const run = await storage.getById<Run>('runs', runId);
+      if (!run) throw new Error('Run not found.');
+      await assertProjectResourceAccess(context, run.projectId, 'write');
+      const normalized = ['pause', 'cancel', 'retry', 'resume'].includes(action) ? action : 'pause';
+      const status = normalized === 'cancel' ? 'cancelled' : normalized === 'pause' ? 'paused' : normalized === 'resume' ? 'running' : 'queued';
+      const updated = await storage.update('runs', runId, {
+        status,
+        summary: `${run.summary} Control action: ${normalized}.`,
+        metadata: { ...(run.metadata ?? {}), controlAction: normalized, controlledAt: new Date().toISOString(), controlledBy: context?.user.id },
+      } as never);
+      await storage.create('runEvents', {
+        id: randomUUID(),
+        runId,
+        projectId: run.projectId,
+        workflowId: String((run.metadata as { workflowId?: string } | undefined)?.workflowId ?? ''),
+        type: 'run.updated',
+        status: normalized === 'cancel' ? 'denied' : 'info',
+        actorUserId: context?.user.id,
+        title: `Workflow control: ${normalized}`,
+        detail: normalized === 'retry' ? 'Safe retry requested for the last failed node or dry-run record.' : `Workflow run marked ${status}.`,
+        metadata: { action: normalized, status },
+        createdAt: new Date().toISOString(),
+      } as never);
+      await recordMutationAudit(context, 'workflow.run.control', { type: 'run', id: runId }, { action: normalized, status });
+      return updated;
     } catch (err) {
       return handleError(err);
     }
@@ -1716,7 +1934,7 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.PROVIDER_TEST, async (_event, providerId: string, context?: SessionContext) => {
     try {
-      return await testProviderConnection(providerId, context);
+      return await testProviderConnectionV2(providerId, context);
     } catch (err) {
       return handleError(err);
     }
@@ -1824,6 +2042,41 @@ export function registerIpcHandlers(): void {
     }
   });
 
+  ipcMain.handle(IPC_CHANNELS.TOKEN_POLICY_LIST, async () => {
+    try {
+      return await listTokenPolicies();
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.TOKEN_POLICY_UPSERT, async (_event, input: Partial<NexusTokenPolicy>, context?: SessionContext) => {
+    try {
+      const saved = await upsertTokenPolicy(sanitizeObject(input) as Partial<NexusTokenPolicy>);
+      await recordMutationAudit(context, 'tokenPolicy.upsert', { type: 'token_policy', id: saved.id }, {
+        providerId: saved.providerId,
+        model: saved.model,
+        dailyQuota: saved.dailyQuota,
+        monthlyQuota: saved.monthlyQuota,
+        concurrencyLimit: saved.concurrencyLimit,
+        cooldownMinutes: saved.cooldownMinutes,
+      });
+      return saved;
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.TOKEN_POLICY_EVALUATE, async (_event, providerId: string, model?: string) => {
+    try {
+      const provider = await storage.getById<ProviderSetting>('providerSettings', providerId);
+      if (!provider) throw new Error('Provider not found.');
+      return await evaluateTokenPolicy(provider, model || provider.modelName);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
   ipcMain.handle(IPC_CHANNELS.HEALTH_SUMMARY, async () => {
     try {
       return await healthSummary();
@@ -1880,6 +2133,21 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.CONTEXT_PACK_PREVIEW, async (_event, options?: { projectId?: string }) => {
     try {
       return await previewContextPack(options?.projectId);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.CONTEXT_RECOVERY_PACK, async (_event, options?: { projectId?: string }, context?: SessionContext) => {
+    try {
+      const pack = await buildRecoveryPack(options?.projectId);
+      await recordMutationAudit(context, 'contextPack.recoveryPack', { type: 'recovery_pack', id: pack.id }, {
+        projectId: pack.projectId,
+        memoryCount: pack.memoryIds.length,
+        providerTraceCount: pack.providerTraceIds.length,
+        workflowRunCount: pack.workflowRunIds.length,
+      });
+      return pack;
     } catch (err) {
       return handleError(err);
     }
@@ -2018,6 +2286,53 @@ export function registerIpcHandlers(): void {
       const agent = await assertAgentAccess(context, agentId, 'read');
       const all = await storage.getAll<AgentExecutionRecord>('agentExecutions');
       return all.filter((execution) => execution.agentId === agent.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.AGENT_EXECUTION_CONTROL, async (_event, executionId: string, action: string, context?: SessionContext) => {
+    try {
+      const execution = await storage.getById<AgentExecutionRecord>('agentExecutions', executionId);
+      if (!execution) throw new Error('Execution not found.');
+      await assertAgentAccess(context, execution.agentId, 'write');
+      if (execution.projectId) await assertProjectResourceAccess(context, execution.projectId, 'write');
+      const normalized = ['pause', 'cancel', 'retry', 'resume'].includes(action) ? action : 'pause';
+      const nextStatus: AgentExecutionStatus =
+        normalized === 'cancel' ? 'cancelled' :
+        normalized === 'pause' ? 'paused' :
+        normalized === 'resume' ? 'running' :
+        'queued';
+      const updated = await storage.update('agentExecutions', executionId, {
+        status: nextStatus,
+        finishedAt: normalized === 'cancel' ? new Date().toISOString() : execution.finishedAt,
+        outputSummary: normalized === 'retry'
+          ? `${execution.outputSummary || 'Execution'} Retry requested for safe deterministic node.`
+          : execution.outputSummary,
+        customData: sanitizeObject({
+          ...(execution.customData ?? {}),
+          lastControlAction: normalized,
+          controlledAt: new Date().toISOString(),
+          controlledBy: context?.user.id,
+        }) as Record<string, unknown>,
+      } as never);
+      await storage.create('runEvents', {
+        id: randomUUID(),
+        runId: execution.runId ?? '',
+        agentId: execution.agentId,
+        executionId,
+        projectId: execution.projectId ?? '',
+        workflowId: execution.workflowId ?? '',
+        type: 'agent.execution',
+        status: normalized === 'cancel' ? 'denied' : 'info',
+        actorUserId: context?.user.id,
+        title: `Agent execution control: ${normalized}`,
+        detail: `Execution marked ${nextStatus}; risky or external tools still require explicit approval.`,
+        metadata: { action: normalized, status: nextStatus },
+        createdAt: new Date().toISOString(),
+      } as never);
+      await recordMutationAudit(context, 'agent.execution.control', { type: 'agent_execution', id: executionId }, { action: normalized, status: nextStatus });
+      return sanitizeObject(updated);
     } catch (err) {
       return handleError(err);
     }

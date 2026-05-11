@@ -19,7 +19,7 @@ Complete the active LocalAI Nexus roadmap in `docs/LOCALAI_NEXUS_ITERATION_PLAN.
 | 5. Iteration 8-10: skills, agents, workflows, memory, security | complete | Skill bundle registry, Agent/Workflow records, context-pack preview, security report surface, audit/risk signals, and Shared Memory extensions were added or connected. |
 | 6. Iteration 11-12: reliability, packaging, extensibility | complete with environment-limited packaging | Startup, auth bridge, static fallback, shortcut, E2E, long-run, gateway smoke, local bundle registry, and docs passed. `npm.cmd run dist` reached the build step but electron-builder download failed on network timeout. |
 | 7. Documentation and next-stage plan | complete | Added `docs/LOCALAI_NEXUS_NEXT_ITERATION_PLAN.md` and updated progress, findings, test report, next steps, changelog, architecture/worklog docs. |
-| 8. Git stage, commit, push | pending | Run after final light verification. |
+| 8. Git stage, commit, push | in_progress | Final light verification passed after resume; staging, commit, and push remain. |
 
 ## Completed
 
@@ -45,8 +45,8 @@ Complete the active LocalAI Nexus roadmap in `docs/LOCALAI_NEXUS_ITERATION_PLAN.
 | `npm.cmd run typecheck` | PASS |
 | `npm.cmd run lint` | PASS, warnings under threshold |
 | `npm.cmd run test` | PASS |
-| `npm.cmd run smoke` | PASS |
-| `npm.cmd run verify` | PASS |
+| `npm.cmd run smoke` | PASS, 213/213 through `npm.cmd run verify` |
+| `npm.cmd run verify` | PASS, 131/131 plus smoke 213/213 |
 | `npm.cmd run build` | PASS |
 | `npm.cmd run test:e2e` | PASS |
 | `npm.cmd run test:static-browser` | PASS |

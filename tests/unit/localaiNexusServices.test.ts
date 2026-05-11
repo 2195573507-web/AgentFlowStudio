@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import type { NexusGatewayForwardResult, NexusSecurityReport, NexusTemplateBundle, NexusUsageRecord, ProviderSetting, SkillRegistryEntry } from '../../src/shared/types';
+import type { Memory, NexusGatewayForwardResult, NexusRecoveryPack, NexusSecurityReport, NexusTemplateBundle, NexusTokenPolicy, NexusTokenPolicyEvaluation, NexusUsageRecord, ProviderSetting, SkillRegistryEntry } from '../../src/shared/types';
 import type { RouteModelRequest, RouteModelResult } from '../../src/main/domain/router/modelRouter';
 import type { NexusFailureCategory, NexusRuntimeProfile, NexusSkillTestResult, NexusUsageSummary } from '../../src/shared/types';
 
@@ -15,6 +15,9 @@ let forwardProviderRequest: (input: any, route: RouteModelResult) => Promise<Nex
 let generateSecurityReport: () => Promise<NexusSecurityReport>;
 let listTemplateBundles: () => Promise<NexusTemplateBundle[]>;
 let toggleTemplateBundle: (id: string, enabled: boolean) => Promise<NexusTemplateBundle>;
+let upsertTokenPolicy: (input: Partial<NexusTokenPolicy>) => Promise<NexusTokenPolicy>;
+let evaluateTokenPolicy: (provider: ProviderSetting, model?: string, now?: Date) => Promise<NexusTokenPolicyEvaluation>;
+let buildRecoveryPack: (projectId?: string) => Promise<NexusRecoveryPack>;
 
 vi.stubGlobal('require', (id: string) => {
   if (id === 'crypto') {
@@ -83,6 +86,8 @@ describe('LocalAI Nexus services', () => {
     ({ forwardProviderRequest } = await import('../../src/main/domain/provider/providerForwardService'));
     ({ generateSecurityReport } = await import('../../src/main/domain/security/securityReportService'));
     ({ listTemplateBundles, toggleTemplateBundle } = await import('../../src/main/domain/ecosystem/bundleRegistryService'));
+    ({ upsertTokenPolicy, evaluateTokenPolicy } = await import('../../src/main/domain/usage/tokenPolicyService'));
+    ({ buildRecoveryPack } = await import('../../src/main/domain/memory/contextPackService'));
   });
 
   it('summarizes token usage and classifies common failures', async () => {
@@ -187,6 +192,148 @@ describe('LocalAI Nexus services', () => {
     expect(result.streamed).toBe(true);
     expect(result.events?.some((event) => event.type === 'content_delta')).toBe(true);
     expect(JSON.stringify(result.body)).toContain('LocalAI Nexus mock provider');
+  });
+
+  it('parses SSE streaming and records stream protocol metadata', async () => {
+    const originalFetch = globalThis.fetch;
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(
+      [
+        'event: content_delta',
+        'data: {"choices":[{"delta":{"content":"Hello "}}]}',
+        '',
+        'event: content_delta',
+        'data: {"choices":[{"delta":{"content":"world"}}]}',
+        '',
+        'data: [DONE]',
+        '',
+      ].join('\n'),
+      { status: 200, headers: { 'content-type': 'text/event-stream' } },
+    )));
+    try {
+      const provider = {
+        id: 'openai-live',
+        providerId: 'openai-compatible',
+        providerName: 'OpenAI Live',
+        baseUrl: 'https://example.test/v1',
+        apiKey: 'test-key',
+        modelName: 'gpt-live',
+        enabled: true,
+        memoryEnabled: false,
+        memoryInjectionMode: 'off',
+        maxMemoryItems: 0,
+        maxMemoryChars: 0,
+        tags: ['default'],
+      } satisfies ProviderSetting;
+      const result = await forwardProviderRequest({
+        endpoint: '/v1/chat/completions',
+        kind: 'chat.completions',
+        body: { messages: [{ role: 'user', content: 'stream' }], stream: true },
+        stream: true,
+        requestId: 'sse-trace',
+      }, {
+        provider,
+        model: 'gpt-live',
+        reason: 'test',
+        fallbackUsed: false,
+        quotaState: 'available',
+      });
+      expect(result.ok).toBe(true);
+      expect(result.streamProtocol).toBe('sse');
+      expect(result.events?.filter((event) => event.type === 'content_delta')).toHaveLength(2);
+    } finally {
+      vi.stubGlobal('fetch', originalFetch);
+    }
+  });
+
+  it('enforces token policy quota, cooldown, and concurrency states', async () => {
+    const provider = {
+      id: 'policy-provider',
+      providerName: 'Policy Provider',
+      baseUrl: 'https://example.test/v1',
+      apiKey: 'Saved key ending in 1234',
+      modelName: 'policy-model',
+      enabled: true,
+      memoryEnabled: false,
+      memoryInjectionMode: 'off',
+      maxMemoryItems: 0,
+      maxMemoryChars: 0,
+    } satisfies ProviderSetting;
+    seed('tokenPolicies', []);
+    seed('tokenUsage', [
+      {
+        id: 'used-1',
+        providerId: 'policy-provider',
+        providerName: 'Policy Provider',
+        model: 'policy-model',
+        endpoint: '/v1/chat/completions',
+        inputTokens: 10,
+        outputTokens: 10,
+        totalTokens: 20,
+        success: true,
+        failureCategory: 'none',
+        latencyMs: 10,
+        createdAt: '2026-05-10T01:00:00.000Z',
+      },
+    ] satisfies NexusUsageRecord[]);
+
+    await upsertTokenPolicy({
+      providerId: 'policy-provider',
+      model: 'policy-model',
+      dailyQuota: 20,
+      monthlyQuota: 0,
+      concurrencyLimit: 1,
+      cooldownMinutes: 0,
+      enabled: true,
+    });
+    const exhausted = await evaluateTokenPolicy(provider, 'policy-model', new Date('2026-05-10T12:00:00.000Z'));
+    expect(exhausted.state).toBe('quota_exhausted');
+
+    seed('tokenUsage', []);
+    seed('activeGatewayRequests', [{ id: 'active-1', providerId: 'policy-provider', model: 'policy-model' }]);
+    const limited = await evaluateTokenPolicy(provider, 'policy-model', new Date('2026-05-10T12:00:00.000Z'));
+    expect(limited.state).toBe('concurrency_limited');
+  });
+
+  it('builds redacted recovery packs with graph relationships and trace ids', async () => {
+    seed('memories', [
+      {
+        id: 'm1',
+        type: 'decision',
+        title: 'Provider policy',
+        content: 'Keep keys secret sk-test-secret',
+        tags: ['provider', 'security'],
+        projectId: 'p1',
+        importance: 5,
+        status: 'active',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+        lastUsedAt: '2026-01-01T00:00:00.000Z',
+      },
+      {
+        id: 'm2',
+        type: 'security',
+        title: 'Security report',
+        content: 'Redact exports',
+        tags: ['security'],
+        projectId: 'p1',
+        importance: 4,
+        status: 'active',
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:00:00.000Z',
+        lastUsedAt: '2026-05-01T00:00:00.000Z',
+      },
+    ] satisfies Memory[]);
+    seed('gatewayRequests', [{ id: 'trace-1', createdAt: '2026-05-10T00:00:00.000Z' }]);
+    seed('runs', [{ id: 'run-1', projectId: 'p1', createdAt: '2026-05-10T00:00:00.000Z' }]);
+
+    const pack = await buildRecoveryPack('p1');
+    expect(pack.redaction).toBe('secrets-redacted');
+    expect(pack.memoryIds).toEqual(['m1', 'm2']);
+    expect(pack.staleMemoryIds).toContain('m1');
+    expect(pack.providerTraceIds).toEqual(['trace-1']);
+    expect(pack.workflowRunIds).toEqual(['run-1']);
+    expect(pack.prompt).not.toContain('sk-test-secret');
+    expect(pack.prompt).toContain('m1 -> m2');
   });
 
   it('generates redacted security reports and local ecosystem bundles', async () => {

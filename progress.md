@@ -31,7 +31,7 @@
 
 ## Remaining Before Final Response
 
-- Run final light verification after documentation changes.
+- 2026-05-11 16:28-16:30 +08: final light verification passed again after resume: `npm.cmd run test` (25 files / 185 tests), `npm.cmd run typecheck`, `npm.cmd run lint` (0 errors / 21 warnings under threshold), `npm.cmd run build`, and `npm.cmd run verify` (131/131 plus smoke 213/213).
 - Stage all accepted changes.
 - Commit with a conventional message.
 - Push `refactor-localai-nexus`.

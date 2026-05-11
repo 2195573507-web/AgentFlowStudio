@@ -64,6 +64,7 @@ const domainServices = [
   'gateway/gatewayService',
   'router/modelRouter',
   'usage/usageService',
+  'usage/tokenPolicyService',
   'health/healthService',
   'runtime/runtimeProfileService',
   'skills/skillService',
